@@ -23,6 +23,12 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "6bc779b1-2e92-41e0-9d2d-884a1acdc966"
+      }
+    },
+    "owner": "deepkm"
   }
 }
