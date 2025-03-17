@@ -6,7 +6,7 @@
       "name": "nativewind",
       "type": "styling"
     }
-  ],
+  ], 
   "flags": {
     "noGit": false,
     "noInstall": false,
