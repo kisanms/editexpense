@@ -1,16 +1,20 @@
-import OrderForm from 'components/OrderForm';
-import { View, Text, TouchableOpacity } from 'react-native';
+import React from 'react';
+import { View, StyleSheet } from 'react-native';
+import OrderForm from '../components/OrderForm';
 
-export default function AddOrderScreen({ navigation }) {
+const AddOrderScreen = ({ navigation }) => {
   return (
-    <View className="flex-1 bg-white">
-      <View className="flex-row items-center bg-blue-500 p-4">
-        <TouchableOpacity onPress={() => navigation.goBack()} className="mr-4">
-          <Text className="text-lg text-white">← Back</Text>
-        </TouchableOpacity>
-        <Text className="text-xl font-bold text-white">Add New Order</Text>
-      </View>
+    <View style={styles.container}>
       <OrderForm navigation={navigation} />
     </View>
   );
-}
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+  },
+});
+
+export default AddOrderScreen;
