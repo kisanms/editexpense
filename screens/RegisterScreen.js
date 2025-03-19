@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Alert,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../services/firebase';
@@ -15,9 +16,11 @@ const RegisterScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleRegister = async () => {
     try {
+      setLoading(true);
       if (!email || !password || !confirmPassword) {
         Alert.alert('Error', 'Please fill in all fields');
         return;
@@ -29,10 +32,11 @@ const RegisterScreen = ({ navigation }) => {
       }
 
       await createUserWithEmailAndPassword(auth, email, password);
-      Alert.alert('Success', 'Registration successful! Please login.');
-      navigation.navigate('Login');
+      // Navigation will happen automatically through AuthContext
     } catch (error) {
       Alert.alert('Error', error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -54,6 +58,7 @@ const RegisterScreen = ({ navigation }) => {
           onChangeText={setEmail}
           keyboardType="email-address"
           autoCapitalize="none"
+          editable={!loading}
         />
         <TextInput
           style={styles.input}
@@ -61,6 +66,7 @@ const RegisterScreen = ({ navigation }) => {
           value={password}
           onChangeText={setPassword}
           secureTextEntry
+          editable={!loading}
         />
         <TextInput
           style={styles.input}
@@ -68,13 +74,23 @@ const RegisterScreen = ({ navigation }) => {
           value={confirmPassword}
           onChangeText={setConfirmPassword}
           secureTextEntry
+          editable={!loading}
         />
-        <TouchableOpacity style={styles.button} onPress={handleRegister}>
-          <Text style={styles.buttonText}>Register</Text>
+        <TouchableOpacity 
+          style={[styles.button, loading && styles.buttonDisabled]}
+          onPress={handleRegister}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="white" />
+          ) : (
+            <Text style={styles.buttonText}>Register</Text>
+          )}
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.loginButton}
           onPress={() => navigation.navigate('Login')}
+          disabled={loading}
         >
           <Text style={styles.loginText}>Already have an account? Login</Text>
         </TouchableOpacity>
@@ -130,6 +146,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     marginTop: 10,
+  },
+  buttonDisabled: {
+    backgroundColor: '#99c9ff',
   },
   buttonText: {
     color: 'white',
