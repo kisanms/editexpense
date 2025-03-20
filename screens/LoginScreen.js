@@ -37,12 +37,12 @@ const LoginScreen = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <View style={styles.logoContainer}>
-        {/* <Image
-          source={require('../assets/logo.png')}
+        <Image
+          source={require('../assets/icon.png')}
           style={styles.logo}
           resizeMode="contain"
-        /> */}
-        <Text style={styles.title}>Expense Tracker</Text>
+        />
+        <Text style={styles.title}>Edit Expense</Text>
       </View>
       <View style={styles.form}>
         <TextInput

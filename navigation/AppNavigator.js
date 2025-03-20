@@ -13,6 +13,7 @@ import MembersScreen from '../screens/MembersScreen';
 import OrganizationSetupScreen from '../screens/OrganizationSetupScreen';
 import OrderDetails from '../screens/OrderDetails';
 import ActivityHistoryScreen from '../screens/ActivityHistoryScreen';
+import EditorProfileScreen from '../screens/EditorProfileScreen';
 import { useAuth } from '../contexts/AuthContext';
 
 const Stack = createStackNavigator();
@@ -35,6 +36,8 @@ const MainTabs = () => {
             iconName = focused ? 'people' : 'people-outline';
           } else if (route.name === 'Activity') {
             iconName = focused ? 'time' : 'time-outline';
+          } else if (route.name === 'Editors') {
+            iconName = focused ? 'people' : 'people-outline';
           }
 
           return <Ionicons name={iconName} size={size} color={color} />;
@@ -61,6 +64,19 @@ const MainTabs = () => {
       <Tab.Screen name="Status" component={StatusScreen} />
       <Tab.Screen name="Team" component={MembersScreen} />
       <Tab.Screen name="Activity" component={ActivityHistoryScreen} />
+      <Tab.Screen
+        name="Editors"
+        component={EditorProfileScreen}
+        options={{
+          tabBarIcon: ({ focused, color }) => (
+            <Ionicons
+              name={focused ? 'people' : 'people-outline'}
+              size={24}
+              color={color}
+            />
+          ),
+        }}
+      />
     </Tab.Navigator>
   );
 };
