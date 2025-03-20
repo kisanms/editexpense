@@ -20,10 +20,18 @@ const MembersScreen = () => {
   const { user, organizationData, inviteMember, createOrganization } = useAuth();
   const [orgName, setOrgName] = useState('');
   const [inviteEmail, setInviteEmail] = useState('');
+  const [selectedPermissions, setSelectedPermissions] = useState(['read']);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [selectedMember, setSelectedMember] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [accessKey, setAccessKey] = useState('');
+
+  // Debug information
+  console.log("MembersScreen - User:", user?.email, 
+    "Has Org:", !!organizationData, 
+    "OrgId:", user?.organizationId,
+    "PendingInvites:", organizationData?.pendingInvites?.length || 0);
 
   if (!organizationData) {
     return (
@@ -84,55 +92,73 @@ const MembersScreen = () => {
   }
 
   const handleInvite = async () => {
-    if (!inviteEmail.trim()) {
+    if (!inviteEmail) {
       Alert.alert('Error', 'Please enter an email address');
       return;
     }
-
-    // Add email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(inviteEmail.trim())) {
-      Alert.alert('Error', 'Please enter a valid email address');
-      return;
-    }
-
+    
     try {
       setLoading(true);
-      await inviteMember(inviteEmail.trim().toLowerCase());
-      Alert.alert('Success', 'Invitation sent successfully.\n\nPlease note: The invited user will see the invitation when they log in with this email address. You may want to notify them separately.');
-      setInviteEmail('');
-      setShowInviteModal(false);
+      
+      console.log("Sending invitation to:", inviteEmail, "with permissions:", selectedPermissions);
+      const result = await inviteMember(inviteEmail, selectedPermissions);
+      
+      if (result.success) {
+        setAccessKey(result.accessKey);
+        Alert.alert(
+          'Invitation Sent',
+          `Access Key: ${result.accessKey}\n\nPlease share this access key with ${inviteEmail}. They will need it to join the organization.`,
+          [
+            {
+              text: 'Copy Key',
+              onPress: () => {
+                if (Platform.OS === 'web') {
+                  navigator.clipboard.writeText(result.accessKey);
+                }
+                Alert.alert('Success', 'Access key copied to clipboard');
+              }
+            },
+            {
+              text: 'Done',
+              onPress: () => {
+                setInviteEmail('');
+                setShowInviteModal(false);
+                setAccessKey('');
+              }
+            }
+          ]
+        );
+      }
     } catch (error) {
+      console.error("Invitation error:", error);
       Alert.alert('Error', error.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleRoleChange = async (newRole) => {
+  const handleUpdatePermissions = async (member, newPermissions) => {
     try {
-      if (!selectedMember) return;
-
       const orgRef = doc(db, 'organizations', organizationData.id);
-      const updatedMembers = organizationData.members.map(member => {
-        if (member.uid === selectedMember.uid) {
-          return { ...member, role: newRole };
+      const updatedMembers = organizationData.members.map(m => {
+        if (m.uid === member.uid) {
+          return { ...m, permissions: newPermissions };
         }
-        return member;
+        return m;
       });
 
       await setDoc(orgRef, { members: updatedMembers }, { merge: true });
 
-      // Update user's role in their user document
-      await setDoc(doc(db, 'users', selectedMember.uid), {
-        role: newRole,
+      // Update user's permissions in their user document
+      await setDoc(doc(db, 'users', member.uid), {
+        permissions: newPermissions,
         updatedAt: serverTimestamp()
       }, { merge: true });
 
       setShowRoleModal(false);
       setSelectedMember(null);
     } catch (error) {
-      Alert.alert('Error', 'Failed to update member role');
+      Alert.alert('Error', 'Failed to update member permissions');
     }
   };
 
@@ -180,21 +206,21 @@ const MembersScreen = () => {
   };
 
   const renderMemberItem = (member) => {
-    const isAdmin = member.role === 'admin';
+    const isAdmin = member.permissions?.includes('admin');
     const isCurrentUser = member.uid === user.uid;
-    const canManageRole = user.role === 'admin' && !isCurrentUser;
+    const canManagePermissions = user.permissions?.includes('admin') && !isCurrentUser;
 
     return (
       <TouchableOpacity
         key={member.uid}
         style={styles.memberItem}
         onPress={() => {
-          if (canManageRole) {
+          if (canManagePermissions) {
             setSelectedMember(member);
             setShowRoleModal(true);
           }
         }}
-        disabled={!canManageRole}
+        disabled={!canManagePermissions}
       >
         <View style={styles.memberInfo}>
           <View style={styles.avatarContainer}>
@@ -208,23 +234,34 @@ const MembersScreen = () => {
               {isCurrentUser && ' (You)'}
             </Text>
             <Text style={styles.memberEmail}>{member.email}</Text>
+            <View style={styles.permissionTags}>
+              {member.permissions?.map(permission => (
+                <View key={permission} style={[
+                  styles.permissionTag,
+                  permission === 'admin' && styles.adminTag
+                ]}>
+                  <Text style={[
+                    styles.permissionText,
+                    permission === 'admin' && styles.adminText
+                  ]}>
+                    {permission}
+                  </Text>
+                </View>
+              ))}
+            </View>
           </View>
         </View>
-        <View style={styles.memberActions}>
-          <View style={[styles.roleBadge, isAdmin && styles.adminBadge]}>
-            <Text style={[styles.roleText, isAdmin && styles.adminText]}>
-              {member.role}
-            </Text>
-          </View>
-          {canManageRole && (
-            <TouchableOpacity
-              style={styles.removeButton}
-              onPress={() => handleRemoveMember(member)}
-            >
-              <Ionicons name="close-circle" size={20} color="#FF3B30" />
-            </TouchableOpacity>
-          )}
-        </View>
+        {canManagePermissions && (
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => {
+              setSelectedMember(member);
+              setShowRoleModal(true);
+            }}
+          >
+            <Ionicons name="settings-outline" size={20} color="#4A6FFF" />
+          </TouchableOpacity>
+        )}
       </TouchableOpacity>
     );
   };
@@ -235,15 +272,22 @@ const MembersScreen = () => {
     return (
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Pending Invites</Text>
-        {organizationData.pendingInvites.map((email) => (
-          <View key={email} style={styles.inviteItem}>
+        {organizationData.pendingInvites.map((invite) => (
+          <View key={invite.email} style={styles.inviteItem}>
             <View style={styles.inviteInfo}>
               <View style={[styles.avatarContainer, styles.pendingAvatar]}>
                 <Ionicons name="mail-outline" size={16} color="#6e6e73" />
               </View>
               <View style={styles.inviteDetails}>
-                <Text style={styles.inviteEmail}>{email}</Text>
-                <Text style={styles.pendingText}>Waiting for response</Text>
+                <Text style={styles.inviteEmail}>{invite.email}</Text>
+                <Text style={styles.pendingText}>Access Key: {invite.accessKey}</Text>
+                <View style={styles.permissionTags}>
+                  {invite.permissions?.map(permission => (
+                    <View key={permission} style={styles.permissionTag}>
+                      <Text style={styles.permissionText}>{permission}</Text>
+                    </View>
+                  ))}
+                </View>
               </View>
             </View>
             <View style={styles.pendingBadge}>
@@ -294,7 +338,7 @@ const MembersScreen = () => {
             </View>
 
             <Text style={styles.modalDescription}>
-              Enter the email address of the person you'd like to invite to your team.
+              Enter the email address and select permissions for the new team member.
             </Text>
 
             <View style={styles.inputContainer}>
@@ -310,10 +354,109 @@ const MembersScreen = () => {
               />
             </View>
 
+            <Text style={styles.sectionTitle}>Permissions</Text>
+            <View style={styles.permissionsContainer}>
+              <TouchableOpacity
+                style={[
+                  styles.permissionOption,
+                  selectedPermissions.includes('read') && styles.selectedPermission
+                ]}
+                onPress={() => {
+                  setSelectedPermissions(prev => 
+                    prev.includes('read') 
+                      ? prev.filter(p => p !== 'read')
+                      : [...prev, 'read']
+                  );
+                }}
+              >
+                <Ionicons 
+                  name="eye-outline" 
+                  size={20} 
+                  color={selectedPermissions.includes('read') ? '#4A6FFF' : '#6e6e73'} 
+                />
+                <Text style={[
+                  styles.permissionOptionText,
+                  selectedPermissions.includes('read') && styles.selectedPermissionText
+                ]}>Read</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.permissionOption,
+                  selectedPermissions.includes('write') && styles.selectedPermission
+                ]}
+                onPress={() => {
+                  setSelectedPermissions(prev => 
+                    prev.includes('write') 
+                      ? prev.filter(p => p !== 'write')
+                      : [...prev, 'write']
+                  );
+                }}
+              >
+                <Ionicons 
+                  name="create-outline" 
+                  size={20} 
+                  color={selectedPermissions.includes('write') ? '#4A6FFF' : '#6e6e73'} 
+                />
+                <Text style={[
+                  styles.permissionOptionText,
+                  selectedPermissions.includes('write') && styles.selectedPermissionText
+                ]}>Write</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.permissionOption,
+                  selectedPermissions.includes('delete') && styles.selectedPermission
+                ]}
+                onPress={() => {
+                  setSelectedPermissions(prev => 
+                    prev.includes('delete') 
+                      ? prev.filter(p => p !== 'delete')
+                      : [...prev, 'delete']
+                  );
+                }}
+              >
+                <Ionicons 
+                  name="trash-outline" 
+                  size={20} 
+                  color={selectedPermissions.includes('delete') ? '#4A6FFF' : '#6e6e73'} 
+                />
+                <Text style={[
+                  styles.permissionOptionText,
+                  selectedPermissions.includes('delete') && styles.selectedPermissionText
+                ]}>Delete</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.permissionOption,
+                  selectedPermissions.includes('admin') && styles.selectedPermission
+                ]}
+                onPress={() => {
+                  setSelectedPermissions(prev => 
+                    prev.includes('admin') 
+                      ? prev.filter(p => p !== 'admin')
+                      : [...prev, 'admin']
+                  );
+                }}
+              >
+                <Ionicons 
+                  name="shield-checkmark-outline" 
+                  size={20} 
+                  color={selectedPermissions.includes('admin') ? '#4A6FFF' : '#6e6e73'} 
+                />
+                <Text style={[
+                  styles.permissionOptionText,
+                  selectedPermissions.includes('admin') && styles.selectedPermissionText
+                ]}>Admin</Text>
+              </TouchableOpacity>
+            </View>
+
             <TouchableOpacity
               style={[styles.inviteButton, loading && styles.inviteButtonDisabled]}
               onPress={handleInvite}
-              disabled={loading}
+              disabled={loading || !selectedPermissions.length}
             >
               {loading ? (
                 <Text style={styles.inviteButtonText}>Sending...</Text>
@@ -321,6 +464,25 @@ const MembersScreen = () => {
                 <Text style={styles.inviteButtonText}>Send Invitation</Text>
               )}
             </TouchableOpacity>
+
+            {accessKey && (
+              <View style={styles.accessKeyContainer}>
+                <Text style={styles.accessKeyLabel}>Access Key:</Text>
+                <Text style={styles.accessKeyText}>{accessKey}</Text>
+                <TouchableOpacity
+                  style={styles.copyButton}
+                  onPress={() => {
+                    if (Platform.OS === 'web') {
+                      navigator.clipboard.writeText(accessKey);
+                    }
+                    Alert.alert('Success', 'Access key copied to clipboard');
+                  }}
+                >
+                  <Ionicons name="copy-outline" size={20} color="#4A6FFF" />
+                  <Text style={styles.copyButtonText}>Copy</Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
         </View>
       </Modal>
@@ -334,41 +496,81 @@ const MembersScreen = () => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Change Role</Text>
+              <Text style={styles.modalTitle}>Update Permissions</Text>
               <TouchableOpacity onPress={() => setShowRoleModal(false)}>
                 <Ionicons name="close" size={24} color="#6e6e73" />
               </TouchableOpacity>
             </View>
 
             <Text style={styles.modalDescription}>
-              Select a role for {selectedMember?.name || selectedMember?.email?.split('@')[0]}
+              Update permissions for {selectedMember?.name || selectedMember?.email?.split('@')[0]}
             </Text>
 
-            <TouchableOpacity
-              style={[styles.roleOption, { backgroundColor: '#4A6FFF15' }]}
-              onPress={() => handleRoleChange('admin')}
-            >
-              <Ionicons name="shield-checkmark" size={24} color="#4A6FFF" />
-              <View style={styles.roleOptionContent}>
-                <Text style={[styles.roleOptionTitle, { color: '#4A6FFF' }]}>Admin</Text>
-                <Text style={styles.roleOptionDescription}>
-                  Can manage team members and access all features
-                </Text>
-              </View>
-            </TouchableOpacity>
+            <View style={styles.permissionsContainer}>
+              <TouchableOpacity
+                style={[
+                  styles.permissionOption,
+                  selectedMember?.permissions?.includes('read') && styles.selectedPermission
+                ]}
+                onPress={() => {
+                  const newPermissions = selectedMember.permissions?.includes('read')
+                    ? selectedMember.permissions.filter(p => p !== 'read')
+                    : [...(selectedMember.permissions || []), 'read'];
+                  handleUpdatePermissions(selectedMember, newPermissions);
+                }}
+              >
+                <Ionicons name="eye-outline" size={24} color="#4A6FFF" />
+                <Text style={styles.permissionOptionText}>Read</Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[styles.roleOption, { backgroundColor: '#6e6e7315' }]}
-              onPress={() => handleRoleChange('member')}
-            >
-              <Ionicons name="person" size={24} color="#6e6e73" />
-              <View style={styles.roleOptionContent}>
-                <Text style={[styles.roleOptionTitle, { color: '#6e6e73' }]}>Member</Text>
-                <Text style={styles.roleOptionDescription}>
-                  Can view and manage orders
-                </Text>
-              </View>
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.permissionOption,
+                  selectedMember?.permissions?.includes('write') && styles.selectedPermission
+                ]}
+                onPress={() => {
+                  const newPermissions = selectedMember.permissions?.includes('write')
+                    ? selectedMember.permissions.filter(p => p !== 'write')
+                    : [...(selectedMember.permissions || []), 'write'];
+                  handleUpdatePermissions(selectedMember, newPermissions);
+                }}
+              >
+                <Ionicons name="create-outline" size={24} color="#4A6FFF" />
+                <Text style={styles.permissionOptionText}>Write</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.permissionOption,
+                  selectedMember?.permissions?.includes('delete') && styles.selectedPermission
+                ]}
+                onPress={() => {
+                  const newPermissions = selectedMember.permissions?.includes('delete')
+                    ? selectedMember.permissions.filter(p => p !== 'delete')
+                    : [...(selectedMember.permissions || []), 'delete'];
+                  handleUpdatePermissions(selectedMember, newPermissions);
+                }}
+              >
+                <Ionicons name="trash-outline" size={24} color="#4A6FFF" />
+                <Text style={styles.permissionOptionText}>Delete</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.permissionOption,
+                  selectedMember?.permissions?.includes('admin') && styles.selectedPermission
+                ]}
+                onPress={() => {
+                  const newPermissions = selectedMember.permissions?.includes('admin')
+                    ? selectedMember.permissions.filter(p => p !== 'admin')
+                    : [...(selectedMember.permissions || []), 'admin'];
+                  handleUpdatePermissions(selectedMember, newPermissions);
+                }}
+              >
+                <Ionicons name="shield-checkmark-outline" size={24} color="#4A6FFF" />
+                <Text style={styles.permissionOptionText}>Admin</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -416,11 +618,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    padding: 12,
     backgroundColor: 'white',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderRadius: 12,
+    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   memberInfo: {
     flexDirection: 'row',
@@ -582,25 +791,76 @@ const styles = StyleSheet.create({
   removeButton: {
     padding: 4,
   },
-  roleOption: {
+  permissionTags: {
     flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
+    flexWrap: 'wrap',
+    marginTop: 4,
+    gap: 4,
+  },
+  permissionTag: {
+    backgroundColor: '#6e6e7315',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
     borderRadius: 12,
-    marginBottom: 12,
   },
-  roleOptionContent: {
-    marginLeft: 12,
-    flex: 1,
+  adminTag: {
+    backgroundColor: '#4A6FFF15',
   },
-  roleOptionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 4,
+  permissionText: {
+    fontSize: 12,
+    color: '#6e6e73',
+    textTransform: 'capitalize',
   },
-  roleOptionDescription: {
+  accessKeyContainer: {
+    marginTop: 16,
+    padding: 16,
+    backgroundColor: '#f8f9fa',
+    borderRadius: 12,
+  },
+  accessKeyLabel: {
     fontSize: 14,
     color: '#6e6e73',
+    marginBottom: 4,
+  },
+  accessKeyText: {
+    fontSize: 16,
+    color: '#1c1c1e',
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  },
+  copyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    gap: 4,
+  },
+  copyButtonText: {
+    fontSize: 14,
+    color: '#4A6FFF',
+    fontWeight: '600',
+  },
+  permissionsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 24,
+  },
+  permissionOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: '#f8f9fa',
+    gap: 4,
+  },
+  selectedPermission: {
+    backgroundColor: '#4A6FFF15',
+  },
+  permissionOptionText: {
+    fontSize: 14,
+    color: '#6e6e73',
+  },
+  selectedPermissionText: {
+    color: '#4A6FFF',
   },
   setupContentContainer: {
     flexGrow: 1,
@@ -642,6 +902,15 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
+  },
+  actionButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#4A6FFF15',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 12,
   },
 });
 

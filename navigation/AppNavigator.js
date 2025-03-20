@@ -12,6 +12,7 @@ import StatusScreen from '../screens/StatusScreen';
 import MembersScreen from '../screens/MembersScreen';
 import OrganizationSetupScreen from '../screens/OrganizationSetupScreen';
 import OrderDetails from '../screens/OrderDetails';
+import ActivityHistoryScreen from '../screens/ActivityHistoryScreen';
 import { useAuth } from '../contexts/AuthContext';
 
 const Stack = createStackNavigator();
@@ -32,6 +33,8 @@ const MainTabs = () => {
             iconName = focused ? 'stats-chart' : 'stats-chart-outline';
           } else if (route.name === 'Team') {
             iconName = focused ? 'people' : 'people-outline';
+          } else if (route.name === 'Activity') {
+            iconName = focused ? 'time' : 'time-outline';
           }
 
           return <Ionicons name={iconName} size={size} color={color} />;
@@ -57,6 +60,7 @@ const MainTabs = () => {
       <Tab.Screen name="Add Order" component={OrderFormScreen} />
       <Tab.Screen name="Status" component={StatusScreen} />
       <Tab.Screen name="Team" component={MembersScreen} />
+      <Tab.Screen name="Activity" component={ActivityHistoryScreen} />
     </Tab.Navigator>
   );
 };
@@ -86,6 +90,28 @@ const AppNavigator = () => {
     return <LoadingScreen />;
   }
 
+  // Debug info to help troubleshoot navigation issues
+  console.log("Navigation state:", { 
+    isAuthenticated: !!user, 
+    hasOrgId: !!user?.organizationId,
+    hasOrgData: !!organizationData,
+    hasSeenOrgSetup: !!user?.hasSeenOrgSetup,
+    userRole: user?.role,
+    email: user?.email,
+    userObject: user ? JSON.stringify({
+      uid: user.uid,
+      email: user.email,
+      organizationId: user.organizationId,
+      hasSeenOrgSetup: user.hasSeenOrgSetup,
+      role: user.role
+    }) : null
+  });
+
+  // Ensure we have a fully initialized user state before showing screens
+  if (!user && loading) {
+    return <LoadingScreen />;
+  }
+
   return (
     <Stack.Navigator>
       {!user ? (
@@ -102,18 +128,18 @@ const AppNavigator = () => {
             options={{ headerShown: false }}
           />
         </>
-      ) : !organizationData && user.role !== 'member' ? (
-        // Organization setup screen - only for users who aren't members of an existing org
-        <Stack.Screen
-          name="OrganizationSetup"
-          component={OrganizationSetupScreen}
-          options={{ headerShown: false }}
-        />
-      ) : (
-        // App screens
+      ) : user.organizationId || user.hasSeenOrgSetup ? (
+        // Main app screens - for users with organization OR who skipped setup
         <Stack.Screen 
           name="MainApp" 
           component={MainStackNavigator} 
+          options={{ headerShown: false }}
+        />
+      ) : (
+        // Organization setup screen only for new users who haven't skipped
+        <Stack.Screen
+          name="OrganizationSetup"
+          component={OrganizationSetupScreen}
           options={{ headerShown: false }}
         />
       )}

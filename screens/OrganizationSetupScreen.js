@@ -79,27 +79,45 @@ const OrganizationSetupScreen = () => {
 
           <TouchableOpacity
             style={styles.skipButton}
-            onPress={() => {
-              Alert.alert(
-                'Skip Organization Setup',
-                'You can create an organization later from the Team tab. Some features will be limited until you create an organization.',
-                [
-                  {
-                    text: 'Cancel',
-                    style: 'cancel'
-                  },
-                  {
-                    text: 'Skip',
-                    onPress: () => {
-                      // Just update the user document to indicate they've seen the setup
-                      setDoc(doc(db, 'users', user.uid), {
-                        hasSeenOrgSetup: true,
-                        updatedAt: serverTimestamp()
-                      }, { merge: true });
+            onPress={async () => {
+              try {
+                Alert.alert(
+                  'Skip Organization Setup',
+                  'You can create an organization later from the Team tab. Some features will be limited until you create an organization.',
+                  [
+                    {
+                      text: 'Cancel',
+                      style: 'cancel'
+                    },
+                    {
+                      text: 'Skip',
+                      onPress: async () => {
+                        try {
+                          setLoading(true);
+                          // Update the user document to indicate they've seen the setup
+                          await setDoc(doc(db, 'users', user.uid), {
+                            hasSeenOrgSetup: true,
+                            updatedAt: serverTimestamp()
+                          }, { merge: true });
+                          
+                          // Force reload of app to update state
+                          setTimeout(() => {
+                            alert('Settings updated. App will refresh.');
+                            window.location.reload();
+                          }, 1000);
+                        } catch (error) {
+                          console.error('Error skipping setup:', error);
+                          Alert.alert('Error', 'Failed to skip setup. Please try again.');
+                        } finally {
+                          setLoading(false);
+                        }
+                      }
                     }
-                  }
-                ]
-              );
+                  ]
+                );
+              } catch (error) {
+                console.error('Error in skip button:', error);
+              }
             }}
           >
             <Text style={styles.skipButtonText}>Skip for now</Text>
