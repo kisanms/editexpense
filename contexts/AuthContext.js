@@ -408,120 +408,52 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const register = async (email, password, accessKey = null) => {
+  const register = async (email, password, accessKey, username) => {
     try {
+      // Create user with email and password
       const { user } = await createUserWithEmailAndPassword(auth, email, password);
-      console.log("User registered:", user.email);
       
-      // Normalize email to lowercase
-      const normalizedEmail = email.trim().toLowerCase();
-      console.log("Normalized email:", normalizedEmail);
-      
-      // Create initial user document
-      const initialUserData = {
-        email: user.email,
+      // Normalize email and username
+      const normalizedEmail = email.toLowerCase().trim();
+      const normalizedUsername = username.trim();
+
+      // Create user document with additional info
+      await setDoc(doc(db, 'users', user.uid), {
+        email: normalizedEmail,
+        username: normalizedUsername,
         createdAt: serverTimestamp(),
-        name: user.displayName || email.split('@')[0],
-      };
+        lastLoginAt: serverTimestamp(),
+        accessKey: accessKey || null,
+      });
+
+      // Check for pending invitations with this email
+      const invitesQuery = query(
+        collection(db, 'invitations'),
+        where('email', '==', normalizedEmail),
+        where('status', '==', 'pending')
+      );
       
-      await setDoc(doc(db, 'users', user.uid), initialUserData);
-      console.log("Initial user document created");
-      
-      // Set initial user state
-      setUser({ ...user, ...initialUserData });
-      
-      // If access key provided, verify invitation
-      if (accessKey) {
-        console.log("Verifying access key:", accessKey);
+      const invitesSnapshot = await getDocs(invitesQuery);
+      if (!invitesSnapshot.empty) {
+        const invite = invitesSnapshot.docs[0].data();
         
-        // Query for invitation with matching email and access key
-        const invitesQuery = query(
-          collection(db, 'invitations'),
-          where('email', '==', normalizedEmail),
-          where('accessKey', '==', accessKey),
-          where('status', '==', 'pending')
-        );
+        // Update user with organization info
+        await updateDoc(doc(db, 'users', user.uid), {
+          organizationId: invite.organizationId,
+          role: invite.role || 'member'
+        });
         
-        const invitesSnapshot = await getDocs(invitesQuery);
-        console.log("Found invitations with access key:", invitesSnapshot.size);
-        
-        if (!invitesSnapshot.empty) {
-          const invite = invitesSnapshot.docs[0].data();
-          const inviteId = invitesSnapshot.docs[0].id;
-          console.log("Processing invitation:", invite);
-          
-          // Fetch organization details
-          const orgRef = doc(db, 'organizations', invite.organizationId);
-          const orgDoc = await getDoc(orgRef);
-          
-          if (orgDoc.exists()) {
-            const orgData = orgDoc.data();
-            console.log("Organization data found:", orgData.name);
-            const now = new Date().toISOString();
-
-            // Add user to organization members with permissions
-            const updatedOrgData = {
-              members: [...(orgData.members || []), {
-                uid: user.uid,
-                email: user.email,
-                permissions: invite.permissions,
-                joinedAt: now
-              }],
-              pendingInvites: (orgData.pendingInvites || []).filter(invite => 
-                invite.email.toLowerCase() !== normalizedEmail
-              )
-            };
-            
-            await setDoc(orgRef, updatedOrgData, { merge: true });
-            console.log("Organization updated with new member");
-
-            // Update user's organization reference
-            const updatedUserData = {
-              organizationId: invite.organizationId,
-              permissions: invite.permissions,
-              updatedAt: serverTimestamp()
-            };
-            
-            await setDoc(doc(db, 'users', user.uid), updatedUserData, { merge: true });
-            console.log("User document updated with organization reference");
-
-            // Update invitation status
-            await setDoc(doc(db, 'invitations', inviteId), {
-              status: 'accepted',
-              acceptedAt: serverTimestamp()
-            }, { merge: true });
-            console.log("Invitation marked as accepted");
-
-            // Update context with organization data
-            const finalOrgData = { id: orgRef.id, ...orgData, ...updatedOrgData };
-            setOrganizationData(finalOrgData);
-            console.log("Organization data set in context");
-            
-            // Update user context with all data
-            const updatedUserState = {
-              ...user,
-              ...initialUserData,
-              ...updatedUserData
-            };
-            setUser(updatedUserState);
-            console.log("Final user state:", updatedUserState);
-            
-            Alert.alert('Welcome', `You've been added to "${finalOrgData.name}" with ${invite.permissions.join(', ')} permissions.`);
-          } else {
-            console.log("Organization not found for invitation");
-            Alert.alert('Error', 'Organization not found');
-          }
-        } else {
-          console.log("No valid invitation found for this access key");
-          Alert.alert('Error', 'Invalid access key or invitation not found');
-        }
-      } else {
-        console.log("No access key provided - normal registration");
+        // Update invitation status
+        await updateDoc(doc(db, 'invitations', invitesSnapshot.docs[0].id), {
+          status: 'accepted',
+          acceptedAt: serverTimestamp(),
+          userId: user.uid
+        });
       }
-      
+
       return user;
     } catch (error) {
-      console.error("Registration error:", error);
+      console.error('Registration error:', error);
       throw error;
     }
   };
