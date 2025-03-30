@@ -410,51 +410,62 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (email, password, accessKey, username) => {
     try {
-      // Create user with email and password
-      const { user } = await createUserWithEmailAndPassword(auth, email, password);
-      
       // Normalize email and username
       const normalizedEmail = email.toLowerCase().trim();
-      const normalizedUsername = username.trim();
+      const normalizedUsername = username.toLowerCase().trim();
 
-      // Create user document with additional info
-      await setDoc(doc(db, 'users', user.uid), {
+      // Check if user already exists
+      const userQuery = query(collection(db, 'users'), where('email', '==', normalizedEmail));
+      const userSnapshot = await getDocs(userQuery);
+      
+      if (!userSnapshot.empty) {
+        throw new Error('An account with this email already exists');
+      }
+
+      // Check if username is taken
+      const usernameQuery = query(collection(db, 'users'), where('username', '==', normalizedUsername));
+      const usernameSnapshot = await getDocs(usernameQuery);
+      
+      if (!usernameSnapshot.empty) {
+        throw new Error('This username is already taken');
+      }
+
+      // Create user account
+      const userCredential = await createUserWithEmailAndPassword(auth, normalizedEmail, password);
+      const user = userCredential.user;
+
+      // Create user document
+      const userDoc = {
+        uid: user.uid,
         email: normalizedEmail,
         username: normalizedUsername,
         createdAt: serverTimestamp(),
-        lastLoginAt: serverTimestamp(),
-        accessKey: accessKey || null,
-      });
+        updatedAt: serverTimestamp(),
+        role: 'user'
+      };
 
-      // Check for pending invitations with this email
-      const invitesQuery = query(
+      // Check for pending invitations
+      const invitationQuery = query(
         collection(db, 'invitations'),
         where('email', '==', normalizedEmail),
         where('status', '==', 'pending')
       );
-      
-      const invitesSnapshot = await getDocs(invitesQuery);
-      if (!invitesSnapshot.empty) {
-        const invite = invitesSnapshot.docs[0].data();
-        
-        // Update user with organization info
-        await updateDoc(doc(db, 'users', user.uid), {
-          organizationId: invite.organizationId,
-          role: invite.role || 'member'
-        });
-        
-        // Update invitation status
-        await updateDoc(doc(db, 'invitations', invitesSnapshot.docs[0].id), {
-          status: 'accepted',
-          acceptedAt: serverTimestamp(),
-          userId: user.uid
-        });
+      const invitationSnapshot = await getDocs(invitationQuery);
+
+      if (!invitationSnapshot.empty) {
+        const invitation = invitationSnapshot.docs[0].data();
+        userDoc.organizationId = invitation.organizationId;
+        userDoc.role = invitation.role;
       }
 
-      return user;
+      await setDoc(doc(db, 'users', user.uid), userDoc);
+
+      // Update auth state
+      setUser(user);
+      setOrganizationData(userDoc.organizationId ? { id: userDoc.organizationId, ...userDoc } : null);
     } catch (error) {
       console.error('Registration error:', error);
-      throw error;
+      throw new Error(error.message || 'Failed to register');
     }
   };
 

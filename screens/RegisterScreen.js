@@ -84,21 +84,17 @@ const RegisterScreen = () => {
   }, []);
 
   const handleRegister = async () => {
-    if (!username || !email || !password || !confirmPassword) {
-      Alert.alert('Error', 'Please fill in all required fields');
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
+    if (!email.trim() || !password.trim() || !username.trim()) {
+      Alert.alert('Error', 'Please fill in all fields');
       return;
     }
 
     try {
       setLoading(true);
       await register(email, password, accessKey, username);
+      // Navigate directly to MainStack after successful registration
+      navigation.replace('MainStack');
     } catch (error) {
-      console.error('Registration error:', error);
       Alert.alert('Error', error.message);
     } finally {
       setLoading(false);
@@ -368,11 +364,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   formContainer: {
-   
     padding: 24,
+    width: '100%',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 20,
     backdropFilter: 'blur(10px)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   inputWrapper: {
     flexDirection: 'row',
@@ -382,8 +378,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     paddingHorizontal: 16,
     height: 56,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   inputIcon: {
     marginRight: 12,

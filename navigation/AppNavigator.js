@@ -3,6 +3,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { ActivityIndicator, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { NavigationContainer } from '@react-navigation/native';
 
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
@@ -34,10 +35,6 @@ const MainTabs = () => {
             iconName = focused ? 'stats-chart' : 'stats-chart-outline';
           } else if (route.name === 'Team') {
             iconName = focused ? 'people' : 'people-outline';
-          } else if (route.name === 'Activity') {
-            iconName = focused ? 'time' : 'time-outline';
-          } else if (route.name === 'Editors') {
-            iconName = focused ? 'people' : 'people-outline';
           }
 
           return <Ionicons name={iconName} size={size} color={color} />;
@@ -63,20 +60,6 @@ const MainTabs = () => {
       <Tab.Screen name="Add Order" component={OrderFormScreen} />
       <Tab.Screen name="Status" component={StatusScreen} />
       <Tab.Screen name="Team" component={MembersScreen} />
-      <Tab.Screen name="Activity" component={ActivityHistoryScreen} />
-      <Tab.Screen
-        name="Editors"
-        component={EditorProfileScreen}
-        options={{
-          tabBarIcon: ({ focused, color }) => (
-            <Ionicons
-              name={focused ? 'people' : 'people-outline'}
-              size={24}
-              color={color}
-            />
-          ),
-        }}
-      />
     </Tab.Navigator>
   );
 };
@@ -100,7 +83,7 @@ const LoadingScreen = () => (
 );
 
 const AppNavigator = () => {
-  const { user, loading, organizationData } = useAuth();
+  const { user, userData, loading } = useAuth();
 
   if (loading) {
     return <LoadingScreen />;
@@ -110,54 +93,31 @@ const AppNavigator = () => {
   console.log("Navigation state:", { 
     isAuthenticated: !!user, 
     hasOrgId: !!user?.organizationId,
-    hasOrgData: !!organizationData,
-    hasSeenOrgSetup: !!user?.hasSeenOrgSetup,
+    hasOrgData: !!userData,
     userRole: user?.role,
     email: user?.email,
     userObject: user ? JSON.stringify({
       uid: user.uid,
       email: user.email,
       organizationId: user.organizationId,
-      hasSeenOrgSetup: user.hasSeenOrgSetup,
       role: user.role
     }) : null
   });
 
-  // Ensure we have a fully initialized user state before showing screens
-  if (!user && loading) {
-    return <LoadingScreen />;
-  }
-
   return (
-    <Stack.Navigator>
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
       {!user ? (
-        // Auth screens
-        <>
-          <Stack.Screen 
-            name="Login" 
-            component={LoginScreen} 
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen 
-            name="Register" 
-            component={RegisterScreen} 
-            options={{ headerShown: false }}
-          />
-        </>
-      ) : user.organizationId || user.hasSeenOrgSetup ? (
-        // Main app screens - for users with organization OR who skipped setup
-        <Stack.Screen 
-          name="MainApp" 
-          component={MainStackNavigator} 
-          options={{ headerShown: false }}
-        />
+        // Auth Stack
+        <Stack.Group>
+          <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Screen name="Register" component={RegisterScreen} />
+        </Stack.Group>
       ) : (
-        // Organization setup screen only for new users who haven't skipped
-        <Stack.Screen
-          name="OrganizationSetup"
-          component={OrganizationSetupScreen}
-          options={{ headerShown: false }}
-        />
+        // Main App Stack
+        <Stack.Group>
+          <Stack.Screen name="MainStack" component={MainStackNavigator} />
+          <Stack.Screen name="OrganizationSetup" component={OrganizationSetupScreen} />
+        </Stack.Group>
       )}
     </Stack.Navigator>
   );

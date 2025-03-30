@@ -333,21 +333,20 @@ const styles = StyleSheet.create({
   },
   form: {
     padding: 24,
-    
+    width: '100%',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 20,
     backdropFilter: 'blur(10px)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 12,
-    marginBottom: 16,
+    marginBottom: 10,
     paddingHorizontal: 16,
     height: 56,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    
   },
   inputIcon: {
     marginRight: 12,

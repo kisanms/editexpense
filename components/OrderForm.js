@@ -1,416 +1,368 @@
 import React, { useState } from 'react';
 import {
   View,
+  Text,
   TextInput,
   TouchableOpacity,
-  Text,
   StyleSheet,
   ScrollView,
   Alert,
-  ActivityIndicator,
-  Platform,
   KeyboardAvoidingView,
+  Platform,
+  Dimensions
 } from 'react-native';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { auth, db } from '../services/firebase';
 import { Ionicons } from '@expo/vector-icons';
+import { doc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { db } from '../services/firebase';
 import { useAuth } from '../contexts/AuthContext';
+import { LinearGradient } from 'expo-linear-gradient';
+
+const { width } = Dimensions.get('window');
 
 const OrderForm = ({ navigation }) => {
-  const { organizationData } = useAuth();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    realtorName: '',
-    editorName: '',
-    address: '',
-    chargeAmount: '',
-    editorPayment: '',
-    deliveryDate: '',
-    email: '',
-    contactNo: '',
-    status: 'pending',
+    agentName: '',
+    agentEmail: '',
+    agentPhone: '',
+    location: '',
+    package: '',
+    returning: '',
+    payment: '',
+    comment: '',
+    workLink: ''
   });
 
-  const validateDate = (text) => {
-    // Allow only numbers and forward slashes
-    const cleanedText = text.replace(/[^\d/]/g, '');
-    
-    // Add forward slash automatically after day and month
-    let formattedText = cleanedText;
-    if (cleanedText.length === 2 && !cleanedText.includes('/')) {
-      formattedText = cleanedText + '/';
-    } else if (cleanedText.length === 5 && cleanedText.indexOf('/', 3) === -1) {
-      formattedText = cleanedText + '/';
-    }
-    
-    // Limit the total length to 10 characters (DD/MM/YYYY)
-    if (formattedText.length <= 10) {
-      setFormData({ ...formData, deliveryDate: formattedText });
-    }
-  };
-
-  const isValidDate = (dateString) => {
-    // Check format (DD/MM/YYYY)
-    if (!/^\d{2}\/\d{2}\/\d{4}$/.test(dateString)) return false;
-
-    const [day, month, year] = dateString.split('/').map(num => parseInt(num, 10));
-    const date = new Date(year, month - 1, day);
-
-    return date instanceof Date && !isNaN(date) &&
-           date.getDate() === day &&
-           date.getMonth() === month - 1 &&
-           date.getFullYear() === year &&
-           year >= 2000 && year <= 2100;
-  };
-
   const handleSubmit = async () => {
+    // Validate required fields
+    if (!formData.agentName || !formData.agentEmail || !formData.agentPhone) {
+      Alert.alert('Error', 'Agent Name, Email, and Phone are required fields');
+      return;
+    }
+
     try {
       setLoading(true);
-      
-      // Check if user is authenticated
-      if (!auth.currentUser) {
-        Alert.alert('Error', 'Please login to add orders');
-        navigation.navigate('Login');
-        return;
-      }
-
-      // Validate form data
-      if (!formData.realtorName || !formData.chargeAmount || !formData.editorPayment) {
-        Alert.alert('Error', 'Please fill in all required fields');
-        return;
-      }
-
-      // Validate date if provided
-      if (formData.deliveryDate && !isValidDate(formData.deliveryDate)) {
-        Alert.alert('Error', 'Please enter a valid date in DD/MM/YYYY format');
-        return;
-      }
-
-      // Create order object with proper data types and user information
-      const order = {
-        realtorName: formData.realtorName.trim(),
-        editorName: formData.editorName.trim(),
-        address: formData.address.trim(),
-        chargeAmount: parseFloat(formData.chargeAmount) || 0,
-        editorPayment: parseFloat(formData.editorPayment) || 0,
-        deliveryDate: formData.deliveryDate,
-        email: formData.email.trim().toLowerCase(),
-        contactNo: formData.contactNo.trim(),
-        status: formData.status,
+      const orderData = {
+        ...formData,
+        status: 'pending',
         createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-        userId: auth.currentUser.uid,
-        userEmail: auth.currentUser.email,
-        // Add organization ID if user belongs to an organization
-        ...(organizationData && { organizationId: organizationData.id })
+        createdBy: user.uid,
+        date: new Date().toISOString().split('T')[0]
       };
 
-      console.log('Creating order with data:', order);
-
-      // Add to Firestore
-      const ordersRef = collection(db, 'orders');
-      const docRef = await addDoc(ordersRef, order);
-
-      if (docRef.id) {
-        // Reset form
-        setFormData({
-          realtorName: '',
-          editorName: '',
-          address: '',
-          chargeAmount: '',
-          editorPayment: '',
-          deliveryDate: '',
-          email: '',
-          contactNo: '',
-          status: 'pending',
-        });
-
-        Alert.alert(
-          'Success', 
-          'Order added successfully',
-          [{ text: 'OK', onPress: () => {
-            console.log('Navigating to Home after order creation');
-            navigation.navigate('Home');
-          }}]
-        );
-      }
+      await addDoc(collection(db, 'orders'), orderData);
+      Alert.alert('Success', 'Order created successfully');
+      navigation.navigate('Home');
     } catch (error) {
-      console.error('Error adding order:', error);
-      Alert.alert(
-        'Error',
-        'Failed to add order. Please check your connection and try again.'
-      );
+      Alert.alert('Error', error.message);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={{ flex: 1 }}
+    <LinearGradient
+      colors={['#f8f9fa', '#ffffff']}
+      style={styles.container}
     >
-      <ScrollView style={styles.container}>
-        <View style={styles.formHeader}>
-          <Text style={styles.formTitle}>Create New Order</Text>
-          <Text style={styles.formSubtitle}>Fill in the details below to add a new order</Text>
-        </View>
-        
-        <View style={styles.form}>
-          <View style={styles.inputWrapper}>
-            <Text style={styles.inputLabel}>Realtor Name *</Text>
-            <View style={styles.inputContainer}>
-              <Ionicons name="person-outline" size={20} color="#6e6e73" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Enter realtor name"
-                value={formData.realtorName}
-                onChangeText={(text) => setFormData({ ...formData, realtorName: text })}
-                editable={!loading}
-              />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.container}
+      >
+        <ScrollView 
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
+          <View style={styles.header}>
+            <View style={styles.headerIcon}>
+              <Ionicons name="add-circle" size={32} color="#4A6FFF" />
             </View>
+            <Text style={styles.headerTitle}>New Order</Text>
+            <Text style={styles.headerSubtitle}>Create a new order</Text>
           </View>
-          
-          <View style={styles.inputWrapper}>
-            <Text style={styles.inputLabel}>Editor Name</Text>
-            <View style={styles.inputContainer}>
-              <Ionicons name="person-outline" size={20} color="#6e6e73" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Enter editor name"
-                value={formData.editorName}
-                onChangeText={(text) => setFormData({ ...formData, editorName: text })}
-                editable={!loading}
-              />
-            </View>
-          </View>
-          
-          <View style={styles.inputWrapper}>
-            <Text style={styles.inputLabel}>Address</Text>
-            <View style={styles.inputContainer}>
-              <Ionicons name="location-outline" size={20} color="#6e6e73" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Enter property address"
-                value={formData.address}
-                onChangeText={(text) => setFormData({ ...formData, address: text })}
-                multiline
-                editable={!loading}
-              />
-            </View>
-          </View>
-          
-          <View style={styles.row}>
-            <View style={[styles.inputWrapper, { flex: 1, marginRight: 8 }]}>
-              <Text style={styles.inputLabel}>Charge Amount (₹) *</Text>
-              <View style={styles.inputContainer}>
-                <Ionicons name="cash-outline" size={20} color="#6e6e73" style={styles.inputIcon} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="0"
-                  value={formData.chargeAmount}
-                  onChangeText={(text) => {
-                    const numericValue = text.replace(/[^0-9]/g, '');
-                    setFormData({ ...formData, chargeAmount: numericValue });
-                  }}
-                  keyboardType="numeric"
-                  editable={!loading}
-                />
+
+          <View style={styles.form}>
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Agent Information</Text>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Agent Name <Text style={styles.required}>*</Text></Text>
+                <View style={styles.inputWrapper}>
+                  <Ionicons name="person-outline" size={20} color="#A0A0A0" style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter agent name"
+                    placeholderTextColor="#A0A0A0"
+                    value={formData.agentName}
+                    onChangeText={(text) => setFormData({ ...formData, agentName: text })}
+                  />
+                </View>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Agent Email <Text style={styles.required}>*</Text></Text>
+                <View style={styles.inputWrapper}>
+                  <Ionicons name="mail-outline" size={20} color="#A0A0A0" style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter agent email"
+                    placeholderTextColor="#A0A0A0"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    value={formData.agentEmail}
+                    onChangeText={(text) => setFormData({ ...formData, agentEmail: text })}
+                  />
+                </View>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Agent Phone <Text style={styles.required}>*</Text></Text>
+                <View style={styles.inputWrapper}>
+                  <Ionicons name="call-outline" size={20} color="#A0A0A0" style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter agent phone"
+                    placeholderTextColor="#A0A0A0"
+                    keyboardType="phone-pad"
+                    value={formData.agentPhone}
+                    onChangeText={(text) => setFormData({ ...formData, agentPhone: text })}
+                  />
+                </View>
               </View>
             </View>
-            
-            <View style={[styles.inputWrapper, { flex: 1, marginLeft: 8 }]}>
-              <Text style={styles.inputLabel}>Editor Payment (₹) *</Text>
-              <View style={styles.inputContainer}>
-                <Ionicons name="wallet-outline" size={20} color="#6e6e73" style={styles.inputIcon} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="0"
-                  value={formData.editorPayment}
-                  onChangeText={(text) => {
-                    const numericValue = text.replace(/[^0-9]/g, '');
-                    setFormData({ ...formData, editorPayment: numericValue });
-                  }}
-                  keyboardType="numeric"
-                  editable={!loading}
-                />
+
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Order Details</Text>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Location</Text>
+                <View style={styles.inputWrapper}>
+                  <Ionicons name="location-outline" size={20} color="#A0A0A0" style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter property location"
+                    placeholderTextColor="#A0A0A0"
+                    value={formData.location}
+                    onChangeText={(text) => setFormData({ ...formData, location: text })}
+                  />
+                </View>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Package</Text>
+                <View style={styles.inputWrapper}>
+                  <Ionicons name="camera-outline" size={20} color="#A0A0A0" style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter package details"
+                    placeholderTextColor="#A0A0A0"
+                    value={formData.package}
+                    onChangeText={(text) => setFormData({ ...formData, package: text })}
+                  />
+                </View>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Payment</Text>
+                <View style={styles.inputWrapper}>
+                  <Ionicons name="card-outline" size={20} color="#A0A0A0" style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter payment amount"
+                    placeholderTextColor="#A0A0A0"
+                    keyboardType="numeric"
+                    value={formData.payment}
+                    onChangeText={(text) => setFormData({ ...formData, payment: text })}
+                  />
+                </View>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Comment</Text>
+                <View style={[styles.inputWrapper, styles.textArea]}>
+                  <Ionicons name="chatbox-outline" size={20} color="#A0A0A0" style={styles.inputIcon} />
+                  <TextInput
+                    style={[styles.input, styles.textAreaInput]}
+                    placeholder="Add any comments"
+                    placeholderTextColor="#A0A0A0"
+                    multiline
+                    numberOfLines={4}
+                    textAlignVertical="top"
+                    value={formData.comment}
+                    onChangeText={(text) => setFormData({ ...formData, comment: text })}
+                  />
+                </View>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Work Link</Text>
+                <View style={styles.inputWrapper}>
+                  <Ionicons name="link-outline" size={20} color="#A0A0A0" style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter work link"
+                    placeholderTextColor="#A0A0A0"
+                    autoCapitalize="none"
+                    value={formData.workLink}
+                    onChangeText={(text) => setFormData({ ...formData, workLink: text })}
+                  />
+                </View>
               </View>
             </View>
+
+            <TouchableOpacity
+              style={[styles.submitButton, loading && styles.submitButtonDisabled]}
+              onPress={handleSubmit}
+              disabled={loading}
+            >
+              <LinearGradient
+                colors={loading ? ['#A6B7FF', '#8E9FE6'] : ['#4A6FFF', '#3557E5']}
+                style={styles.gradientButton}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+              >
+                {loading ? (
+                  <Text style={styles.submitButtonText}>Creating Order...</Text>
+                ) : (
+                  <>
+                    <Text style={styles.submitButtonText}>Create Order</Text>
+                    <Ionicons name="arrow-forward" size={20} color="white" style={styles.buttonIcon} />
+                  </>
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
           </View>
-          
-          <View style={styles.inputWrapper}>
-            <Text style={styles.inputLabel}>Delivery Date (DD/MM/YYYY)</Text>
-            <View style={styles.inputContainer}>
-              <Ionicons name="calendar-outline" size={20} color="#6e6e73" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="DD/MM/YYYY"
-                value={formData.deliveryDate}
-                onChangeText={validateDate}
-                maxLength={10}
-                keyboardType="numeric"
-                editable={!loading}
-              />
-            </View>
-            {formData.deliveryDate && !isValidDate(formData.deliveryDate) && (
-              <Text style={styles.errorText}>Please enter a valid date in DD/MM/YYYY format</Text>
-            )}
-          </View>
-          
-          <View style={styles.inputWrapper}>
-            <Text style={styles.inputLabel}>Email</Text>
-            <View style={styles.inputContainer}>
-              <Ionicons name="mail-outline" size={20} color="#6e6e73" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Enter email address"
-                value={formData.email}
-                onChangeText={(text) => setFormData({ ...formData, email: text })}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                editable={!loading}
-              />
-            </View>
-          </View>
-          
-          <View style={styles.inputWrapper}>
-            <Text style={styles.inputLabel}>Contact Number</Text>
-            <View style={styles.inputContainer}>
-              <Ionicons name="call-outline" size={20} color="#6e6e73" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Enter contact number"
-                value={formData.contactNo}
-                onChangeText={(text) => {
-                  const numericValue = text.replace(/[^0-9]/g, '');
-                  setFormData({ ...formData, contactNo: numericValue });
-                }}
-                keyboardType="phone-pad"
-                editable={!loading}
-              />
-            </View>
-          </View>
-          
-          <TouchableOpacity 
-            style={[styles.button, loading && styles.buttonDisabled]} 
-            onPress={handleSubmit}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="white" />
-            ) : (
-              <>
-                <Ionicons name="add-circle-outline" size={20} color="white" style={{ marginRight: 8 }} />
-                <Text style={styles.buttonText}>Add Order</Text>
-              </>
-            )}
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </LinearGradient>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
   },
-  formHeader: {
-    padding: 20,
-    paddingBottom: 10,
+  scrollContent: {
+    flexGrow: 1,
   },
-  formTitle: {
+  header: {
+    alignItems: 'center',
+    paddingVertical: 24,
+    backgroundColor: 'white',
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  headerIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#EEF2FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  headerTitle: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: '#1c1c1e',
     marginBottom: 8,
   },
-  formSubtitle: {
-    fontSize: 14,
+  headerSubtitle: {
+    fontSize: 16,
     color: '#6e6e73',
-    marginBottom: 10,
   },
   form: {
     padding: 20,
-    paddingTop: 0,
   },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  section: {
+    marginBottom: 32,
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  inputWrapper: {
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1c1c1e',
     marginBottom: 16,
   },
-  inputLabel: {
+  inputGroup: {
+    marginBottom: 16,
+  },
+  label: {
     fontSize: 14,
     fontWeight: '500',
     color: '#1c1c1e',
     marginBottom: 8,
   },
-  inputContainer: {
+  required: {
+    color: '#FF3B30',
+  },
+  inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'white',
+    backgroundColor: '#f8f9fa',
     borderRadius: 12,
+    paddingHorizontal: 16,
+    height: 56,
     borderWidth: 1,
-    borderColor: '#e1e1e1',
-    overflow: 'hidden',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 1,
-      },
-      android: {
-        elevation: 1,
-      },
-    }),
+    borderColor: '#E5E5EA',
+  },
+  textArea: {
+    height: 120,
+    alignItems: 'flex-start',
+    paddingTop: 16,
+  },
+  textAreaInput: {
+    height: 90,
   },
   inputIcon: {
-    paddingLeft: 12,
+    marginRight: 12,
   },
   input: {
     flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 10,
     fontSize: 16,
     color: '#1c1c1e',
   },
-  errorText: {
-    color: '#FF3B30',
-    fontSize: 12,
-    marginTop: 4,
-    marginLeft: 4,
-  },
-  button: {
-    flexDirection: 'row',
-    backgroundColor: '#4A6FFF',
+  submitButton: {
+    marginTop: 24,
+    marginBottom: 32,
     borderRadius: 12,
-    paddingVertical: 15,
+    overflow: 'hidden',
+  },
+  gradientButton: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#4A6FFF',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
+    height: 56,
+    paddingHorizontal: 24,
   },
-  buttonDisabled: {
-    backgroundColor: '#a2b5ff',
+  submitButtonDisabled: {
+    opacity: 0.7,
   },
-  buttonText: {
+  submitButtonText: {
     color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 18,
+    fontWeight: '600',
+    marginRight: 8,
+  },
+  buttonIcon: {
+    marginLeft: 4,
   },
 });
 

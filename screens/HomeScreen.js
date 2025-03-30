@@ -80,12 +80,19 @@ const OrderItem = ({ order, navigation }) => {
 };
 
 const HomeScreen = ({ navigation }) => {
-  const { user, organizationData } = useAuth();
+  const { user, organizationData, logout } = useAuth();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const { width } = useWindowDimensions();
   const isTablet = width > 768;
+  const [personalMode, setPersonalMode] = useState(false);
+  const [stats, setStats] = useState({
+    total: 0,
+    pending: 0,
+    approved: 0,
+    rejected: 0
+  });
 
   useEffect(() => {
     fetchOrders();
@@ -226,22 +233,22 @@ const HomeScreen = ({ navigation }) => {
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <View>
-            <Text style={styles.greeting}>Welcome{user?.name ? `, ${user.name}` : ''}!</Text>
+            <Text style={styles.greeting}>Welcome, {user?.username || 'User'}</Text>
             {organizationData ? (
               <View style={styles.orgContainer}>
-                <Ionicons name="business" size={16} color="#4A6FFF" />
+                <Ionicons name="business-outline" size={16} color="#6e6e73" />
                 <Text style={styles.orgName}>{organizationData.name}</Text>
               </View>
             ) : (
               <View style={styles.personalModeContainer}>
-                <Ionicons name="person" size={16} color="#6e6e73" />
+                <Ionicons name="person-outline" size={16} color="#6e6e73" />
                 <Text style={styles.personalMode}>Personal Mode</Text>
               </View>
             )}
           </View>
           
           <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
-            <Ionicons name="log-out-outline" size={22} color="#FF3B30" />
+            <Ionicons name="log-out-outline" size={24} color="#FF3B30" />
           </TouchableOpacity>
         </View>
 
