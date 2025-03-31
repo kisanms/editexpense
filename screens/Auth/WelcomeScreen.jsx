@@ -9,7 +9,7 @@ const WelcomeScreen = ({ navigation }) => {
     >
       <View style={styles.container}>
         <Text style={styles.title}>Welcome</Text>
-        <Text style={styles.subtitle}>Explore the world with us</Text>
+        <Text style={styles.subtitle}>Explore the world with u</Text>
 
         <TouchableOpacity
           style={styles.button}
