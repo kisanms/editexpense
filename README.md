@@ -13,7 +13,7 @@
 - rebuild 01/04/2025
 
 
-auth flow
+Auth flow
 
 I'll help you develop this Realtor Service Management application. Let me outline the implementation plan and flow for the authentication part first.
 
@@ -80,3 +80,4 @@ Would you like me to start implementing this authentication system? I can begin 
 4. Setting up the organization creation logic
 
 Let me know if you want me to proceed with the implementation or if you'd like to discuss/modify any part of this flow first.
+
