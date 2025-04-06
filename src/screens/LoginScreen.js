@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Alert } from 'react-native';
-import { TextInput, Button, Text } from 'react-native-paper';
+import { View, StyleSheet, Alert, Image, KeyboardAvoidingView, Platform } from 'react-native';
+import { TextInput, Button, Text, Surface } from 'react-native-paper';
 import { useAuth } from '../context/AuthContext';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
@@ -18,7 +19,6 @@ const LoginScreen = ({ navigation }) => {
     try {
       setLoading(true);
       await login(email, password);
-      // Navigation will be handled by AuthProvider
     } catch (error) {
       Alert.alert('Error', error.message);
     } finally {
@@ -27,65 +27,134 @@ const LoginScreen = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Login</Text>
-      
-      <TextInput
-        label="Email"
-        value={email}
-        onChangeText={setEmail}
-        mode="outlined"
-        style={styles.input}
-        keyboardType="email-address"
-        autoCapitalize="none"
-      />
-      
-      <TextInput
-        label="Password"
-        value={password}
-        onChangeText={setPassword}
-        mode="outlined"
-        style={styles.input}
-        secureTextEntry
-      />
-      
-      <Button
-        mode="contained"
-        onPress={handleLogin}
-        loading={loading}
-        style={styles.button}
+    <KeyboardAvoidingView 
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={styles.container}
+    >
+      <LinearGradient
+        colors={['#4c669f', '#3b5998', '#192f6a']}
+        style={styles.gradient}
       >
-        Login
-      </Button>
-      
-      <Button
-        mode="text"
-        onPress={() => navigation.navigate('Register')}
-        style={styles.button}
-      >
-        Don't have an account? Register
-      </Button>
-    </View>
+        <Surface style={styles.surface}>
+          <View style={styles.logoContainer}>
+            <Image
+              source={require('../../assets/icon.png')}
+              style={styles.logo}
+              resizeMode="contain"
+            />
+            <Text style={styles.title}>Welcome Back</Text>
+            <Text style={styles.subtitle}>Sign in to continue</Text>
+          </View>
+
+          <View style={styles.formContainer}>
+            <TextInput
+              label="Email"
+              value={email}
+              onChangeText={setEmail}
+              mode="outlined"
+              style={styles.input}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              left={<TextInput.Icon icon="email" />}
+              theme={{ colors: { primary: '#3b5998' } }}
+            />
+            
+            <TextInput
+              label="Password"
+              value={password}
+              onChangeText={setPassword}
+              mode="outlined"
+              style={styles.input}
+              secureTextEntry
+              left={<TextInput.Icon icon="lock" />}
+              theme={{ colors: { primary: '#3b5998' } }}
+            />
+            
+            <Button
+              mode="contained"
+              onPress={handleLogin}
+              loading={loading}
+              style={styles.loginButton}
+              contentStyle={styles.buttonContent}
+              labelStyle={styles.buttonLabel}
+            >
+              Sign In
+            </Button>
+            
+            <Button
+              mode="text"
+              onPress={() => navigation.navigate('Register')}
+              style={styles.registerButton}
+              labelStyle={styles.registerButtonLabel}
+            >
+              Don't have an account? Sign Up
+            </Button>
+          </View>
+        </Surface>
+      </LinearGradient>
+    </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
+  },
+  gradient: {
+    flex: 1,
     justifyContent: 'center',
+    padding: 20,
+  },
+  surface: {
+    padding: 20,
+    borderRadius: 20,
+    elevation: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+  },
+  logoContainer: {
+    alignItems: 'center',
+    marginBottom: 30,
+  },
+  logo: {
+    width: 100,
+    height: 100,
+    marginBottom: 20,
   },
   title: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
-    marginBottom: 20,
-    textAlign: 'center',
+    color: '#3b5998',
+    marginBottom: 5,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#666',
+  },
+  formContainer: {
+    width: '100%',
   },
   input: {
     marginBottom: 15,
+    backgroundColor: 'transparent',
   },
-  button: {
-    marginTop: 10,
+  loginButton: {
+    marginTop: 20,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: '#3b5998',
+  },
+  buttonContent: {
+    height: 48,
+  },
+  buttonLabel: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  registerButton: {
+    marginTop: 15,
+  },
+  registerButtonLabel: {
+    color: '#3b5998',
   },
 });
 
