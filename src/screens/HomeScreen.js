@@ -102,12 +102,12 @@ const HomeScreen = ({ navigation }) => {
         <Text style={styles.sectionTitle}>Quick Actions</Text>
         <View style={styles.quickActionsContainer}>
           <Button 
-            icon="plus-circle-outline" 
+            icon="receipt-text-plus-outline"
             mode="contained" 
-            onPress={() => alert('Navigate to Add Order screen')}
+            onPress={() => navigation.navigate('OrderList')}
             style={styles.quickActionButton}
           >
-            Add Order
+            View Orders
           </Button>
           <Button 
             icon="account-multiple"

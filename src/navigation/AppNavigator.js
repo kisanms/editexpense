@@ -8,6 +8,8 @@ import HomeScreen from '../screens/HomeScreen';
 import ClientListScreen from '../screens/ClientListScreen';
 import AddEditClientScreen from '../screens/AddEditClientScreen';
 import ClientDetailsScreen from '../screens/ClientDetailsScreen';
+import OrderListScreen from '../screens/OrderListScreen';
+import AddEditOrderScreen from '../screens/AddEditOrderScreen';
 import { Text } from 'react-native-paper'; // Use Text from react-native-paper
 
 const Stack = createNativeStackNavigator();
@@ -75,7 +77,19 @@ const MainAppScreens = () => {
         component={ClientDetailsScreen} 
         options={{ title: 'Client Details' }}
       />
-      {/* Add other main screens like Orders, Expenses etc. here later */}
+      <Stack.Screen 
+        name="OrderList" 
+        component={OrderListScreen} 
+        options={{ title: 'Orders' }}
+      />
+      <Stack.Screen 
+        name="AddEditOrder" 
+        component={AddEditOrderScreen} 
+        options={({ route }) => ({
+            title: route.params?.orderId ? 'Edit Order' : 'Add New Order',
+        })} 
+      />
+      {/* Add other main screens like Expenses etc. here later */}
     </Stack.Navigator>
   );
 };

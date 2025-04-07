@@ -1,4 +1,4 @@
-import { collection, addDoc, updateDoc, doc, serverTimestamp, getDoc } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, doc, serverTimestamp, getDoc, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '../config/firebase';
 
 const clientsCollection = collection(db, 'clients');
@@ -76,5 +76,33 @@ export const getClientById = async (clientId) => {
   } catch (error) {
     console.error('Error fetching client:', error);
     throw new Error('Failed to fetch client data.');
+  }
+};
+
+/**
+ * Fetches all active clients for a given business, primarily for selection lists.
+ * @param {string} businessId - The ID of the business.
+ * @returns {Promise<Array<{id: string, name: string}>>} Array of client objects with id and name.
+ */
+export const getActiveClientsForBusiness = async (businessId) => {
+  if (!businessId) {
+    throw new Error('Business ID is required to fetch clients.');
+  }
+  try {
+    const q = query(
+      clientsCollection,
+      where("businessId", "==", businessId),
+      where("status", "==", "active"), // Only fetch active clients for new orders
+      orderBy("name", "asc")
+    );
+    const querySnapshot = await getDocs(q);
+    const clients = [];
+    querySnapshot.forEach((doc) => {
+      clients.push({ id: doc.id, name: doc.data().name }); // Only return id and name
+    });
+    return clients;
+  } catch (error) {
+    console.error('Error fetching active clients for business:', error);
+    throw new Error('Failed to fetch clients.');
   }
 }; 
