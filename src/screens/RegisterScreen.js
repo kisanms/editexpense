@@ -1,9 +1,28 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Alert, Image, KeyboardAvoidingView, Platform, ScrollView, Modal, TouchableOpacity } from 'react-native';
+import { 
+  View, 
+  StyleSheet, 
+  Alert, 
+  Image, 
+  KeyboardAvoidingView, 
+  Platform,
+  ScrollView,
+  Modal,
+  TouchableOpacity,
+  Keyboard,
+  TouchableWithoutFeedback,
+  SafeAreaView,
+  StatusBar
+} from 'react-native';
 import { TextInput, Button, Text, Surface, Portal } from 'react-native-paper';
 import { useAuth } from '../context/AuthContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import {
+  widthPercentageToDP as wp,
+  heightPercentageToDP as hp,
+} from 'react-native-responsive-screen';
+import { BlurView } from 'expo-blur';
 
 const RegisterScreen = ({ navigation }) => {
   const [username, setUsername] = useState('');
@@ -95,123 +114,137 @@ const RegisterScreen = ({ navigation }) => {
   );
 
   return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
-    >
-      <LinearGradient
-        colors={['#4c669f', '#3b5998', '#192f6a']}
-        style={styles.gradient}
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="light-content" backgroundColor="#4c669f" />
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.container}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : -hp(2)}
       >
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          <Surface style={styles.surface}>
-            <View style={styles.logoContainer}>
-              <Image
-                source={require('../../assets/icon.png')}
-                style={styles.logo}
-                resizeMode="contain"
-              />
-              <Text style={styles.title}>Create Account</Text>
-              <Text style={styles.subtitle}>Join our community</Text>
-            </View>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <LinearGradient
+            colors={['#4c669f', '#3b5998', '#192f6a']}
+            style={styles.gradient}
+          >
+            <ScrollView 
+              contentContainerStyle={styles.scrollContent}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
+              <Surface style={styles.surface}>
+                <View style={styles.logoContainer}>
+                  <Image
+                    source={require('../../assets/icon.png')}
+                    style={styles.logo}
+                    resizeMode="contain"
+                  />
+                  <Text style={styles.title}>Create Account</Text>
+                  <Text style={styles.subtitle}>Join our community</Text>
+                </View>
 
-            <View style={styles.formContainer}>
-              <TextInput
-                label="Username"
-                value={username}
-                onChangeText={setUsername}
-                mode="outlined"
-                style={styles.input}
-                left={<TextInput.Icon icon="account" />}
-                theme={{ colors: { primary: '#3b5998' } }}
-              />
-              
-              <TextInput
-                label="Email"
-                value={email}
-                onChangeText={setEmail}
-                mode="outlined"
-                style={styles.input}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                left={<TextInput.Icon icon="email" />}
-                theme={{ colors: { primary: '#3b5998' } }}
-              />
-              
-              <TextInput
-                label="Password"
-                value={password}
-                onChangeText={setPassword}
-                mode="outlined"
-                style={styles.input}
-                secureTextEntry
-                left={<TextInput.Icon icon="lock" />}
-                theme={{ colors: { primary: '#3b5998' } }}
-              />
-              
-              <TextInput
-                label="Confirm Password"
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                mode="outlined"
-                style={styles.input}
-                secureTextEntry
-                left={<TextInput.Icon icon="lock-check" />}
-                theme={{ colors: { primary: '#3b5998' } }}
-              />
-              
-              <Button
-                mode="outlined"
-                onPress={() => setShowRoleModal(true)}
-                style={styles.roleSelectButton}
-                contentStyle={styles.roleSelectContent}
-                labelStyle={styles.roleSelectLabel}
-                icon={selectedRole ? "check-circle" : "account-cog"}
-              >
-                {selectedRole ? `Role: ${selectedRole}` : 'Select Role'}
-              </Button>
-              
-              {selectedRole === 'partner' && (
-                <TextInput
-                  label="Organization Key"
-                  value={organizationKey}
-                  onChangeText={setOrganizationKey}
-                  mode="outlined"
-                  style={styles.input}
-                  left={<TextInput.Icon icon="key" />}
-                  theme={{ colors: { primary: '#3b5998' } }}
-                />
-              )}
-              
-              <Button
-                mode="contained"
-                onPress={handleRegister}
-                loading={loading}
-                style={styles.registerButton}
-                contentStyle={styles.buttonContent}
-                labelStyle={styles.buttonLabel}
-              >
-                Create Account
-              </Button>
-              
-              <Button
-                mode="text"
-                onPress={() => navigation.navigate('Login')}
-                style={styles.loginButton}
-                labelStyle={styles.loginButtonLabel}
-              >
-                Already have an account? Sign In
-              </Button>
-            </View>
-          </Surface>
-        </ScrollView>
-        <RoleModal />
-      </LinearGradient>
-    </KeyboardAvoidingView>
+                <View style={styles.formContainer}>
+                  <TextInput
+                    label="Username"
+                    value={username}
+                    onChangeText={setUsername}
+                    mode="outlined"
+                    style={styles.input}
+                    left={<TextInput.Icon icon="account" />}
+                    theme={{ colors: { primary: '#3b5998' } }}
+                  />
+                  
+                  <TextInput
+                    label="Email"
+                    value={email}
+                    onChangeText={setEmail}
+                    mode="outlined"
+                    style={styles.input}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    left={<TextInput.Icon icon="email" />}
+                    theme={{ colors: { primary: '#3b5998' } }}
+                  />
+                  
+                  <TextInput
+                    label="Password"
+                    value={password}
+                    onChangeText={setPassword}
+                    mode="outlined"
+                    style={styles.input}
+                    secureTextEntry
+                    left={<TextInput.Icon icon="lock" />}
+                    theme={{ colors: { primary: '#3b5998' } }}
+                  />
+                  
+                  <TextInput
+                    label="Confirm Password"
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                    mode="outlined"
+                    style={styles.input}
+                    secureTextEntry
+                    left={<TextInput.Icon icon="lock-check" />}
+                    theme={{ colors: { primary: '#3b5998' } }}
+                  />
+                  
+                  <Button
+                    mode="outlined"
+                    onPress={() => setShowRoleModal(true)}
+                    style={styles.roleSelectButton}
+                    contentStyle={styles.roleSelectContent}
+                    labelStyle={styles.roleSelectLabel}
+                    icon={selectedRole ? "check-circle" : "account-cog"}
+                  >
+                    {selectedRole ? `Role: ${selectedRole}` : 'Select Role'}
+                  </Button>
+                  
+                  {selectedRole === 'partner' && (
+                    <TextInput
+                      label="Organization Key"
+                      value={organizationKey}
+                      onChangeText={setOrganizationKey}
+                      mode="outlined"
+                      style={styles.input}
+                      left={<TextInput.Icon icon="key" />}
+                      theme={{ colors: { primary: '#3b5998' } }}
+                    />
+                  )}
+                  
+                  <Button
+                    mode="contained"
+                    onPress={handleRegister}
+                    loading={loading}
+                    style={styles.registerButton}
+                    contentStyle={styles.buttonContent}
+                    labelStyle={styles.buttonLabel}
+                  >
+                    Create Account
+                  </Button>
+                  
+                  <Button
+                    mode="text"
+                    onPress={() => navigation.navigate('Login')}
+                    style={styles.loginButton}
+                    labelStyle={styles.loginButtonLabel}
+                  >
+                    Already have an account? Sign In
+                  </Button>
+                </View>
+              </Surface>
+            </ScrollView>
+            <RoleModal />
+          </LinearGradient>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#4c669f',
+  },
   container: {
     flex: 1,
   },
@@ -221,65 +254,67 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
-    padding: 20,
+    padding: wp(5),
+    paddingBottom: hp(10),
   },
   surface: {
-    padding: 20,
-    borderRadius: 20,
+    padding: wp(5),
+    borderRadius: wp(5),
     elevation: 4,
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    marginVertical: hp(1),
   },
   logoContainer: {
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: hp(4),
   },
   logo: {
-    width: 100,
-    height: 100,
-    marginBottom: 20,
+    width: wp(25),
+    height: wp(25),
+    marginBottom: hp(2),
   },
   title: {
-    fontSize: 28,
+    fontSize: wp(7),
     fontWeight: 'bold',
     color: '#3b5998',
-    marginBottom: 5,
+    marginBottom: hp(0.5),
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: wp(4),
     color: '#666',
   },
   formContainer: {
     width: '100%',
   },
   input: {
-    marginBottom: 15,
+    marginBottom: hp(2),
     backgroundColor: 'transparent',
   },
   roleSelectButton: {
-    marginBottom: 15,
+    marginBottom: hp(2),
     borderColor: '#3b5998',
   },
   roleSelectContent: {
-    height: 48,
+    height: hp(6),
   },
   roleSelectLabel: {
     color: '#3b5998',
   },
   registerButton: {
-    marginTop: 20,
-    paddingVertical: 8,
-    borderRadius: 10,
+    marginTop: hp(2),
+    paddingVertical: hp(1),
+    borderRadius: wp(2.5),
     backgroundColor: '#3b5998',
   },
   buttonContent: {
-    height: 48,
+    height: hp(6),
   },
   buttonLabel: {
-    fontSize: 16,
+    fontSize: wp(4),
     fontWeight: 'bold',
   },
   loginButton: {
-    marginTop: 15,
+    marginTop: hp(2),
   },
   loginButtonLabel: {
     color: '#3b5998',
@@ -291,8 +326,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalContent: {
-    padding: 20,
-    borderRadius: 20,
+    padding: wp(5),
+    borderRadius: wp(5),
     width: '80%',
     backgroundColor: 'white',
   },
