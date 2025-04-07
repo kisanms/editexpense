@@ -1,12 +1,16 @@
 import React from 'react';
-import { View, StyleSheet, ScrollView, Image } from 'react-native';
-import { Button, Text, Surface, Avatar, useTheme } from 'react-native-paper';
+import { View, StyleSheet, ScrollView } from 'react-native';
+import { Button, Text, Surface, Avatar, useTheme, ActivityIndicator } from 'react-native-paper';
 import { useAuth } from '../context/AuthContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import {
+  widthPercentageToDP as wp,
+  heightPercentageToDP as hp,
+} from 'react-native-responsive-screen';
 
-const HomeScreen = () => {
-  const { user, logout } = useAuth();
+const HomeScreen = ({ navigation }) => {
+  const { user, userProfile, businessDetails, logout, loading } = useAuth();
   const theme = useTheme();
 
   const handleLogout = async () => {
@@ -17,57 +21,128 @@ const HomeScreen = () => {
     }
   };
 
+  const getInitials = () => {
+    if (userProfile?.username) {
+      return userProfile.username.substring(0, 1).toUpperCase();
+    }
+    if (user?.displayName) {
+      return user.displayName.substring(0, 1).toUpperCase();
+    }
+    if (user?.email) {
+      return user.email.substring(0, 1).toUpperCase();
+    }
+    return 'U';
+  };
+
+  const getUsername = () => {
+    return userProfile?.username || user?.displayName || user?.email?.split('@')[0] || 'User';
+  };
+
+  const getRole = () => {
+    if (!userProfile?.role) return '...';
+    return userProfile.role.charAt(0).toUpperCase() + userProfile.role.slice(1);
+  };
+
+  const getOrganizationId = () => {
+    return userProfile?.businessId || '...';
+  };
+
+  const getBusinessName = () => {
+    return businessDetails?.businessName || 'Loading Business...';
+  };
+
+  if (loading && !userProfile) {
+    return (
+      <LinearGradient colors={['#4c669f', '#3b5998', '#192f6a']} style={styles.loadingContainer}>
+        <ActivityIndicator animating={true} color={theme.colors.primary} size="large" />
+        <Text style={styles.loadingText}>Loading Your Dashboard...</Text>
+      </LinearGradient>
+    );
+  }
+
   return (
-    <LinearGradient
-      colors={['#4c669f', '#3b5998', '#192f6a']}
-      style={styles.container}
-    >
+    <LinearGradient colors={['#4c669f', '#3b5998', '#192f6a']} style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Surface style={styles.header}>
-          <View style={styles.userInfo}>
+        <Surface style={styles.headerSurface} elevation={4}>
+          <View style={styles.headerTopRow}>
             <Avatar.Text 
-              size={80} 
-              label={user?.username?.substring(0, 2).toUpperCase() || 'U'} 
+              size={wp('15%')}
+              label={getInitials()} 
               style={styles.avatar}
             />
-            <View style={styles.userDetails}>
+            <View style={styles.headerTextContainer}>
               <Text style={styles.welcomeText}>Welcome back,</Text>
-              <Text style={styles.username}>{user?.username}</Text>
+              <Text style={styles.usernameText} numberOfLines={1}>{getUsername()}</Text>
             </View>
           </View>
-          <View style={styles.roleContainer}>
-            <MaterialCommunityIcons 
-              name={user?.role === 'admin' ? 'account-tie' : 'account-group'} 
-              size={24} 
-              color="#3b5998" 
-            />
-            <Text style={styles.roleText}>{user?.role?.charAt(0).toUpperCase() + user?.role?.slice(1)}</Text>
+          <View style={styles.headerBottomRow}>
+            <View style={styles.detailChip}>
+              <MaterialCommunityIcons name="domain" size={18} color={theme.colors.primary} />
+              <Text style={styles.detailChipText} numberOfLines={1}>{getBusinessName()}</Text>
+            </View>
+            <View style={styles.detailChip}>
+              <MaterialCommunityIcons name="account-group" size={18} color={theme.colors.primary} />
+              <Text style={styles.detailChipText}>{getRole()}</Text>
+            </View>
           </View>
         </Surface>
 
-        <Surface style={styles.card}>
-          <View style={styles.cardHeader}>
-            <MaterialCommunityIcons name="office-building" size={24} color="#3b5998" />
-            <Text style={styles.cardTitle}>Organization</Text>
-          </View>
-          <Text style={styles.cardContent}>ID: {user?.organizationId}</Text>
-        </Surface>
+        <Text style={styles.sectionTitle}>Quick Stats</Text>
+        <View style={styles.kpiRow}>
+          <Surface style={styles.kpiCard} elevation={2}>
+            <Text style={styles.kpiValue}>--</Text>
+            <Text style={styles.kpiLabel}>Active Orders</Text>
+          </Surface>
+          <Surface style={styles.kpiCard} elevation={2}>
+            <Text style={styles.kpiValue}>--</Text>
+            <Text style={styles.kpiLabel}>Total Clients</Text>
+          </Surface>
+        </View>
 
-        <Surface style={styles.card}>
-          <View style={styles.cardHeader}>
-            <MaterialCommunityIcons name="email" size={24} color="#3b5998" />
-            <Text style={styles.cardTitle}>Email</Text>
-          </View>
-          <Text style={styles.cardContent}>{user?.email}</Text>
-        </Surface>
+        <Text style={styles.sectionTitle}>Quick Actions</Text>
+        <View style={styles.quickActionsContainer}>
+          <Button 
+            icon="plus-circle-outline" 
+            mode="contained" 
+            onPress={() => alert('Navigate to Add Order screen')}
+            style={styles.quickActionButton}
+          >
+            Add Order
+          </Button>
+          <Button 
+            icon="account-multiple"
+            mode="contained" 
+            onPress={() => navigation.navigate('ClientList')}
+            style={styles.quickActionButton}
+          >
+            View Clients
+          </Button>
+          <Button 
+            icon="cash-plus" 
+            mode="contained" 
+            onPress={() => alert('Navigate to Add Expense screen')}
+            style={styles.quickActionButton}
+          >
+            Add Expense
+          </Button>
+        </View>
 
+        <Text style={styles.sectionTitle}>Settings & Management</Text>
         <Button
-          mode="contained"
-          onPress={handleLogout}
-          style={styles.logoutButton}
-          contentStyle={styles.buttonContent}
-          labelStyle={styles.buttonLabel}
+          icon="account-multiple-plus-outline"
+          mode="outlined"
+          onPress={() => alert('Open Invite Partner Modal/Screen')}
+          style={styles.managementButton}
+          labelStyle={styles.managementButtonLabel}
+        >
+          Invite Partner
+        </Button>
+        <Button
           icon="logout"
+          mode="outlined"
+          onPress={handleLogout}
+          style={[styles.managementButton, styles.logoutButton]}
+          labelStyle={[styles.managementButtonLabel, styles.logoutButtonLabel]}
         >
           Sign Out
         </Button>
@@ -80,87 +155,130 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: hp('2%'),
+    fontSize: wp('4.5%'),
+    color: '#fff',
+  },
   scrollContent: {
-    padding: 20,
+    padding: wp('5%'),
+    paddingBottom: hp('5%'),
   },
-  header: {
-    padding: 20,
-    borderRadius: 20,
-    marginBottom: 20,
-    elevation: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+  headerSurface: {
+    padding: wp('4%'),
+    borderRadius: wp('4%'),
+    marginBottom: hp('3%'),
+    backgroundColor: 'rgba(255, 255, 255, 0.98)',
   },
-  userInfo: {
+  headerTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 15,
+    marginBottom: hp('1.5%'),
   },
   avatar: {
     backgroundColor: '#3b5998',
-    marginRight: 15,
+    marginRight: wp('4%'),
   },
-  userDetails: {
+  headerTextContainer: {
     flex: 1,
+    justifyContent: 'center',
   },
   welcomeText: {
-    fontSize: 16,
+    fontSize: wp('4%'),
     color: '#666',
+    marginBottom: hp('0.5%')
   },
-  username: {
-    fontSize: 24,
+  usernameText: {
+    fontSize: wp('5.5%'),
     fontWeight: 'bold',
-    color: '#3b5998',
+    color: '#333',
   },
-  roleContainer: {
+  headerBottomRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: hp('1%'),
+    flexWrap: 'wrap',
+  },
+  detailChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f0f2f5',
-    padding: 10,
-    borderRadius: 10,
-    alignSelf: 'flex-start',
+    backgroundColor: '#e7eaf3',
+    paddingVertical: hp('0.8%'),
+    paddingHorizontal: wp('3%'),
+    borderRadius: wp('5%'),
+    marginRight: wp('2%'),
+    marginBottom: hp('1%'),
   },
-  roleText: {
-    marginLeft: 8,
-    fontSize: 16,
+  detailChipText: {
+    marginLeft: wp('1.5%'),
+    fontSize: wp('3.5%'),
     color: '#3b5998',
     fontWeight: '500',
+    maxWidth: wp('35%'),
   },
-  card: {
-    padding: 20,
-    borderRadius: 20,
-    marginBottom: 20,
-    elevation: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+  sectionTitle: {
+    fontSize: wp('5%'),
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.9)',
+    marginTop: hp('2%'),
+    marginBottom: hp('2%'),
+    marginLeft: wp('1%'),
   },
-  cardHeader: {
+  kpiRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
+    justifyContent: 'space-around',
+    marginBottom: hp('2%'),
   },
-  cardTitle: {
-    fontSize: 18,
+  kpiCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: wp('3%'),
+    padding: wp('4%'),
+    alignItems: 'center',
+    width: wp('42%'),
+    minHeight: hp('12%'),
+    justifyContent: 'center',
+  },
+  kpiValue: {
+    fontSize: wp('6%'),
     fontWeight: 'bold',
     color: '#3b5998',
-    marginLeft: 10,
+    marginBottom: hp('0.5%'),
   },
-  cardContent: {
-    fontSize: 16,
+  kpiLabel: {
+    fontSize: wp('3.8%'),
     color: '#666',
-    marginLeft: 34,
+    textAlign: 'center',
+  },
+  quickActionsContainer: {
+  },
+  quickActionButton: {
+    marginBottom: hp('1.5%'),
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: 'rgba(255, 255, 255, 0.5)',
+    borderWidth: 1,
+  },
+  managementButton: {
+    marginTop: hp('1.5%'),
+    borderColor: 'rgba(255, 255, 255, 0.8)',
+    borderWidth: 1,
+    backgroundColor: 'transparent',
+  },
+  managementButtonLabel: {
+    color: '#fff',
   },
   logoutButton: {
-    marginTop: 20,
-    paddingVertical: 8,
-    borderRadius: 10,
-    backgroundColor: '#3b5998',
+    borderColor: '#ffadad',
+    marginTop: hp('3%'),
   },
-  buttonContent: {
-    height: 48,
-  },
-  buttonLabel: {
-    fontSize: 16,
-    fontWeight: 'bold',
+  logoutButtonLabel: {
+    color: '#ffadad',
   },
 });
 
-export default HomeScreen; 
+export default HomeScreen;

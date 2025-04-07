@@ -6,112 +6,60 @@ import {
   Image, 
   KeyboardAvoidingView, 
   Platform,
-  ScrollView,
-  Modal,
-  TouchableOpacity,
   Keyboard,
   TouchableWithoutFeedback,
   SafeAreaView,
-  StatusBar
+  StatusBar,
+  ActivityIndicator,
+  ScrollView
 } from 'react-native';
-import { TextInput, Button, Text, Surface, Portal } from 'react-native-paper';
+import { TextInput, Button, Text, Surface } from 'react-native-paper';
 import { useAuth } from '../context/AuthContext';
 import { LinearGradient } from 'expo-linear-gradient';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from 'react-native-responsive-screen';
-import { BlurView } from 'expo-blur';
 
 const RegisterScreen = ({ navigation }) => {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [organizationKey, setOrganizationKey] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showRoleModal, setShowRoleModal] = useState(false);
-  const [selectedRole, setSelectedRole] = useState(null);
   const { register } = useAuth();
 
   const handleRegister = async () => {
-    if (!username || !email || !password || !confirmPassword || !selectedRole) {
+    if (!username || !email || !password || !confirmPassword) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
-
     if (password !== confirmPassword) {
       Alert.alert('Error', 'Passwords do not match');
       return;
     }
 
-    if (selectedRole === 'partner' && !organizationKey) {
-      Alert.alert('Error', 'Organization key is required for partners');
-      return;
-    }
-
     try {
       setLoading(true);
-      await register(email, password, username, selectedRole, organizationKey);
+      await register(email, password, username);
     } catch (error) {
-      Alert.alert('Error', error.message);
+      Alert.alert('Registration Error', error.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const RoleModal = () => (
-    <Portal>
-      <Modal
-        visible={showRoleModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowRoleModal(false)}
-      >
-        <View style={styles.modalContainer}>
-          <Surface style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Select Your Role</Text>
-            
-            <TouchableOpacity
-              style={[styles.roleButton, selectedRole === 'admin' && styles.selectedRoleButton]}
-              onPress={() => {
-                setSelectedRole('admin');
-                setShowRoleModal(false);
-              }}
-            >
-              <MaterialCommunityIcons name="account-tie" size={24} color={selectedRole === 'admin' ? '#fff' : '#3b5998'} />
-              <Text style={[styles.roleButtonText, selectedRole === 'admin' && styles.selectedRoleText]}>
-                Admin
-              </Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={[styles.roleButton, selectedRole === 'partner' && styles.selectedRoleButton]}
-              onPress={() => {
-                setSelectedRole('partner');
-                setShowRoleModal(false);
-              }}
-            >
-              <MaterialCommunityIcons name="account-group" size={24} color={selectedRole === 'partner' ? '#fff' : '#3b5998'} />
-              <Text style={[styles.roleButtonText, selectedRole === 'partner' && styles.selectedRoleText]}>
-                Partner
-              </Text>
-            </TouchableOpacity>
-            
-            <Button
-              mode="text"
-              onPress={() => setShowRoleModal(false)}
-              style={styles.modalButton}
-              labelStyle={styles.modalButtonLabel}
-            >
-              Cancel
-            </Button>
-          </Surface>
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <StatusBar barStyle="light-content" backgroundColor="#4c669f" />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#3b5998" />
+          <Text style={styles.loadingText}>Creating account...</Text>
         </View>
-      </Modal>
-    </Portal>
-  );
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -126,11 +74,7 @@ const RegisterScreen = ({ navigation }) => {
             colors={['#4c669f', '#3b5998', '#192f6a']}
             style={styles.gradient}
           >
-            <ScrollView 
-              contentContainerStyle={styles.scrollContent}
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
-            >
+            <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
               <Surface style={styles.surface}>
                 <View style={styles.logoContainer}>
                   <Image
@@ -139,7 +83,7 @@ const RegisterScreen = ({ navigation }) => {
                     resizeMode="contain"
                   />
                   <Text style={styles.title}>Create Account</Text>
-                  <Text style={styles.subtitle}>Join our community</Text>
+                  <Text style={styles.subtitle}>Set up your business</Text>
                 </View>
 
                 <View style={styles.formContainer}>
@@ -149,10 +93,11 @@ const RegisterScreen = ({ navigation }) => {
                     onChangeText={setUsername}
                     mode="outlined"
                     style={styles.input}
+                    autoCapitalize="words"
                     left={<TextInput.Icon icon="account" />}
                     theme={{ colors: { primary: '#3b5998' } }}
+                    disabled={loading}
                   />
-                  
                   <TextInput
                     label="Email"
                     value={email}
@@ -163,8 +108,8 @@ const RegisterScreen = ({ navigation }) => {
                     autoCapitalize="none"
                     left={<TextInput.Icon icon="email" />}
                     theme={{ colors: { primary: '#3b5998' } }}
+                    disabled={loading}
                   />
-                  
                   <TextInput
                     label="Password"
                     value={password}
@@ -174,8 +119,8 @@ const RegisterScreen = ({ navigation }) => {
                     secureTextEntry
                     left={<TextInput.Icon icon="lock" />}
                     theme={{ colors: { primary: '#3b5998' } }}
+                    disabled={loading}
                   />
-                  
                   <TextInput
                     label="Confirm Password"
                     value={confirmPassword}
@@ -185,54 +130,31 @@ const RegisterScreen = ({ navigation }) => {
                     secureTextEntry
                     left={<TextInput.Icon icon="lock-check" />}
                     theme={{ colors: { primary: '#3b5998' } }}
+                    disabled={loading}
                   />
-                  
-                  <Button
-                    mode="outlined"
-                    onPress={() => setShowRoleModal(true)}
-                    style={styles.roleSelectButton}
-                    contentStyle={styles.roleSelectContent}
-                    labelStyle={styles.roleSelectLabel}
-                    icon={selectedRole ? "check-circle" : "account-cog"}
-                  >
-                    {selectedRole ? `Role: ${selectedRole}` : 'Select Role'}
-                  </Button>
-                  
-                  {selectedRole === 'partner' && (
-                    <TextInput
-                      label="Organization Key"
-                      value={organizationKey}
-                      onChangeText={setOrganizationKey}
-                      mode="outlined"
-                      style={styles.input}
-                      left={<TextInput.Icon icon="key" />}
-                      theme={{ colors: { primary: '#3b5998' } }}
-                    />
-                  )}
-                  
                   <Button
                     mode="contained"
                     onPress={handleRegister}
                     loading={loading}
-                    style={styles.registerButton}
+                    disabled={loading}
+                    style={styles.signUpButton}
                     contentStyle={styles.buttonContent}
                     labelStyle={styles.buttonLabel}
                   >
-                    Create Account
+                    Create Account & Business
                   </Button>
-                  
                   <Button
                     mode="text"
                     onPress={() => navigation.navigate('Login')}
-                    style={styles.loginButton}
-                    labelStyle={styles.loginButtonLabel}
+                    style={styles.signInButton}
+                    labelStyle={styles.signInButtonLabel}
+                    disabled={loading}
                   >
                     Already have an account? Sign In
                   </Button>
                 </View>
               </Surface>
             </ScrollView>
-            <RoleModal />
           </LinearGradient>
         </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
@@ -248,21 +170,31 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#4c669f',
+  },
+  loadingText: {
+    marginTop: hp(2),
+    fontSize: wp(4),
+    color: '#fff',
+    fontWeight: '600',
+  },
   gradient: {
     flex: 1,
   },
-  scrollContent: {
+  scrollContainer: {
     flexGrow: 1,
     justifyContent: 'center',
     padding: wp(5),
-    paddingBottom: hp(10),
   },
   surface: {
     padding: wp(5),
     borderRadius: wp(5),
     elevation: 4,
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    marginVertical: hp(1),
   },
   logoContainer: {
     alignItems: 'center',
@@ -282,6 +214,7 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: wp(4),
     color: '#666',
+    textAlign: 'center',
   },
   formContainer: {
     width: '100%',
@@ -290,17 +223,7 @@ const styles = StyleSheet.create({
     marginBottom: hp(2),
     backgroundColor: 'transparent',
   },
-  roleSelectButton: {
-    marginBottom: hp(2),
-    borderColor: '#3b5998',
-  },
-  roleSelectContent: {
-    height: hp(6),
-  },
-  roleSelectLabel: {
-    color: '#3b5998',
-  },
-  registerButton: {
+  signUpButton: {
     marginTop: hp(2),
     paddingVertical: hp(1),
     borderRadius: wp(2.5),
@@ -313,57 +236,12 @@ const styles = StyleSheet.create({
     fontSize: wp(4),
     fontWeight: 'bold',
   },
-  loginButton: {
+  signInButton: {
     marginTop: hp(2),
   },
-  loginButtonLabel: {
-    color: '#3b5998',
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  modalContent: {
-    padding: wp(5),
-    borderRadius: wp(5),
-    width: '80%',
-    backgroundColor: 'white',
-  },
-  modalTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#3b5998',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  roleButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 15,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#3b5998',
-    marginBottom: 10,
-  },
-  selectedRoleButton: {
-    backgroundColor: '#3b5998',
-  },
-  roleButtonText: {
-    fontSize: 16,
-    marginLeft: 10,
-    color: '#3b5998',
-  },
-  selectedRoleText: {
-    color: '#fff',
-  },
-  modalButton: {
-    marginTop: 10,
-  },
-  modalButtonLabel: {
+  signInButtonLabel: {
     color: '#3b5998',
   },
 });
 
-export default RegisterScreen; 
+export default RegisterScreen;
