@@ -7,7 +7,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { Button, Text, Surface, Avatar, useTheme } from "react-native-paper";
-import { useAuth } from "../context/AuthContext"; // Ensure this path is correct
+import { useAuth } from "../context/AuthContext";
 import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
 import * as Font from "expo-font";
@@ -24,11 +24,11 @@ const HomeScreen = () => {
   const { user, userProfile, businessDetails, logout } = useAuth();
   const theme = useTheme();
 
-  // Load custom fonts (replace with your font files or remove if using system fonts)
+  // Load custom fonts
   const [fontsLoaded] = Font.useFonts({
-    "Outfit-Regular": require("../../assets/fonts/Outfit-Regular.ttf"), // Adjust path
-    "Outfit-Bold": require("../../assets/fonts/Outfit-Bold.ttf"),
-    "Outfit-Medium": require("../../assets/fonts/Outfit-Medium.ttf"),
+    "Inter-Regular": require("../../assets/fonts/Inter_28pt-Regular.ttf"),
+    "Inter-Bold": require("../../assets/fonts/Inter_18pt-Bold.ttf"),
+    "Inter-Medium": require("../../assets/fonts/Inter_28pt-Medium.ttf"),
   });
 
   const handleLogout = async () => {
@@ -49,35 +49,30 @@ const HomeScreen = () => {
     businessDetails?.businessName || "Kisan's Business";
 
   if (!fontsLoaded) {
-    return <ActivityIndicator size="large" color="#FF6F61" />;
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#5C80BC" />
+      </View>
+    );
   }
 
   return (
-    <LinearGradient colors={["#4A00E0", "#8E2DE2"]} style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => {
-            // Replace with actual settings screen navigation or modal
-            alert("Settings: Invite Partner or Sign Out");
-          }}
-        >
-          <Avatar.Text
-            size={40}
-            label={getInitials()}
-            style={styles.profileIcon}
-          />
-        </TouchableOpacity>
-      </View>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+    <LinearGradient colors={["#0C134F", "#1D267D"]} style={styles.container}>
+      <View style={styles.header}></View>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Welcome Card */}
         <Animated.View entering={FadeInUp.duration(600)}>
           <Surface style={styles.welcomeCard}>
-            <BlurView intensity={50} style={styles.blurOverlay}>
+            <BlurView intensity={20} style={styles.blurOverlay}>
               <View style={styles.welcomeContent}>
                 <Avatar.Text
-                  size={56}
+                  size={60}
                   label={getInitials()}
                   style={styles.avatar}
+                  labelStyle={styles.avatarText}
                 />
                 <View style={styles.welcomeTextContainer}>
                   <Text style={styles.welcomeText}>Welcome back,</Text>
@@ -89,7 +84,7 @@ const HomeScreen = () => {
                   <MaterialCommunityIcons
                     name="domain"
                     size={18}
-                    color="#4A00E0"
+                    color="#5C469C"
                   />
                   <Text style={styles.infoText}>{getBusinessName()}</Text>
                 </View>
@@ -97,11 +92,20 @@ const HomeScreen = () => {
                   <MaterialCommunityIcons
                     name="shield-account"
                     size={18}
-                    color="#4A00E0"
+                    color="#5C469C"
                   />
                   <Text style={styles.infoText}>{getRole()}</Text>
                 </View>
               </View>
+              <Button
+                mode="outlined"
+                onPress={handleLogout}
+                style={styles.signOutButton}
+                labelStyle={styles.signOutButtonLabel}
+                icon="logout"
+              >
+                Sign Out
+              </Button>
             </BlurView>
           </Surface>
         </Animated.View>
@@ -110,19 +114,23 @@ const HomeScreen = () => {
         <Text style={styles.sectionTitle}>Quick Stats</Text>
         <View style={styles.statsRow}>
           <Animated.View entering={FadeInUp.duration(600).delay(200)}>
-            <Surface style={[styles.statCard, { backgroundColor: "#FF6F61" }]}>
-              <MaterialCommunityIcons name="cart" size={24} color="#fff" />
+            <Surface style={styles.statCard}>
+              <View style={styles.iconBg}>
+                <MaterialCommunityIcons name="cart" size={22} color="#5C469C" />
+              </View>
               <Text style={styles.statValue}>12</Text>
               <Text style={styles.statLabel}>Active Orders</Text>
             </Surface>
           </Animated.View>
           <Animated.View entering={FadeInUp.duration(600).delay(400)}>
-            <Surface style={[styles.statCard, { backgroundColor: "#40C4FF" }]}>
-              <MaterialCommunityIcons
-                name="account-group"
-                size={24}
-                color="#fff"
-              />
+            <Surface style={styles.statCard}>
+              <View style={styles.iconBg}>
+                <MaterialCommunityIcons
+                  name="account-group"
+                  size={22}
+                  color="#5C469C"
+                />
+              </View>
               <Text style={styles.statValue}>45</Text>
               <Text style={styles.statLabel}>Total Clients</Text>
             </Surface>
@@ -132,48 +140,59 @@ const HomeScreen = () => {
         {/* Quick Actions */}
         <Text style={styles.sectionTitle}>Quick Actions</Text>
         <View style={styles.actionsContainer}>
-          <Button
-            icon="receipt"
-            mode="contained"
+          <TouchableOpacity
+            style={styles.actionCard}
             onPress={() => navigation.navigate("OrderList")}
-            style={styles.actionButton}
-            labelStyle={styles.actionButtonLabel}
-            theme={{ colors: { primary: "#FF6F61" } }}
           >
-            View Orders
-          </Button>
-          <Button
-            icon="account-multiple"
-            mode="contained"
+            <View style={styles.actionIconContainer}>
+              <MaterialCommunityIcons
+                name="receipt"
+                size={24}
+                color="#5C80BC"
+              />
+            </View>
+            <Text style={styles.actionText}>View Orders</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionCard}
             onPress={() => navigation.navigate("ClientList")}
-            style={styles.actionButton}
-            labelStyle={styles.actionButtonLabel}
-            theme={{ colors: { primary: "#FF6F61" } }}
           >
-            View Clients
-          </Button>
-          <Button
-            icon="cash"
-            mode="contained"
+            <View style={styles.actionIconContainer}>
+              <MaterialCommunityIcons
+                name="account-multiple"
+                size={24}
+                color="#5C80BC"
+              />
+            </View>
+            <Text style={styles.actionText}>View Clients</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionCard}
             onPress={() =>
               navigation.navigate("MainApp", { screen: "ExpenseList" })
             }
-            style={styles.actionButton}
-            labelStyle={styles.actionButtonLabel}
-            theme={{ colors: { primary: "#FF6F61" } }}
           >
-            View Expenses
-          </Button>
-          <Button
-            icon="account-hard-hat"
-            mode="contained"
+            <View style={styles.actionIconContainer}>
+              <MaterialCommunityIcons name="cash" size={24} color="#5C80BC" />
+            </View>
+            <Text style={styles.actionText}>View Expenses</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionCard}
             onPress={() => navigation.navigate("WorkerList")}
-            style={styles.actionButton}
-            labelStyle={styles.actionButtonLabel}
-            theme={{ colors: { primary: "#FF6F61" } }}
           >
-            View Workers
-          </Button>
+            <View style={styles.actionIconContainer}>
+              <MaterialCommunityIcons
+                name="account-hard-hat"
+                size={24}
+                color="#5C80BC"
+              />
+            </View>
+            <Text style={styles.actionText}>View Workers</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </LinearGradient>
@@ -181,137 +200,198 @@ const HomeScreen = () => {
 };
 
 const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#0C134F",
+  },
   container: {
     flex: 1,
   },
   header: {
-    padding: wp("6%"),
-    paddingTop: hp("6%"),
+    padding: wp("4%"),
+    paddingTop: hp("2%"),
     alignItems: "flex-end",
   },
   profileIcon: {
-    backgroundColor: "#FF6F61",
+    backgroundColor: "#5C469C",
     borderWidth: 2,
-    borderColor: "#fff",
-    elevation: 4,
+    borderColor: "#D4ADFC",
+    elevation: 2,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  profileIconText: {
+    fontFamily: "Inter-Bold",
+    fontSize: wp("4%"),
+    color: "#D4ADFC",
   },
   scrollContent: {
-    padding: wp("6%"),
-    paddingBottom: hp("10%"),
+    padding: wp("4%"),
+    paddingBottom: hp("4%"),
   },
   welcomeCard: {
-    borderRadius: wp("5%"),
+    borderRadius: wp("4%"),
     overflow: "hidden",
-    marginBottom: hp("4%"),
-    elevation: 8,
+    marginBottom: hp("3%"),
+    elevation: 2,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    backgroundColor: "rgba(255, 255, 255, 0.95)",
   },
   blurOverlay: {
-    padding: wp("5%"),
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    padding: wp("4%"),
+    backgroundColor: "rgba(255, 255, 255, 0.7)",
   },
   welcomeContent: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: hp("3%"),
+    marginBottom: hp("2%"),
   },
   avatar: {
-    backgroundColor: "#FF6F61",
-    borderWidth: 2,
-    borderColor: "#fff",
+    backgroundColor: "#5C469C",
+    borderWidth: 1,
+    borderColor: "#D4ADFC",
+  },
+  avatarText: {
+    fontFamily: "Inter-Bold",
+    fontSize: wp("6%"),
+    color: "#D4ADFC",
   },
   welcomeTextContainer: {
-    marginLeft: wp("5%"),
+    marginLeft: wp("3%"),
   },
   welcomeText: {
-    fontSize: wp("4.2%"),
-    color: "#D3D3D3",
-    fontFamily: "Outfit-Regular", // Replace with your font
+    fontSize: wp("3.5%"),
+    color: "#5C469C",
+    fontFamily: "Inter-Regular",
   },
   username: {
-    fontSize: wp("6.5%"),
+    fontSize: wp("5%"),
     fontWeight: "800",
-    color: "#fff",
-    fontFamily: "Outfit-Bold",
+    color: "#1D267D",
+    fontFamily: "Inter-Bold",
   },
   infoRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "flex-start",
+    marginBottom: hp("2%"),
+    flexWrap: "wrap",
+    gap: wp("2%"),
   },
   infoChip: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#E6E6FA",
-    paddingVertical: hp("1%"),
-    paddingHorizontal: wp("4%"),
-    borderRadius: wp("10%"),
+    backgroundColor: "rgba(212, 173, 252, 0.15)",
+    paddingVertical: hp("0.5%"),
+    paddingHorizontal: wp("3%"),
+    borderRadius: wp("5%"),
+    borderWidth: 1,
+    borderColor: "rgba(92, 70, 156, 0.2)",
   },
   infoText: {
-    marginLeft: wp("2%"),
-    fontSize: wp("3.8%"),
-    color: "#4A00E0",
+    marginLeft: wp("1.5%"),
+    fontSize: wp("3.2%"),
+    color: "#5C469C",
     fontWeight: "600",
-    fontFamily: "Outfit-Medium",
+    fontFamily: "Inter-Medium",
+  },
+  signOutButton: {
+    borderColor: "#5C469C",
+    borderWidth: 1,
+    borderRadius: wp("2%"),
+    alignSelf: "flex-end",
+  },
+  signOutButtonLabel: {
+    color: "#5C469C",
+    fontSize: wp("3.2%"),
+    fontWeight: "600",
+    fontFamily: "Inter-Medium",
   },
   sectionTitle: {
-    fontSize: wp("5.5%"),
+    fontSize: wp("4.5%"),
     fontWeight: "700",
-    color: "#fff",
-    marginBottom: hp("3%"),
-    letterSpacing: 0.5,
-    fontFamily: "Outfit-Bold",
+    color: "#D4ADFC",
+    marginBottom: hp("2%"),
+    letterSpacing: 0.3,
+    fontFamily: "Inter-Bold",
   },
   statsRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: hp("4%"),
+    marginBottom: hp("3%"),
   },
   statCard: {
-    borderRadius: wp("5%"),
-    padding: wp("5%"),
+    backgroundColor: "rgba(255, 255, 255, 0.95)",
+    borderRadius: wp("4%"),
+    padding: wp("3%"),
     width: wp("44%"),
     alignItems: "center",
-    elevation: 6,
+    elevation: 2,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    borderWidth: 1,
+    borderColor: "rgba(92, 70, 156, 0.1)",
+  },
+  iconBg: {
+    backgroundColor: "rgba(212, 173, 252, 0.15)",
+    padding: wp("2%"),
+    borderRadius: wp("8%"),
+    marginBottom: hp("0.5%"),
   },
   statValue: {
-    fontSize: wp("6%"),
+    fontSize: wp("5%"),
     fontWeight: "700",
-    color: "#fff",
-    marginVertical: hp("1%"),
-    fontFamily: "Outfit-Bold",
+    color: "#1D267D",
+    marginVertical: hp("0.5%"),
+    fontFamily: "Inter-Bold",
   },
   statLabel: {
-    fontSize: wp("3.8%"),
-    color: "#fff",
-    opacity: 0.9,
-    fontFamily: "Outfit-Regular",
+    fontSize: wp("3.2%"),
+    color: "#5C469C",
+    fontFamily: "Inter-Regular",
   },
   actionsContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
   },
-  actionButton: {
+  actionCard: {
+    backgroundColor: "rgba(255, 255, 255, 0.95)",
     width: wp("44%"),
-    marginBottom: hp("3%"),
-    borderRadius: wp("5%"),
+    height: hp("12%"),
+    marginBottom: hp("2%"),
+    borderRadius: wp("4%"),
+    padding: wp("3%"),
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    borderWidth: 1,
+    borderColor: "rgba(92, 70, 156, 0.1)",
   },
-  actionButtonLabel: {
-    color: "#fff",
-    fontSize: wp("4%"),
+  actionIconContainer: {
+    backgroundColor: "rgba(212, 173, 252, 0.15)",
+    padding: wp("2%"),
+    borderRadius: wp("8%"),
+    marginBottom: hp("1%"),
+  },
+  actionText: {
+    color: "#1D267D",
+    fontSize: wp("3.5%"),
     fontWeight: "600",
-    fontFamily: "Outfit-Medium",
+    fontFamily: "Inter-Medium",
+    textAlign: "center",
   },
 });
 
