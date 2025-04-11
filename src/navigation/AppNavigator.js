@@ -15,7 +15,9 @@ import ExpenseListScreen from "../screens/ExpenseListScreen";
 import AddEditExpenseScreen from "../screens/AddEditExpenseScreen";
 import ExpenseDetailsScreen from "../screens/ExpenseDetailsScreen";
 import WorkerDetailsScreen from "../screens/WorkerDetailsScreen";
+import WorkerListScreen from "../screens/WorkerListScreen";
 import { Text } from "react-native-paper"; // Use Text from react-native-paper
+import AddEditWorkerScreen from "../screens/AddEditWorkerScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -120,6 +122,16 @@ const MainAppScreens = () => {
         name="WorkerDetails"
         component={WorkerDetailsScreen}
         options={{ title: "Worker Details" }}
+      />
+      <Stack.Screen
+        name="WorkerList"
+        component={WorkerListScreen}
+        options={{ title: "Worker Lists" }}
+      />
+      <Stack.Screen
+        name="AddEditWorker"
+        component={AddEditWorkerScreen}
+        options={{ title: "Add Edit Worker" }}
       />
       {/* Add other main screens like Expenses etc. here later */}
     </Stack.Navigator>
