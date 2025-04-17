@@ -101,7 +101,7 @@ function MainTabs() {
         headerShown: false,
       }}
     >
-      <Tab.Screen name="Dashboard" component={DashboardScreen} />
+      <Tab.Screen name="Home" component={DashboardScreen} />
       <Tab.Screen name="Clients" component={ClientsScreen} />
       <Tab.Screen name="Employees" component={EmployeesScreen} />
       <Tab.Screen name="Orders" component={OrdersScreen} />

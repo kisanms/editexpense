@@ -29,10 +29,6 @@ const validationSchema = Yup.object().shape({
     .required("Email is required"),
   phone: Yup.string().required("Phone number is required"),
   address: Yup.string().required("Address is required"),
-  salary: Yup.number()
-    .typeError("Salary must be a number")
-    .positive("Salary must be a positive number")
-    .required("Salary is required"),
   skills: Yup.string().required("Skills are required"),
   experience: Yup.string().required("Experience is required"),
 });
@@ -73,7 +69,6 @@ export default function AddEmployeeScreen({ navigation }) {
     email: "",
     phone: "",
     address: "",
-    salary: "",
     skills: "",
     experience: "",
   };
@@ -261,31 +256,6 @@ export default function AddEmployeeScreen({ navigation }) {
                 {/* Section: Professional Details */}
                 <Text style={styles.sectionTitle}>Professional Details</Text>
                 <View style={styles.sectionCard}>
-                  <Text style={styles.inputLabel}>Salary *</Text>
-                  <TextInput
-                    value={values.salary}
-                    onChangeText={handleChange("salary")}
-                    onBlur={handleBlur("salary")}
-                    mode="outlined"
-                    style={styles.input}
-                    keyboardType="numeric"
-                    error={touched.salary && errors.salary}
-                    left={
-                      <TextInput.Icon icon="currency-usd" color="#1E3A8A" />
-                    }
-                    theme={theme}
-                    placeholder="Enter monthly salary"
-                  />
-                  {touched.salary && errors.salary && (
-                    <HelperText
-                      type="error"
-                      visible={touched.salary && errors.salary}
-                      style={styles.errorText}
-                    >
-                      {errors.salary}
-                    </HelperText>
-                  )}
-
                   <Text style={styles.inputLabel}>Skills *</Text>
                   <TextInput
                     value={values.skills}
