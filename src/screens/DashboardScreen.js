@@ -105,7 +105,7 @@ export default function DashboardScreen() {
           style={styles.headerGradient}
         >
           <View style={styles.header}>
-            <Text style={styles.title}>Realtor CRM</Text>
+            <Text style={styles.title}>Rcm</Text>
             <TouchableOpacity onPress={handleSignOut}>
               <View style={styles.signOutButton}>
                 <FontAwesome5 name="sign-out-alt" size={20} color="#fff" />
@@ -179,7 +179,10 @@ export default function DashboardScreen() {
               <Text style={styles.btnText}>Add Client</Text>
             </LinearGradient>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.actionBtn}>
+          <TouchableOpacity
+            style={styles.actionBtn}
+            onPress={() => navigation.navigate("AddOrder")}
+          >
             <LinearGradient
               colors={["#0BAB64", "#3BB78F"]}
               start={{ x: 0, y: 0 }}
@@ -194,12 +197,18 @@ export default function DashboardScreen() {
       </ScrollView>
 
       {/* Bottom Navigation */}
-      <View style={styles.bottomNav}>
-        <TouchableOpacity style={[styles.navItem, styles.navItemActive]}>
+      {/* <View style={styles.bottomNav}>
+        <TouchableOpacity
+          style={[styles.navItem, styles.navItemActive]}
+          onPress={() => navigation.navigate("Dashboard")}
+        >
           <FontAwesome5 name="home" size={20} color="#0047CC" />
           <Text style={styles.navTextActive}>Home</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem}>
+        <TouchableOpacity
+          style={styles.navItem}
+          onPress={() => navigation.navigate("clientScreen")}
+        >
           <FontAwesome5 name="users" size={20} color="#666" />
           <Text style={styles.navText}>Clients</Text>
         </TouchableOpacity>
@@ -211,7 +220,7 @@ export default function DashboardScreen() {
           <FontAwesome5 name="chart-bar" size={20} color="#666" />
           <Text style={styles.navText}>Reports</Text>
         </TouchableOpacity>
-      </View>
+      </View> */}
     </SafeAreaView>
   );
 }
