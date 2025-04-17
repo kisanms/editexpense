@@ -141,58 +141,14 @@ const AppNavigator = () => {
 
       {/* Client Screens */}
       <Stack.Screen name="AddClient" component={AddClientScreen} />
-      <Stack.Screen
-        name="ClientDetails"
-        component={ClientDetailsScreen}
-        options={{
-          headerShown: true,
-          title: "Client Details",
-          headerStyle: {
-            backgroundColor: "#0047CC",
-          },
-          headerTintColor: "#fff",
-        }}
-      />
+      <Stack.Screen name="ClientDetails" component={ClientDetailsScreen} />
 
       {/* Employee Screens */}
-      <Stack.Screen
-        name="EmployeeDetails"
-        component={EmployeeDetailsScreen}
-        options={{
-          headerShown: true,
-          title: "Employee Details",
-          headerStyle: {
-            backgroundColor: "#0047CC",
-          },
-          headerTintColor: "#fff",
-        }}
-      />
-      <Stack.Screen
-        name="AddEmployee"
-        component={AddEmployeeScreen}
-        options={{
-          headerShown: true,
-          title: "Add Employee",
-          headerStyle: {
-            backgroundColor: "#0047CC",
-          },
-          headerTintColor: "#fff",
-        }}
-      />
+      <Stack.Screen name="EmployeeDetails" component={EmployeeDetailsScreen} />
+      <Stack.Screen name="AddEmployee" component={AddEmployeeScreen} />
 
       {/* Order Screens */}
-      <Stack.Screen
-        name="OrderDetails"
-        component={OrderDetailsScreen}
-        options={{
-          headerShown: true,
-          title: "Order Details",
-          headerStyle: {
-            backgroundColor: "#0047CC",
-          },
-          headerTintColor: "#fff",
-        }}
-      />
+      <Stack.Screen name="OrderDetails" component={OrderDetailsScreen} />
       <Stack.Screen name="AddOrder" component={AddOrderScreen} />
     </Stack.Navigator>
   );

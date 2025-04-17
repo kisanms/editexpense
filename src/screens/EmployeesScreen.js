@@ -147,7 +147,7 @@ export default function EmployeesScreen({ navigation }) {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <LinearGradient
         colors={["#1E3A8A", "#3B82F6"]}
         style={styles.header}
@@ -195,14 +195,14 @@ export default function EmployeesScreen({ navigation }) {
             </View>
           }
         />
-
-        <FAB
-          style={styles.fab}
-          icon="plus"
-          onPress={() => navigation.navigate("AddEmployee")}
-          color="#FFFFFF"
-        />
       </Animated.View>
+
+      <FAB
+        style={styles.fab}
+        icon="plus"
+        onPress={() => navigation.navigate("AddEmployee")}
+        color="#FFFFFF"
+      />
 
       <Portal>
         <Modal
@@ -235,7 +235,7 @@ export default function EmployeesScreen({ navigation }) {
           </Button>
         </Modal>
       </Portal>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -280,7 +280,7 @@ const styles = StyleSheet.create({
   },
   listContent: {
     padding: wp(4),
-    paddingBottom: hp(10),
+    paddingBottom: hp(20),
   },
   card: {
     marginBottom: hp(2),
@@ -323,8 +323,13 @@ const styles = StyleSheet.create({
     position: "absolute",
     margin: wp(4),
     right: 0,
-    bottom: 0,
+    bottom: hp(10),
     backgroundColor: "#1E3A8A",
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3,
   },
   emptyContainer: {
     flex: 1,
