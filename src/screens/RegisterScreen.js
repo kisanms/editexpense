@@ -94,45 +94,77 @@ const RegisterScreen = ({ navigation }) => {
                     label="Username"
                     value={username}
                     onChangeText={setUsername}
-                    mode="outlined"
                     style={styles.input}
                     autoCapitalize="words"
-                    left={<TextInput.Icon icon="account" />}
-                    theme={{ colors: { primary: "#0047CC" } }}
+                    textColor="#000000"
+                    outlineColor="#0047CC"
+                    activeOutlineColor="#0047CC"
+                    left={<TextInput.Icon icon="account" color="#0047CC" />}
+                    theme={{
+                      colors: {
+                        primary: "#0047CC",
+                        onSurfaceVariant: "#666666",
+                        background: "#FFFFFF",
+                      },
+                    }}
                     disabled={loading}
                   />
                   <TextInput
                     label="Email"
                     value={email}
                     onChangeText={setEmail}
-                    mode="outlined"
                     style={styles.input}
                     keyboardType="email-address"
                     autoCapitalize="none"
-                    left={<TextInput.Icon icon="email" />}
-                    theme={{ colors: { primary: "#0047CC" } }}
+                    textColor="#000000"
+                    outlineColor="#0047CC"
+                    activeOutlineColor="#0047CC"
+                    left={<TextInput.Icon icon="email" color="#0047CC" />}
+                    theme={{
+                      colors: {
+                        primary: "#0047CC",
+                        onSurfaceVariant: "#666666",
+                        background: "#FFFFFF",
+                      },
+                    }}
                     disabled={loading}
                   />
                   <TextInput
                     label="Password"
                     value={password}
                     onChangeText={setPassword}
-                    mode="outlined"
                     style={styles.input}
                     secureTextEntry
-                    left={<TextInput.Icon icon="lock" />}
-                    theme={{ colors: { primary: "#0047CC" } }}
+                    textColor="#000000"
+                    outlineColor="#0047CC"
+                    activeOutlineColor="#0047CC"
+                    left={<TextInput.Icon icon="lock" color="#0047CC" />}
+                    theme={{
+                      colors: {
+                        primary: "#0047CC",
+                        onSurfaceVariant: "#666666",
+                        background: "#FFFFFF",
+                      },
+                    }}
                     disabled={loading}
                   />
                   <TextInput
                     label="Confirm Password"
                     value={confirmPassword}
                     onChangeText={setConfirmPassword}
-                    mode="outlined"
                     style={styles.input}
                     secureTextEntry
-                    left={<TextInput.Icon icon="lock-check" />}
-                    theme={{ colors: { primary: "#0047CC" } }}
+                    textColor="#000000"
+                    outlineColor="#0047CC"
+                    activeOutlineColor="#0047CC"
+                    left={<TextInput.Icon icon="lock-check" color="#0047CC" />}
+                    theme={{
+                      colors: {
+                        primary: "#0047CC",
+                        onSurfaceVariant: "#666666",
+                        background: "#FFFFFF",
+                      },
+                    }}
                     disabled={loading}
                   />
                   <Button
@@ -224,7 +256,8 @@ const styles = StyleSheet.create({
   },
   input: {
     marginBottom: hp(2),
-    backgroundColor: "transparent",
+    backgroundColor: "#FFFFFF",
+    height: hp(8),
   },
   signUpButton: {
     marginTop: hp(2),
@@ -238,6 +271,7 @@ const styles = StyleSheet.create({
   buttonLabel: {
     fontSize: wp(4),
     fontWeight: "bold",
+    color: "white",
   },
   signInButton: {
     marginTop: hp(2),

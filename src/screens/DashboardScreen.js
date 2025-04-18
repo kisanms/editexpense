@@ -8,6 +8,7 @@ import {
   Dimensions,
   Animated,
   Alert,
+  StatusBar,
 } from "react-native";
 import {
   widthPercentageToDP as wp,
@@ -96,6 +97,7 @@ export default function DashboardScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#0047CC" />
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header with Sign Out */}
         <LinearGradient
@@ -232,7 +234,7 @@ const styles = StyleSheet.create({
   },
   headerGradient: {
     paddingHorizontal: wp("5%"),
-    paddingVertical: hp("3%"),
+    paddingVertical: hp("2%"),
     borderBottomLeftRadius: wp("8%"),
     borderBottomRightRadius: wp("8%"),
     marginBottom: hp("2%"),
@@ -253,13 +255,14 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     justifyContent: "space-between",
     padding: wp("5%"),
-    marginTop: hp("-3%"),
+    marginTop: hp("-3.5%"),
+    marginBottom: hp(-2),
   },
   card: {
     width: width * 0.43,
     padding: 15,
-    borderRadius: 20,
-    marginBottom: 15,
+    borderRadius: wp(5),
+    marginBottom: hp(0.7),
     elevation: 5,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
@@ -267,17 +270,17 @@ const styles = StyleSheet.create({
     shadowRadius: 3.84,
   },
   cardValue: {
-    fontSize: 24,
+    fontSize: hp(2.5),
     fontWeight: "bold",
     color: "#fff",
-    marginVertical: 5,
+    marginVertical: hp(0.01),
   },
   cardLabel: {
-    fontSize: 14,
+    fontSize: hp(1.7),
     color: "rgba(255,255,255,0.8)",
   },
   section: {
-    padding: 20,
+    padding: hp(2),
   },
   sectionTitle: {
     fontSize: hp("2.5%"),

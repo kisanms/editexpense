@@ -51,7 +51,7 @@ const LoginScreen = ({ navigation }) => {
   if (loading) {
     return (
       <SafeAreaView style={styles.safeArea}>
-        <StatusBar barStyle="light-content" backgroundColor="#0047CC" />
+        <StatusBar barStyle="default" backgroundColor="#0047CC" />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#0047CC" />
           <Text style={styles.loadingText}>Signing in...</Text>
@@ -89,12 +89,20 @@ const LoginScreen = ({ navigation }) => {
                   label="Email"
                   value={email}
                   onChangeText={setEmail}
-                  mode="outlined"
                   style={styles.input}
                   keyboardType="email-address"
                   autoCapitalize="none"
-                  left={<TextInput.Icon icon="email" />}
-                  theme={{ colors: { primary: "#0047CC" } }}
+                  textColor="#000000"
+                  outlineColor="#0047CC"
+                  activeOutlineColor="#0047CC"
+                  left={<TextInput.Icon icon="email" color="#0047CC" />}
+                  theme={{
+                    colors: {
+                      primary: "#0047CC",
+                      onSurfaceVariant: "#666666",
+                      background: "#FFFFFF",
+                    },
+                  }}
                   disabled={loading}
                 />
 
@@ -102,11 +110,19 @@ const LoginScreen = ({ navigation }) => {
                   label="Password"
                   value={password}
                   onChangeText={setPassword}
-                  mode="outlined"
                   style={styles.input}
                   secureTextEntry
-                  left={<TextInput.Icon icon="lock" />}
-                  theme={{ colors: { primary: "#0047CC" } }}
+                  textColor="#000000"
+                  outlineColor="#0047CC"
+                  activeOutlineColor="#0047CC"
+                  left={<TextInput.Icon icon="lock" color="#0047CC" />}
+                  theme={{
+                    colors: {
+                      primary: "#0047CC",
+                      onSurfaceVariant: "#666666",
+                      background: "#FFFFFF",
+                    },
+                  }}
                   disabled={loading}
                 />
 
@@ -195,7 +211,9 @@ const styles = StyleSheet.create({
   },
   input: {
     marginBottom: hp(2),
-    backgroundColor: "transparent",
+    backgroundColor: "#FFFFFF",
+    fontSize: hp(2),
+    height: hp(8),
   },
   loginButton: {
     marginTop: hp(2),
@@ -209,6 +227,7 @@ const styles = StyleSheet.create({
   buttonLabel: {
     fontSize: wp(4),
     fontWeight: "bold",
+    color: "white",
   },
   registerButton: {
     marginTop: hp(2),
