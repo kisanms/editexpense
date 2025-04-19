@@ -7,6 +7,7 @@ import {
   Animated,
   RefreshControl,
 } from "react-native";
+
 import {
   Text,
   Searchbar,
@@ -147,7 +148,7 @@ export default function EmployeesScreen({ navigation }) {
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <LinearGradient
         colors={["#1E3A8A", "#3B82F6"]}
         style={styles.header}
@@ -235,7 +236,7 @@ export default function EmployeesScreen({ navigation }) {
           </Button>
         </Modal>
       </Portal>
-    </View>
+    </SafeAreaView>
   );
 }
 

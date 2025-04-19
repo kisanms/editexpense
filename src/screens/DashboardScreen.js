@@ -102,7 +102,6 @@ export default function DashboardScreen() {
         {/* Header with Sign Out */}
         <LinearGradient
           colors={["#1E3A8A", "#3B82F6"]}
-          style={styles.header}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.headerGradient}
