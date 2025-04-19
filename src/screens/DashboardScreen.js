@@ -97,11 +97,12 @@ export default function DashboardScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#0047CC" />
+      <StatusBar barStyle="light-content" backgroundColor="black" />
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header with Sign Out */}
         <LinearGradient
-          colors={["#0047CC", "#0047CC"]}
+          colors={["#1E3A8A", "#3B82F6"]}
+          style={styles.header}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.headerGradient}
