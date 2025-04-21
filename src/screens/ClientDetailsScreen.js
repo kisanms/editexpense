@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   StyleSheet,
@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Animated,
   Alert,
+  RefreshControl,
 } from "react-native";
 import {
   Text,
@@ -15,7 +16,6 @@ import {
   Divider,
   Portal,
   Modal,
-  Snackbar,
   Avatar,
 } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -25,22 +25,17 @@ import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from "react-native-responsive-screen";
-import {
-  doc,
-  getDoc,
-  updateDoc,
-  deleteDoc,
-  serverTimestamp,
-} from "firebase/firestore";
+import { doc, getDoc, deleteDoc } from "firebase/firestore";
 import { db } from "../config/firebase";
+import { useFocusEffect } from "@react-navigation/native";
 
 export default function ClientDetailsScreen({ route, navigation }) {
-  const { client } = route.params;
+  const { client: initialClient } = route.params;
+  const [client, setClient] = useState(initialClient);
   const [fadeAnim] = useState(new Animated.Value(0));
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [showSnackbar, setShowSnackbar] = useState(false);
-  const [deletedClient, setDeletedClient] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -49,6 +44,35 @@ export default function ClientDetailsScreen({ route, navigation }) {
       useNativeDriver: true,
     }).start();
   }, []);
+
+  const fetchClientData = async () => {
+    try {
+      setRefreshing(true);
+      const clientRef = doc(db, "clients", client.id);
+      const clientSnap = await getDoc(clientRef);
+      if (clientSnap.exists()) {
+        setClient({ id: clientSnap.id, ...clientSnap.data() });
+      } else {
+        Alert.alert("Error", "Client not found.");
+        navigation.goBack();
+      }
+    } catch (error) {
+      console.error("Error fetching client data: ", error);
+      Alert.alert("Error", "Failed to fetch client data. Please try again.");
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchClientData();
+    }, [client.id])
+  );
+
+  const onRefresh = useCallback(() => {
+    fetchClientData();
+  }, [client.id]);
 
   const getInitials = (name) => {
     if (!name) return "?";
@@ -64,55 +88,19 @@ export default function ClientDetailsScreen({ route, navigation }) {
     try {
       setIsDeleting(true);
       const clientRef = doc(db, "clients", client.id);
-      await updateDoc(clientRef, {
-        status: "inactive",
-        deletedAt: serverTimestamp(),
-      });
-      setDeletedClient(client);
+      await deleteDoc(clientRef);
       setShowDeleteModal(false);
-      setShowSnackbar(true);
-
-      // Set timeout for permanent deletion
-      setTimeout(async () => {
-        if (showSnackbar) {
-          await deleteDoc(clientRef);
-          navigation.goBack();
-        }
-      }, 5000);
+      Alert.alert("Success", "Client deleted successfully!", [
+        {
+          text: "OK",
+          onPress: () => navigation.goBack(),
+        },
+      ]);
     } catch (error) {
       console.error("Error deleting client: ", error);
       Alert.alert("Error", "Failed to delete client. Please try again.");
     } finally {
       setIsDeleting(false);
-    }
-  };
-
-  const handleUndo = async () => {
-    try {
-      const clientRef = doc(db, "clients", deletedClient.id);
-      await updateDoc(clientRef, {
-        status: "active",
-        deletedAt: null,
-      });
-      setShowSnackbar(false);
-    } catch (error) {
-      console.error("Error undoing delete: ", error);
-      Alert.alert("Error", "Failed to undo deletion. Please try again.");
-    }
-  };
-
-  const handleReactivate = async () => {
-    try {
-      const clientRef = doc(db, "clients", client.id);
-      await updateDoc(clientRef, {
-        status: "active",
-        deletedAt: null,
-      });
-      Alert.alert("Success", "Client has been reactivated successfully!");
-      navigation.goBack();
-    } catch (error) {
-      console.error("Error reactivating client: ", error);
-      Alert.alert("Error", "Failed to reactivate client. Please try again.");
     }
   };
 
@@ -151,6 +139,9 @@ export default function ClientDetailsScreen({ route, navigation }) {
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
         >
           <View style={styles.profileHeader}>
             <Avatar.Text
@@ -183,7 +174,7 @@ export default function ClientDetailsScreen({ route, navigation }) {
                     },
                   ]}
                 >
-                  {client.status}
+                  {client.status || "Unknown"}
                 </Text>
               </Chip>
             </View>
@@ -341,9 +332,11 @@ export default function ClientDetailsScreen({ route, navigation }) {
                     <View style={styles.infoContent}>
                       <Text style={styles.infoLabel}>Project Deadline</Text>
                       <Text style={styles.infoText}>
-                        {new Date(
-                          client.projectDeadline.seconds * 1000
-                        ).toLocaleDateString()}
+                        {client.projectDeadline.toDate?.()
+                          ? client.projectDeadline.toDate().toLocaleDateString()
+                          : new Date(
+                              client.projectDeadline
+                            ).toLocaleDateString()}
                       </Text>
                     </View>
                   </View>
@@ -367,38 +360,24 @@ export default function ClientDetailsScreen({ route, navigation }) {
           </Card>
 
           <View style={styles.buttonContainer}>
-            {client.status === "inactive" ? (
-              <Button
-                mode="contained"
-                onPress={handleReactivate}
-                style={[styles.actionButton, styles.reactivateButton]}
-                labelStyle={styles.buttonLabel}
-                icon="refresh"
-              >
-                Reactivate Client
-              </Button>
-            ) : (
-              <>
-                <Button
-                  mode="contained"
-                  onPress={handleEdit}
-                  style={[styles.actionButton, styles.editButton]}
-                  labelStyle={styles.buttonLabel}
-                  icon="pencil"
-                >
-                  Edit Client
-                </Button>
-                <Button
-                  mode="outlined"
-                  onPress={() => setShowDeleteModal(true)}
-                  style={[styles.actionButton, styles.deleteButton]}
-                  labelStyle={[styles.buttonLabel, { color: "white" }]}
-                  icon="delete"
-                >
-                  Delete Client
-                </Button>
-              </>
-            )}
+            <Button
+              mode="contained"
+              onPress={handleEdit}
+              style={[styles.actionButton, styles.editButton]}
+              labelStyle={styles.buttonLabel}
+              icon="pencil"
+            >
+              Edit Client
+            </Button>
+            <Button
+              mode="outlined"
+              onPress={() => setShowDeleteModal(true)}
+              style={[styles.actionButton, styles.deleteButton]}
+              labelStyle={[styles.buttonLabel, { color: "white" }]}
+              icon="delete"
+            >
+              Delete Client
+            </Button>
           </View>
         </ScrollView>
       </Animated.View>
@@ -411,8 +390,8 @@ export default function ClientDetailsScreen({ route, navigation }) {
         >
           <Text style={styles.modalTitle}>Delete Client</Text>
           <Text style={styles.modalText}>
-            Are you sure you want to delete {client.fullName}? This action
-            cannot be undone after 5 seconds.
+            Are you sure you want to permanently delete {client.fullName}? This
+            action cannot be undone.
           </Text>
           <View style={styles.modalButtons}>
             <Button
@@ -433,19 +412,6 @@ export default function ClientDetailsScreen({ route, navigation }) {
           </View>
         </Modal>
       </Portal>
-
-      <Snackbar
-        visible={showSnackbar}
-        onDismiss={() => setShowSnackbar(false)}
-        duration={5000}
-        action={{
-          label: "UNDO",
-          onPress: handleUndo,
-        }}
-        style={styles.snackbar}
-      >
-        Client deleted. Tap to undo.
-      </Snackbar>
     </SafeAreaView>
   );
 }
@@ -643,12 +609,5 @@ const styles = StyleSheet.create({
   },
   modalButton: {
     minWidth: wp(20),
-  },
-  snackbar: {
-    backgroundColor: "#1F2937",
-    marginBottom: hp(2),
-  },
-  reactivateButton: {
-    backgroundColor: "#10B981",
   },
 });

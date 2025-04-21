@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   StyleSheet,
@@ -27,6 +27,7 @@ import {
 } from "react-native-responsive-screen";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "../config/firebase";
+import { useFocusEffect } from "@react-navigation/native";
 
 export default function ClientsScreen({ navigation }) {
   const [clients, setClients] = useState([]);
@@ -38,7 +39,6 @@ export default function ClientsScreen({ navigation }) {
   const [selectedFilter, setSelectedFilter] = useState("all");
 
   useEffect(() => {
-    fetchClients();
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 600,
@@ -48,7 +48,13 @@ export default function ClientsScreen({ navigation }) {
 
   const fetchClients = async () => {
     try {
-      const querySnapshot = await getDocs(collection(db, "clients"));
+      setRefreshing(true);
+      // Fetch only active clients
+      const q = query(
+        collection(db, "clients"),
+        where("status", "==", "active")
+      );
+      const querySnapshot = await getDocs(q);
       const clientsList = querySnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
@@ -57,14 +63,20 @@ export default function ClientsScreen({ navigation }) {
       setFilteredClients(clientsList);
     } catch (error) {
       console.error("Error fetching clients: ", error);
+    } finally {
+      setRefreshing(false);
     }
   };
 
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await fetchClients();
-    setRefreshing(false);
-  };
+  useFocusEffect(
+    useCallback(() => {
+      fetchClients();
+    }, [])
+  );
+
+  const onRefresh = useCallback(() => {
+    fetchClients();
+  }, []);
 
   const handleSearch = (query) => {
     setSearchQuery(query);
@@ -80,7 +92,9 @@ export default function ClientsScreen({ navigation }) {
     if (filter === "active") {
       filtered = clients.filter((client) => client.status === "active");
     } else if (filter === "inactive") {
-      filtered = clients.filter((client) => client.status === "inactive");
+      filtered = []; // No inactive clients since we only fetch active ones
+    } else {
+      filtered = clients; // All clients (only active ones)
     }
     setFilteredClients(filtered);
     setShowFilterModal(false);
@@ -99,9 +113,8 @@ export default function ClientsScreen({ navigation }) {
               style={[
                 styles.statusChip,
                 {
-                  backgroundColor:
-                    item.status === "active" ? "#E6FFFA" : "#FEE2E2",
-                  borderColor: item.status === "active" ? "#38B2AC" : "#F87171",
+                  backgroundColor: "#E6FFFA",
+                  borderColor: "#38B2AC",
                 },
               ]}
             >
@@ -109,11 +122,11 @@ export default function ClientsScreen({ navigation }) {
                 style={[
                   styles.statusText,
                   {
-                    color: item.status === "active" ? "#38B2AC" : "#F87171",
+                    color: "#38B2AC",
                   },
                 ]}
               >
-                {item.status}
+                Active
               </Text>
             </Chip>
           </View>
@@ -133,7 +146,7 @@ export default function ClientsScreen({ navigation }) {
                 color="#6B7280"
               />
               <Text style={styles.infoText} numberOfLines={1}>
-                {item.address}
+                {item.address || "N/A"}
               </Text>
             </View>
           </View>
@@ -221,13 +234,6 @@ export default function ClientsScreen({ navigation }) {
             style={styles.filterButton}
           >
             Active Clients
-          </Button>
-          <Button
-            mode={selectedFilter === "inactive" ? "contained" : "outlined"}
-            onPress={() => handleFilter("inactive")}
-            style={styles.filterButton}
-          >
-            Inactive Clients
           </Button>
         </Modal>
       </Portal>

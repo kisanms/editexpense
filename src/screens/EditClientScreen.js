@@ -31,6 +31,7 @@ import {
 } from "react-native-responsive-screen";
 import { doc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../config/firebase";
+import DateTimePicker from "@react-native-community/datetimepicker";
 
 const paymentTerms = [
   "Full Payment",
@@ -44,10 +45,13 @@ const validationSchema = Yup.object().shape({
   email: Yup.string().email("Invalid email").required("Email is required"),
   phone: Yup.string().required("Phone number is required"),
   address: Yup.string(),
-  budget: Yup.number().typeError("Budget must be a number"),
+  budget: Yup.number()
+    .typeError("Budget must be a number")
+    .positive("Budget must be positive")
+    .nullable(),
   requirements: Yup.string(),
   paymentTerms: Yup.string(),
-  projectDeadline: Yup.date(),
+  projectDeadline: Yup.date().nullable(),
   notes: Yup.string(),
   tags: Yup.array().of(Yup.string()),
 });
@@ -69,6 +73,7 @@ export default function EditClientScreen({ route, navigation }) {
   const [scaleAnim] = useState(new Animated.Value(0.95));
   const [showTagModal, setShowTagModal] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [newTag, setNewTag] = useState("");
 
   useEffect(() => {
@@ -92,21 +97,30 @@ export default function EditClientScreen({ route, navigation }) {
     email: client.email || "",
     phone: client.phone || "",
     address: client.address || "",
-    budget: client.budget || "",
+    budget: client.budget ? String(client.budget) : "",
     requirements: client.requirements || "",
     paymentTerms: client.paymentTerms || "",
-    projectDeadline: client.projectDeadline || "",
+    projectDeadline: client.projectDeadline
+      ? new Date(client.projectDeadline)
+      : null,
     notes: client.notes || "",
     tags: client.tags || [],
   };
 
-  const handleSubmit = async (values, { setSubmitting }) => {
+  const handleSubmit = async (values, { setSubmitting, setErrors }) => {
     try {
-      const clientRef = doc(db, "clients", client.id);
-      await updateDoc(clientRef, {
+      // Prepare data for Firestore
+      const updatedValues = {
         ...values,
+        budget: values.budget ? parseFloat(values.budget) : null,
+        projectDeadline: values.projectDeadline
+          ? values.projectDeadline.toISOString()
+          : null,
         updatedAt: serverTimestamp(),
-      });
+      };
+
+      const clientRef = doc(db, "clients", client.id);
+      await updateDoc(clientRef, updatedValues);
 
       Alert.alert(
         "Success",
@@ -123,7 +137,7 @@ export default function EditClientScreen({ route, navigation }) {
       console.error("Error updating client: ", error);
       Alert.alert(
         "Error",
-        "Failed to update client. Please try again.",
+        error.message || "Failed to update client. Please try again.",
         [{ text: "OK" }],
         { cancelable: false }
       );
@@ -288,6 +302,14 @@ export default function EditClientScreen({ route, navigation }) {
                     }
                     theme={theme}
                   />
+                  {touched.budget && errors.budget && (
+                    <HelperText
+                      type="error"
+                      visible={touched.budget && errors.budget}
+                    >
+                      {errors.budget}
+                    </HelperText>
+                  )}
 
                   <Text style={styles.inputLabel}>Requirements</Text>
                   <TextInput
@@ -320,15 +342,34 @@ export default function EditClientScreen({ route, navigation }) {
                   </TouchableOpacity>
 
                   <Text style={styles.inputLabel}>Project Deadline</Text>
-                  <TextInput
-                    value={values.projectDeadline}
-                    onChangeText={handleChange("projectDeadline")}
-                    onBlur={handleBlur("projectDeadline")}
-                    mode="outlined"
-                    style={styles.input}
-                    left={<TextInput.Icon icon="calendar" color="#1E3A8A" />}
-                    theme={theme}
-                  />
+                  <TouchableOpacity onPress={() => setShowDatePicker(true)}>
+                    <TextInput
+                      value={
+                        values.projectDeadline
+                          ? values.projectDeadline.toLocaleDateString()
+                          : ""
+                      }
+                      mode="outlined"
+                      style={styles.input}
+                      editable={false}
+                      left={<TextInput.Icon icon="calendar" color="#1E3A8A" />}
+                      right={
+                        <TextInput.Icon icon="chevron-down" color="#1E3A8A" />
+                      }
+                      theme={theme}
+                      placeholder="Select deadline"
+                    />
+                  </TouchableOpacity>
+                  {touched.projectDeadline && errors.projectDeadline && (
+                    <HelperText
+                      type="error"
+                      visible={
+                        touched.projectDeadline && errors.projectDeadline
+                      }
+                    >
+                      {errors.projectDeadline}
+                    </HelperText>
+                  )}
                 </View>
 
                 <Text style={styles.sectionTitle}>Additional Information</Text>
@@ -340,6 +381,7 @@ export default function EditClientScreen({ route, navigation }) {
                     onBlur={handleBlur("notes")}
                     mode="outlined"
                     style={styles.input}
+                    multiline
                     numberOfLines={4}
                     left={<TextInput.Icon icon="note-text" color="#1E3A8A" />}
                     theme={theme}
@@ -437,6 +479,21 @@ export default function EditClientScreen({ route, navigation }) {
                   ))}
                 </Modal>
               </Portal>
+
+              {showDatePicker && (
+                <DateTimePicker
+                  value={values.projectDeadline || new Date()}
+                  mode="date"
+                  display="default"
+                  onChange={(event, selectedDate) => {
+                    setShowDatePicker(false);
+                    if (selectedDate) {
+                      setFieldValue("projectDeadline", selectedDate);
+                    }
+                  }}
+                  minimumDate={new Date()}
+                />
+              )}
             </Animated.View>
           )}
         </Formik>
