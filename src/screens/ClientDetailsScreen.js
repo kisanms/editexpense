@@ -25,7 +25,13 @@ import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from "react-native-responsive-screen";
-import { doc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  updateDoc,
+  deleteDoc,
+  serverTimestamp,
+} from "firebase/firestore";
 import { db } from "../config/firebase";
 
 export default function ClientDetailsScreen({ route, navigation }) {
@@ -58,12 +64,10 @@ export default function ClientDetailsScreen({ route, navigation }) {
     try {
       setIsDeleting(true);
       const clientRef = doc(db, "clients", client.id);
-
-      // First mark as inactive (soft delete)
       await updateDoc(clientRef, {
         status: "inactive",
+        deletedAt: serverTimestamp(),
       });
-
       setDeletedClient(client);
       setShowDeleteModal(false);
       setShowSnackbar(true);
@@ -71,7 +75,6 @@ export default function ClientDetailsScreen({ route, navigation }) {
       // Set timeout for permanent deletion
       setTimeout(async () => {
         if (showSnackbar) {
-          // Hard delete from Firestore
           await deleteDoc(clientRef);
           navigation.goBack();
         }
@@ -89,6 +92,7 @@ export default function ClientDetailsScreen({ route, navigation }) {
       const clientRef = doc(db, "clients", deletedClient.id);
       await updateDoc(clientRef, {
         status: "active",
+        deletedAt: null,
       });
       setShowSnackbar(false);
     } catch (error) {
@@ -97,7 +101,22 @@ export default function ClientDetailsScreen({ route, navigation }) {
     }
   };
 
-  const navigateToEditScreen = () => {
+  const handleReactivate = async () => {
+    try {
+      const clientRef = doc(db, "clients", client.id);
+      await updateDoc(clientRef, {
+        status: "active",
+        deletedAt: null,
+      });
+      Alert.alert("Success", "Client has been reactivated successfully!");
+      navigation.goBack();
+    } catch (error) {
+      console.error("Error reactivating client: ", error);
+      Alert.alert("Error", "Failed to reactivate client. Please try again.");
+    }
+  };
+
+  const handleEdit = () => {
     navigation.navigate("EditClient", { client });
   };
 
@@ -348,24 +367,38 @@ export default function ClientDetailsScreen({ route, navigation }) {
           </Card>
 
           <View style={styles.buttonContainer}>
-            <Button
-              mode="contained"
-              onPress={navigateToEditScreen}
-              style={styles.actionButton}
-              labelStyle={styles.buttonLabel}
-              icon="pencil"
-            >
-              Edit Client
-            </Button>
-            <Button
-              mode="outlined"
-              onPress={() => setShowDeleteModal(true)}
-              style={[styles.actionButton, styles.deleteButton]}
-              labelStyle={[styles.buttonLabel, { color: "#EF4444" }]}
-              icon="delete"
-            >
-              Delete Client
-            </Button>
+            {client.status === "inactive" ? (
+              <Button
+                mode="contained"
+                onPress={handleReactivate}
+                style={[styles.actionButton, styles.reactivateButton]}
+                labelStyle={styles.buttonLabel}
+                icon="refresh"
+              >
+                Reactivate Client
+              </Button>
+            ) : (
+              <>
+                <Button
+                  mode="contained"
+                  onPress={handleEdit}
+                  style={[styles.actionButton, styles.editButton]}
+                  labelStyle={styles.buttonLabel}
+                  icon="pencil"
+                >
+                  Edit Client
+                </Button>
+                <Button
+                  mode="outlined"
+                  onPress={() => setShowDeleteModal(true)}
+                  style={[styles.actionButton, styles.deleteButton]}
+                  labelStyle={[styles.buttonLabel, { color: "white" }]}
+                  icon="delete"
+                >
+                  Delete Client
+                </Button>
+              </>
+            )}
           </View>
         </ScrollView>
       </Animated.View>
@@ -441,7 +474,6 @@ const styles = StyleSheet.create({
   backButton: {
     padding: wp(2),
     borderRadius: wp(10),
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
     width: wp(10),
     height: wp(10),
     alignItems: "center",
@@ -562,15 +594,23 @@ const styles = StyleSheet.create({
   actionButton: {
     flex: 1,
     borderRadius: wp(3),
-    height: hp(6.5),
+    height: hp(5.5),
     elevation: 3,
+  },
+  editButton: {
+    borderColor: "#1E3A8A",
+    borderWidth: 1.5,
+    backgroundColor: "#1E3A8A",
+    justifyContent: "center",
   },
   deleteButton: {
     borderColor: "#EF4444",
     borderWidth: 1.5,
+    backgroundColor: "#EF4444",
+    justifyContent: "center",
   },
   buttonLabel: {
-    fontSize: wp(4),
+    fontSize: wp(4.5),
     fontWeight: "600",
   },
   modalContent: {
@@ -607,5 +647,8 @@ const styles = StyleSheet.create({
   snackbar: {
     backgroundColor: "#1F2937",
     marginBottom: hp(2),
+  },
+  reactivateButton: {
+    backgroundColor: "#10B981",
   },
 });
