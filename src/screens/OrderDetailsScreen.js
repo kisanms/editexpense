@@ -16,6 +16,7 @@ import {
   Portal,
   Modal,
   ProgressBar,
+  Menu,
 } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
@@ -24,7 +25,13 @@ import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from "react-native-responsive-screen";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  updateDoc,
+  deleteDoc,
+  serverTimestamp,
+} from "firebase/firestore";
 import { db } from "../config/firebase";
 
 export default function OrderDetailsScreen({ route, navigation }) {
@@ -34,6 +41,7 @@ export default function OrderDetailsScreen({ route, navigation }) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [client, setClient] = useState(null);
   const [employee, setEmployee] = useState(null);
+  const [menuVisible, setMenuVisible] = useState(false);
 
   useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -42,7 +50,6 @@ export default function OrderDetailsScreen({ route, navigation }) {
       useNativeDriver: true,
     }).start();
 
-    // Fetch client and employee details
     const fetchDetails = async () => {
       try {
         const clientDoc = await getDoc(doc(db, "clients", order.clientId));
@@ -64,16 +71,28 @@ export default function OrderDetailsScreen({ route, navigation }) {
     fetchDetails();
   }, []);
 
+  const handleStatusChange = async (status) => {
+    try {
+      const orderRef = doc(db, "orders", order.id);
+      await updateDoc(orderRef, {
+        status,
+        updatedAt: serverTimestamp(),
+      });
+      navigation.setParams({ order: { ...order, status } });
+      setMenuVisible(false);
+    } catch (error) {
+      console.error("Error updating status: ", error);
+    }
+  };
+
   const handleDelete = async () => {
     try {
       setIsDeleting(true);
       const orderRef = doc(db, "orders", order.id);
-      await updateDoc(orderRef, {
-        status: "cancelled",
-      });
+      await deleteDoc(orderRef);
       navigation.goBack();
     } catch (error) {
-      console.error("Error cancelling order: ", error);
+      console.error("Error deleting order: ", error);
     } finally {
       setIsDeleting(false);
       setShowDeleteModal(false);
@@ -115,21 +134,19 @@ export default function OrderDetailsScreen({ route, navigation }) {
         end={{ x: 1, y: 1 }}
       >
         <View style={styles.headerContent}>
-          <TouchableOpacity
+          <IconButton
+            icon="arrow-left"
+            color="#FFFFFF"
+            size={wp(6)}
             onPress={() => navigation.goBack()}
-            style={styles.backButton}
-          >
-            <FontAwesome5 name="arrow-left" size={wp(5)} color="#fff" />
-          </TouchableOpacity>
+          />
           <Text style={styles.headerTitle}>Order Details</Text>
-          <View style={styles.headerActions}>
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => navigation.navigate("EditOrder", { employee })}
-            >
-              <FontAwesome5 name="pencil-alt" size={wp(5)} color="#fff" />
-            </TouchableOpacity>
-          </View>
+          <IconButton
+            icon="pencil"
+            color="#FFFFFF"
+            size={wp(6)}
+            onPress={() => navigation.navigate("EditOrder", { order })}
+          />
         </View>
       </LinearGradient>
 
@@ -188,7 +205,8 @@ export default function OrderDetailsScreen({ route, navigation }) {
                 <View style={styles.infoRow}>
                   <FontAwesome5 name="calendar" size={wp(4)} color="#6B7280" />
                   <Text style={styles.infoText}>
-                    Created: {order.createdAt.toDate().toLocaleDateString()}
+                    Created:{" "}
+                    {order.createdAt?.toDate().toLocaleDateString() || "N/A"}
                   </Text>
                 </View>
                 <View style={styles.infoRow}>
@@ -267,36 +285,61 @@ export default function OrderDetailsScreen({ route, navigation }) {
                 )}
               </View>
 
-              <Divider style={styles.divider} />
+              {/* <Divider style={styles.divider} />
 
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Additional Notes</Text>
                 <Text style={styles.notesText}>
                   {order.notes || "No additional notes"}
                 </Text>
-              </View>
+              </View> */}
             </Card.Content>
           </Card>
 
           <View style={styles.buttonContainer}>
-            <Button
-              mode="contained"
-              onPress={() => navigation.navigate("EditOrder", { order })}
-              style={styles.editButton}
-              labelStyle={styles.buttonLabel}
+            <Menu
+              visible={menuVisible}
+              onDismiss={() => setMenuVisible(false)}
+              anchor={
+                <Button
+                  mode="contained"
+                  onPress={() => setMenuVisible(true)}
+                  style={styles.statusButton}
+                  labelStyle={styles.buttonLabel}
+                  icon="account-switch"
+                >
+                  Set Status
+                </Button>
+              }
             >
-              Edit Order
+              <Menu.Item
+                onPress={() => handleStatusChange("in-progress")}
+                title="In Progress"
+                leadingIcon="progress-clock"
+                disabled={order.status === "in-progress"}
+              />
+              <Menu.Item
+                onPress={() => handleStatusChange("completed")}
+                title="Completed"
+                leadingIcon="check-circle"
+                disabled={order.status === "completed"}
+              />
+              <Menu.Item
+                onPress={() => handleStatusChange("cancelled")}
+                title="Cancelled"
+                leadingIcon="close-circle"
+                disabled={order.status === "cancelled"}
+              />
+            </Menu>
+            <Button
+              mode="outlined"
+              onPress={() => setShowDeleteModal(true)}
+              style={styles.deleteButton}
+              labelStyle={[styles.buttonLabel, { color: "#EF4444" }]}
+              icon="delete"
+            >
+              Delete Order
             </Button>
-            {order.status !== "cancelled" && (
-              <Button
-                mode="outlined"
-                onPress={() => setShowDeleteModal(true)}
-                style={styles.deleteButton}
-                labelStyle={[styles.buttonLabel, { color: "#EF4444" }]}
-              >
-                Cancel Order
-              </Button>
-            )}
           </View>
         </ScrollView>
       </Animated.View>
@@ -307,10 +350,10 @@ export default function OrderDetailsScreen({ route, navigation }) {
           onDismiss={() => setShowDeleteModal(false)}
           contentContainerStyle={styles.modalContent}
         >
-          <Text style={styles.modalTitle}>Cancel Order</Text>
+          <Text style={styles.modalTitle}>Delete Order</Text>
           <Text style={styles.modalText}>
-            Are you sure you want to cancel this order? This action cannot be
-            undone.
+            Are you sure you want to permanently delete this order? This action
+            cannot be undone.
           </Text>
           <View style={styles.modalButtons}>
             <Button
@@ -326,7 +369,7 @@ export default function OrderDetailsScreen({ route, navigation }) {
               loading={isDeleting}
               style={[styles.modalButton, { backgroundColor: "#EF4444" }]}
             >
-              Confirm
+              Delete
             </Button>
           </View>
         </Modal>
@@ -361,6 +404,8 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#FFFFFF",
     letterSpacing: 0.5,
+    flex: 1,
+    textAlign: "center",
   },
   content: {
     flex: 1,
@@ -446,7 +491,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
   },
-  editButton: {
+  statusButton: {
     flex: 1,
     marginRight: wp(2),
     backgroundColor: "#1E3A8A",
