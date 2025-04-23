@@ -15,6 +15,7 @@ import {
   IconButton,
   Portal,
   Modal,
+  Menu,
 } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
@@ -23,7 +24,7 @@ import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from "react-native-responsive-screen";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../config/firebase";
 
 export default function EmployeeDetailsScreen({ route, navigation }) {
@@ -31,6 +32,7 @@ export default function EmployeeDetailsScreen({ route, navigation }) {
   const [fadeAnim] = useState(new Animated.Value(0));
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [menuVisible, setMenuVisible] = useState(false);
 
   useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -40,13 +42,25 @@ export default function EmployeeDetailsScreen({ route, navigation }) {
     }).start();
   }, []);
 
+  const handleStatusChange = async (status) => {
+    try {
+      const employeeRef = doc(db, "employees", employee.id);
+      await updateDoc(employeeRef, {
+        status,
+        updatedAt: serverTimestamp(), // This should now work
+      });
+      navigation.setParams({ employee: { ...employee, status } });
+      setMenuVisible(false);
+    } catch (error) {
+      console.error("Error updating status: ", error);
+    }
+  };
+
   const handleDelete = async () => {
     try {
       setIsDeleting(true);
       const employeeRef = doc(db, "employees", employee.id);
-      await updateDoc(employeeRef, {
-        status: "inactive",
-      });
+      await deleteDoc(employeeRef);
       navigation.goBack();
     } catch (error) {
       console.error("Error deleting employee: ", error);
@@ -65,19 +79,21 @@ export default function EmployeeDetailsScreen({ route, navigation }) {
         end={{ x: 1, y: 1 }}
       >
         <View style={styles.headerContent}>
-          <IconButton
-            icon="arrow-left"
-            color="#FFFFFF"
-            size={wp(6)}
+          <TouchableOpacity
             onPress={() => navigation.goBack()}
-          />
+            style={styles.backButton}
+          >
+            <FontAwesome5 name="arrow-left" size={wp(5)} color="#fff" />
+          </TouchableOpacity>
           <Text style={styles.headerTitle}>Employee Details</Text>
-          <IconButton
-            icon="pencil"
-            color="#FFFFFF"
-            size={wp(6)}
-            onPress={() => navigation.navigate("EditEmployee", { employee })}
-          />
+          <View style={styles.headerActions}>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => navigation.navigate("EditEmployee", { employee })}
+            >
+              <FontAwesome5 name="pencil-alt" size={wp(5)} color="#fff" />
+            </TouchableOpacity>
+          </View>
         </View>
       </LinearGradient>
 
@@ -100,9 +116,9 @@ export default function EmployeeDetailsScreen({ route, navigation }) {
                     styles.statusChip,
                     {
                       backgroundColor:
-                        employee.status === "active" ? "#E6FFFA" : "#FEE2E2",
+                        employee.status === "active" ? "#D1FAE5" : "#FEE2E2",
                       borderColor:
-                        employee.status === "active" ? "#38B2AC" : "#F87171",
+                        employee.status === "active" ? "#10B981" : "#EF4444",
                     },
                   ]}
                 >
@@ -111,11 +127,12 @@ export default function EmployeeDetailsScreen({ route, navigation }) {
                       styles.statusText,
                       {
                         color:
-                          employee.status === "active" ? "#38B2AC" : "#F87171",
+                          employee.status === "active" ? "#10B981" : "#EF4444",
                       },
                     ]}
                   >
-                    {employee.status}
+                    {employee.status.charAt(0).toUpperCase() +
+                      employee.status.slice(1)}
                   </Text>
                 </Chip>
               </View>
@@ -138,7 +155,9 @@ export default function EmployeeDetailsScreen({ route, navigation }) {
                     size={wp(4)}
                     color="#6B7280"
                   />
-                  <Text style={styles.infoText}>{employee.address}</Text>
+                  <Text style={styles.infoText}>
+                    {employee.address || "N/A"}
+                  </Text>
                 </View>
               </View>
 
@@ -173,7 +192,8 @@ export default function EmployeeDetailsScreen({ route, navigation }) {
                 <View style={styles.infoRow}>
                   <FontAwesome5 name="calendar" size={wp(4)} color="#6B7280" />
                   <Text style={styles.infoText}>
-                    Joined: {employee.createdAt.toDate().toLocaleDateString()}
+                    Joined:{" "}
+                    {employee.createdAt?.toDate().toLocaleDateString() || "N/A"}
                   </Text>
                 </View>
                 <View style={styles.infoRow}>
@@ -191,19 +211,40 @@ export default function EmployeeDetailsScreen({ route, navigation }) {
           </Card>
 
           <View style={styles.buttonContainer}>
-            <Button
-              mode="contained"
-              onPress={() => navigation.navigate("EditEmployee", { employee })}
-              style={styles.editButton}
-              labelStyle={styles.buttonLabel}
+            <Menu
+              visible={menuVisible}
+              onDismiss={() => setMenuVisible(false)}
+              anchor={
+                <Button
+                  mode="contained"
+                  onPress={() => setMenuVisible(true)}
+                  style={styles.statusButton}
+                  labelStyle={styles.buttonLabel}
+                  icon="account-switch"
+                >
+                  Set Status
+                </Button>
+              }
             >
-              Edit Employee
-            </Button>
+              <Menu.Item
+                onPress={() => handleStatusChange("active")}
+                title="Active"
+                leadingIcon="check-circle"
+                disabled={employee.status === "active"}
+              />
+              <Menu.Item
+                onPress={() => handleStatusChange("inactive")}
+                title="Inactive"
+                leadingIcon="close-circle"
+                disabled={employee.status === "inactive"}
+              />
+            </Menu>
             <Button
               mode="outlined"
               onPress={() => setShowDeleteModal(true)}
               style={styles.deleteButton}
               labelStyle={[styles.buttonLabel, { color: "#EF4444" }]}
+              icon="delete"
             >
               Delete Employee
             </Button>
@@ -219,8 +260,8 @@ export default function EmployeeDetailsScreen({ route, navigation }) {
         >
           <Text style={styles.modalTitle}>Delete Employee</Text>
           <Text style={styles.modalText}>
-            Are you sure you want to delete this employee? This action cannot be
-            undone.
+            Are you sure you want to permanently delete this employee? This
+            action cannot be undone.
           </Text>
           <View style={styles.modalButtons}>
             <Button
@@ -271,6 +312,12 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#FFFFFF",
     letterSpacing: 0.5,
+    flex: 1,
+    textAlign: "center",
+  },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   content: {
     flex: 1,
@@ -330,7 +377,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
   },
-  editButton: {
+  statusButton: {
     flex: 1,
     marginRight: wp(2),
     backgroundColor: "#1E3A8A",

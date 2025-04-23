@@ -30,6 +30,7 @@ import AddEmployeeScreen from "../screens/AddEmployeeScreen";
 import AddOrderScreen from "../screens/AddOrderScreen";
 import EmployeesScreen from "../screens/EmployeesScreen";
 import EditClientScreen from "../screens/EditClientScreen";
+import EditEmployeeScreen from "../screens/EditEmployeeScreen";
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -148,6 +149,7 @@ const AppNavigator = () => {
       {/* Employee Screens */}
       <Stack.Screen name="EmployeeDetails" component={EmployeeDetailsScreen} />
       <Stack.Screen name="AddEmployee" component={AddEmployeeScreen} />
+      <Stack.Screen name="EditEmployee" component={EditEmployeeScreen} />
 
       {/* Order Screens */}
       <Stack.Screen name="OrderDetails" component={OrderDetailsScreen} />

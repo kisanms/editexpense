@@ -92,57 +92,55 @@ export default function EmployeesScreen({ navigation }) {
       onPress={() => navigation.navigate("EmployeeDetails", { employee: item })}
     >
       <Card style={styles.card}>
-        <Card.Content>
-          <View style={styles.cardHeader}>
-            <Text style={styles.employeeName}>{item.fullName}</Text>
-            <Chip
-              mode="outlined"
-              style={[
-                styles.statusChip,
-                {
-                  backgroundColor:
-                    item.status === "active" ? "#E6FFFA" : "#FEE2E2",
-                  borderColor: item.status === "active" ? "#38B2AC" : "#F87171",
-                },
-              ]}
-            >
-              <Text
+        <LinearGradient
+          colors={["#FFFFFF", "#F9FAFB"]}
+          style={styles.cardGradient}
+        >
+          <Card.Content>
+            <View style={styles.cardHeader}>
+              <Text style={styles.employeeName}>{item.fullName}</Text>
+              <Chip
+                mode="flat"
                 style={[
-                  styles.statusText,
+                  styles.statusChip,
                   {
-                    color: item.status === "active" ? "#38B2AC" : "#F87171",
+                    backgroundColor:
+                      item.status === "active" ? "#D1FAE5" : "#FEE2E2",
+                    borderColor:
+                      item.status === "active" ? "#10B981" : "#EF4444",
                   },
                 ]}
+                textStyle={styles.statusText}
               >
-                {item.status}
-              </Text>
-            </Chip>
-          </View>
-          <View style={styles.employeeInfo}>
-            <View style={styles.infoRow}>
-              <FontAwesome5 name="envelope" size={wp(4)} color="#6B7280" />
-              <Text style={styles.infoText}>{item.email}</Text>
+                {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
+              </Chip>
             </View>
-            <View style={styles.infoRow}>
-              <FontAwesome5 name="phone" size={wp(4)} color="#6B7280" />
-              <Text style={styles.infoText}>{item.phone}</Text>
+            <View style={styles.employeeInfo}>
+              <View style={styles.infoRow}>
+                <FontAwesome5 name="envelope" size={wp(4)} color="#4B5563" />
+                <Text style={styles.infoText}>{item.email}</Text>
+              </View>
+              <View style={styles.infoRow}>
+                <FontAwesome5 name="phone" size={wp(4)} color="#4B5563" />
+                <Text style={styles.infoText}>{item.phone}</Text>
+              </View>
+              <View style={styles.infoRow}>
+                <FontAwesome5 name="tools" size={wp(4)} color="#4B5563" />
+                <Text style={styles.infoText}>{item.skills}</Text>
+              </View>
+              <View style={styles.infoRow}>
+                <FontAwesome5 name="briefcase" size={wp(4)} color="#4B5563" />
+                <Text style={styles.infoText}>
+                  {item.experience} years experience
+                </Text>
+              </View>
+              {/* <View style={styles.infoRow}>
+                <FontAwesome5 name="dollar-sign" size={wp(4)} color="#4B5563" />
+                <Text style={styles.infoText}>${item.salary}/month</Text>
+              </View> */}
             </View>
-            <View style={styles.infoRow}>
-              <FontAwesome5 name="tools" size={wp(4)} color="#6B7280" />
-              <Text style={styles.infoText}>{item.skills}</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <FontAwesome5 name="briefcase" size={wp(4)} color="#6B7280" />
-              <Text style={styles.infoText}>
-                {item.experience} years experience
-              </Text>
-            </View>
-            <View style={styles.infoRow}>
-              <FontAwesome5 name="dollar-sign" size={wp(4)} color="#6B7280" />
-              <Text style={styles.infoText}>${item.salary}/month</Text>
-            </View>
-          </View>
-        </Card.Content>
+          </Card.Content>
+        </LinearGradient>
       </Card>
     </TouchableOpacity>
   );
@@ -285,40 +283,56 @@ const styles = StyleSheet.create({
   },
   card: {
     marginBottom: hp(2),
-    elevation: 2,
+    elevation: 6,
     backgroundColor: "#FFFFFF",
-    borderRadius: wp(3),
+    borderRadius: wp(4),
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+  },
+  cardGradient: {
+    paddingVertical: hp(1.5),
+    borderRadius: wp(4),
   },
   cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: hp(1),
+    marginBottom: hp(1.5),
+    paddingHorizontal: wp(2),
   },
   employeeName: {
-    fontSize: wp(4.5),
-    fontWeight: "600",
+    fontSize: wp(5),
+    fontWeight: "700",
     color: "#1F2937",
+    flex: 1,
   },
   statusChip: {
-    height: hp(4),
+    borderWidth: 1,
+    borderRadius: wp(2),
+    paddingHorizontal: wp(2),
+    paddingVertical: hp(0.5),
   },
   statusText: {
     fontSize: wp(3.5),
     fontWeight: "600",
+    color: "#1F2937",
   },
   employeeInfo: {
-    marginTop: hp(1),
+    paddingHorizontal: wp(2),
   },
   infoRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: hp(0.5),
+    marginBottom: hp(1.2),
   },
   infoText: {
-    fontSize: wp(3.5),
-    color: "#6B7280",
-    marginLeft: wp(2),
+    fontSize: wp(3.8),
+    color: "#4B5563",
+    marginLeft: wp(2.5),
+    flex: 1,
   },
   fab: {
     position: "absolute",
