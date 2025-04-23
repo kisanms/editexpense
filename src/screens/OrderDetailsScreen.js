@@ -115,19 +115,21 @@ export default function OrderDetailsScreen({ route, navigation }) {
         end={{ x: 1, y: 1 }}
       >
         <View style={styles.headerContent}>
-          <IconButton
-            icon="arrow-left"
-            color="#FFFFFF"
-            size={wp(6)}
+          <TouchableOpacity
             onPress={() => navigation.goBack()}
-          />
+            style={styles.backButton}
+          >
+            <FontAwesome5 name="arrow-left" size={wp(5)} color="#fff" />
+          </TouchableOpacity>
           <Text style={styles.headerTitle}>Order Details</Text>
-          <IconButton
-            icon="pencil"
-            color="#FFFFFF"
-            size={wp(6)}
-            onPress={() => navigation.navigate("EditOrder", { order })}
-          />
+          <View style={styles.headerActions}>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => navigation.navigate("EditOrder", { employee })}
+            >
+              <FontAwesome5 name="pencil-alt" size={wp(5)} color="#fff" />
+            </TouchableOpacity>
+          </View>
         </View>
       </LinearGradient>
 

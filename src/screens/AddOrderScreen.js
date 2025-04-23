@@ -35,6 +35,8 @@ import {
   addDoc,
   serverTimestamp,
   getDocs,
+  query,
+  where,
 } from "firebase/firestore";
 import { db } from "../config/firebase";
 
@@ -104,7 +106,11 @@ export default function AddOrderScreen({ navigation }) {
 
   const fetchEmployees = async () => {
     try {
-      const querySnapshot = await getDocs(collection(db, "employees"));
+      const q = query(
+        collection(db, "employees"),
+        where("status", "==", "active")
+      ); // Filter active employees
+      const querySnapshot = await getDocs(q);
       const employeesList = querySnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
