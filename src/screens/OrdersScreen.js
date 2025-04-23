@@ -25,7 +25,7 @@ import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from "react-native-responsive-screen";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, doc, getDoc } from "firebase/firestore";
 import { db } from "../config/firebase";
 
 export default function OrdersScreen({ navigation }) {
@@ -48,11 +48,45 @@ export default function OrdersScreen({ navigation }) {
 
   const fetchOrders = async () => {
     try {
-      const querySnapshot = await getDocs(collection(db, "orders"));
-      const ordersList = querySnapshot.docs.map((doc) => ({
+      // Step 1: Fetch all orders
+      const ordersSnapshot = await getDocs(collection(db, "orders"));
+      let ordersList = ordersSnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       }));
+
+      // Step 2: Fetch client and employee names for each order
+      ordersList = await Promise.all(
+        ordersList.map(async (order) => {
+          let clientName = "Unknown Client";
+          let employeeName = "Unknown Employee";
+
+          // Fetch client name
+          if (order.clientId) {
+            const clientDoc = await getDoc(doc(db, "clients", order.clientId));
+            if (clientDoc.exists()) {
+              clientName = clientDoc.data().fullName || "Unknown Client";
+            }
+          }
+
+          // Fetch employee name
+          if (order.employeeId) {
+            const employeeDoc = await getDoc(
+              doc(db, "employees", order.employeeId)
+            );
+            if (employeeDoc.exists()) {
+              employeeName = employeeDoc.data().fullName || "Unknown Employee";
+            }
+          }
+
+          return {
+            ...order,
+            clientName,
+            employeeName,
+          };
+        })
+      );
+
       setOrders(ordersList);
       setFilteredOrders(ordersList);
     } catch (error) {
@@ -136,11 +170,13 @@ export default function OrdersScreen({ navigation }) {
             <View style={styles.orderInfo}>
               <View style={styles.infoRow}>
                 <FontAwesome5 name="user" size={wp(4)} color="#6B7280" />
-                <Text style={styles.infoText}>{item.clientName}</Text>
+                <Text style={styles.infoText}>{item.clientName || "N/A"}</Text>
               </View>
               <View style={styles.infoRow}>
                 <FontAwesome5 name="user-tie" size={wp(4)} color="#6B7280" />
-                <Text style={styles.infoText}>{item.employeeName}</Text>
+                <Text style={styles.infoText}>
+                  {item.employeeName || "N/A"}
+                </Text>
               </View>
               <View style={styles.infoRow}>
                 <FontAwesome5 name="dollar-sign" size={wp(4)} color="#6B7280" />
@@ -149,7 +185,8 @@ export default function OrdersScreen({ navigation }) {
               <View style={styles.infoRow}>
                 <FontAwesome5 name="calendar" size={wp(4)} color="#6B7280" />
                 <Text style={styles.infoText}>
-                  Deadline: {item.deadline.toDate().toLocaleDateString()}
+                  Deadline:{" "}
+                  {item.deadline?.toDate().toLocaleDateString() || "N/A"}
                 </Text>
               </View>
             </View>
@@ -350,6 +387,12 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: hp(5),
   },
   emptyContainer: {
     flex: 1,
