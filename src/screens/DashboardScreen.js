@@ -86,21 +86,32 @@ export default function DashboardScreen() {
           ...doc.data(),
         }));
         setClients(clientsList);
-
-        // Your existing client calculations can remain here or be moved below
       },
       (error) => {
         console.error("Error fetching clients: ", error);
       }
     );
+
     // Listener for orders
     const ordersUnsubscribe = onSnapshot(
       collection(db, "orders"),
       (snapshot) => {
-        const ordersList = snapshot.docs.map((doc) => ({
+        let ordersList = snapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
         }));
+
+        // Sort orders by createdAt in descending order
+        ordersList.sort((a, b) => {
+          const dateA = a.createdAt?.toDate
+            ? a.createdAt.toDate()
+            : new Date(0);
+          const dateB = b.createdAt?.toDate
+            ? b.createdAt.toDate()
+            : new Date(0);
+          return dateB - dateA; // Descending order
+        });
+
         setOrders(ordersList);
 
         // Fetch clients and calculate summary data
@@ -186,7 +197,7 @@ export default function DashboardScreen() {
         style: "cancel",
       },
       {
-        text: "Sign Out",
+        text: " Pennyroyal",
         onPress: async () => {
           try {
             await logout();
@@ -235,7 +246,6 @@ export default function DashboardScreen() {
           </View>
           <View style={styles.orderDetails}>
             <Text style={styles.orderName}>{order.name || order.title}</Text>
-
             <Text style={styles.orderMeta}>
               {order.status} · Due:{" "}
               {order.due ||
@@ -261,7 +271,7 @@ export default function DashboardScreen() {
       <StatusBar barStyle="light-content" backgroundColor="black" />
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: hp(12) }} // Add bottom padding to ensure content isn't hidden behind buttons
+        contentContainerStyle={{ paddingBottom: hp(12) }}
       >
         {/* Header with Sign Out */}
         <LinearGradient
@@ -304,7 +314,7 @@ export default function DashboardScreen() {
             <Text style={styles.emptyText}>No recent orders available.</Text>
           ) : (
             <FlatList
-              data={orders}
+              data={orders.slice(0, 2)} // Limit to the first two orders
               renderItem={renderOrderCard}
               keyExtractor={(item) => item.id}
               style={styles.ordersList}
@@ -316,7 +326,7 @@ export default function DashboardScreen() {
         </View>
       </ScrollView>
 
-      {/* Action Buttons - Now outside ScrollView with absolute positioning */}
+      {/* Action Buttons */}
       <View style={styles.fixedButtonContainer}>
         <TouchableOpacity
           style={styles.actionBtn}
@@ -436,11 +446,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  avatarText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "bold",
-  },
   orderDetails: {
     flex: 1,
     marginLeft: 12,
@@ -486,8 +491,6 @@ const styles = StyleSheet.create({
   fixedButtonContainer: {
     position: "absolute",
     bottom: scale(70),
-    // left: 0,
-    // right: 0,
     flexDirection: "row",
     justifyContent: "space-between",
     padding: 20,

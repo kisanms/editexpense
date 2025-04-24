@@ -87,13 +87,19 @@ export default function OrdersScreen({ navigation }) {
         })
       );
 
+      // Step 3: Sort orders by createdAt in descending order
+      ordersList.sort((a, b) => {
+        const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(0);
+        const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(0);
+        return dateB - dateA; // Descending order
+      });
+
       setOrders(ordersList);
       setFilteredOrders(ordersList);
     } catch (error) {
       console.error("Error fetching orders: ", error);
     }
   };
-
   const onRefresh = async () => {
     setRefreshing(true);
     await fetchOrders();
