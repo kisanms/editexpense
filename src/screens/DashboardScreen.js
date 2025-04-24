@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -9,70 +9,137 @@ import {
   Animated,
   Alert,
   StatusBar,
+  FlatList,
 } from "react-native";
 import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from "react-native-responsive-screen";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { FontAwesome5, MaterialIcons, Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { FontAwesome5 } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation } from "@react-navigation/native";
 import { useAuth } from "../context/AuthContext";
+import { collection, onSnapshot } from "firebase/firestore";
+import { db } from "../config/firebase";
 
 const { width } = Dimensions.get("window");
 
 export default function DashboardScreen() {
   const navigation = useNavigation();
   const { logout } = useAuth();
-
-  const summaryData = [
+  const [summaryData, setSummaryData] = useState([
     {
       icon: "briefcase",
       label: "Total Projects",
-      value: "24",
+      value: "0",
       gradientColors: ["#0047CC", "#0047CC"],
     },
     {
       icon: "dollar-sign",
       label: "Total Profit",
-      value: "$12,500",
+      value: "$0",
       gradientColors: ["#4CAF50", "#4CAF50"],
     },
     {
       icon: "arrow-up",
       label: "Income",
-      value: "$18,000",
+      value: "$0",
       gradientColors: ["#2196F3", "#2196F3"],
     },
     {
       icon: "arrow-down",
       label: "Expenses",
-      value: "$5,500",
+      value: "$0",
       gradientColors: ["#F44336", "#F44336"],
     },
-  ];
+  ]);
 
-  const orders = [
-    {
-      initials: "JD",
-      name: "John Doe",
-      status: "In-Progress",
-      due: "Apr 20",
-      assigned: "Jan Smith",
-      amount: "$2,500",
-      gradientColors: ["#0047CC", "#0047CC"],
-    },
-    {
-      initials: "RJ",
-      name: "Robert Johnson",
-      status: "Pending",
-      due: "Mar 25",
-      assigned: "Michael B",
-      amount: "$3,200",
-      gradientColors: ["#F5A623", "#F5A623"],
-    },
-  ];
+  const [orders, setOrders] = useState([]);
+
+  useEffect(() => {
+    // Listener for orders
+    const ordersUnsubscribe = onSnapshot(
+      collection(db, "orders"),
+      (snapshot) => {
+        const ordersList = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setOrders(ordersList);
+
+        // Fetch clients and calculate summary data
+        const clientsUnsubscribe = onSnapshot(
+          collection(db, "clients"),
+          (clientsSnapshot) => {
+            const clientsList = clientsSnapshot.docs.map((doc) => ({
+              id: doc.id,
+              ...doc.data(),
+            }));
+
+            // Calculate totals
+            const totalProjects = ordersList.length;
+
+            const totalClientBudget = clientsList.reduce((sum, client) => {
+              return sum + (Number(client.budget) || 0);
+            }, 0);
+
+            const totalOrderAmount = ordersList.reduce((sum, order) => {
+              return sum + (Number(order.amount) || 0);
+            }, 0);
+
+            const totalProfit = totalClientBudget - totalOrderAmount;
+
+            // Update summaryData
+            setSummaryData([
+              {
+                icon: "briefcase",
+                label: "Total Projects",
+                value: totalProjects.toString(),
+                gradientColors: ["#0047CC", "#0047CC"],
+              },
+              {
+                icon: "dollar-sign",
+                label: "Total Profit",
+                value: `$${totalProfit.toLocaleString()}`,
+                gradientColors: ["#4CAF50", "#4CAF50"],
+              },
+              {
+                icon: "arrow-up",
+                label: "Income",
+                value: `$${totalClientBudget.toLocaleString()}`,
+                gradientColors: ["#2196F3", "#2196F3"],
+              },
+              {
+                icon: "arrow-down",
+                label: "Expenses",
+                value: `$${totalOrderAmount.toLocaleString()}`,
+                gradientColors: ["#F44336", "#F44336"],
+              },
+            ]);
+          },
+          (error) => {
+            console.error("Error fetching clients: ", error);
+            Alert.alert(
+              "Error",
+              "Failed to load clients data. Please try again."
+            );
+          }
+        );
+
+        // Cleanup clients listener when orders change
+        return () => clientsUnsubscribe();
+      },
+      (error) => {
+        console.error("Error fetching orders: ", error);
+        Alert.alert("Error", "Failed to load orders data. Please try again.");
+      }
+    );
+
+    // Cleanup orders listener on component unmount
+    return () => ordersUnsubscribe();
+  }, []);
 
   const handleSignOut = async () => {
     Alert.alert("Sign Out", "Are you sure you want to sign out?", [
@@ -94,6 +161,52 @@ export default function DashboardScreen() {
       },
     ]);
   };
+
+  const getGradientColors = (status) => {
+    switch (status?.toLowerCase()) {
+      case "in-progress":
+        return ["#0047CC", "#0047CC"];
+      case "completed":
+        return ["#4CAF50", "#4CAF50"];
+      case "cancelled":
+        return ["#F44336", "#F44336"];
+      default:
+        return ["#0047CC", "#0047CC"];
+    }
+  };
+
+  const renderOrderCard = ({ item: order }) => (
+    <LinearGradient
+      colors={getGradientColors(order.status)}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={styles.orderItem}
+    >
+      <View style={styles.orderHeader}>
+        <View style={styles.avatar}>
+          <Ionicons name="person" size={24} color="white" />
+        </View>
+        <View style={styles.orderDetails}>
+          <Text style={styles.orderName}>{order.name || order.title}</Text>
+          <Text style={styles.orderMeta}>
+            {order.status} · Due:{" "}
+            {order.due ||
+              (order.deadline?.toDate
+                ? order.deadline.toDate().toLocaleDateString()
+                : "N/A")}
+          </Text>
+        </View>
+        <Text style={styles.orderAmount}>
+          ${Number(order.amount).toLocaleString()}
+        </Text>
+      </View>
+      <View style={styles.orderFooter}>
+        <Text style={styles.orderAssigned}>
+          Assigned to: {order.employeeName || "N/A"}
+        </Text>
+      </View>
+    </LinearGradient>
+  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -136,33 +249,19 @@ export default function DashboardScreen() {
         {/* Recent Orders */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Recent Orders</Text>
-          {orders.map((order, i) => (
-            <LinearGradient
-              key={i}
-              colors={order.gradientColors}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.orderItem}
-            >
-              <View style={styles.orderHeader}>
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>{order.initials}</Text>
-                </View>
-                <View style={styles.orderDetails}>
-                  <Text style={styles.orderName}>{order.name}</Text>
-                  <Text style={styles.orderMeta}>
-                    {order.status} · Due: {order.due}
-                  </Text>
-                </View>
-                <Text style={styles.orderAmount}>{order.amount}</Text>
-              </View>
-              <View style={styles.orderFooter}>
-                <Text style={styles.orderAssigned}>
-                  Assigned to: {order.assigned}
-                </Text>
-              </View>
-            </LinearGradient>
-          ))}
+          {orders.length === 0 ? (
+            <Text style={styles.emptyText}>No recent orders available.</Text>
+          ) : (
+            <FlatList
+              data={orders}
+              renderItem={renderOrderCard}
+              keyExtractor={(item) => item.id}
+              style={styles.ordersList}
+              showsVerticalScrollIndicator={false}
+              scrollEnabled={false}
+              ListFooterComponent={<View style={{ height: hp(2) }} />}
+            />
+          )}
         </View>
 
         {/* Action Buttons */}
@@ -197,32 +296,6 @@ export default function DashboardScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
-
-      {/* Bottom Navigation */}
-      {/* <View style={styles.bottomNav}>
-        <TouchableOpacity
-          style={[styles.navItem, styles.navItemActive]}
-          onPress={() => navigation.navigate("Dashboard")}
-        >
-          <FontAwesome5 name="home" size={20} color="#0047CC" />
-          <Text style={styles.navTextActive}>Home</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.navItem}
-          onPress={() => navigation.navigate("clientScreen")}
-        >
-          <FontAwesome5 name="users" size={20} color="#666" />
-          <Text style={styles.navText}>Clients</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem}>
-          <FontAwesome5 name="file-invoice-dollar" size={20} color="#666" />
-          <Text style={styles.navText}>Orders</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem}>
-          <FontAwesome5 name="chart-bar" size={20} color="#666" />
-          <Text style={styles.navText}>Reports</Text>
-        </TouchableOpacity>
-      </View> */}
     </SafeAreaView>
   );
 }
@@ -244,7 +317,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
-
   title: {
     fontSize: hp("3%"),
     fontWeight: "bold",
@@ -288,9 +360,12 @@ const styles = StyleSheet.create({
     marginBottom: hp("1%"),
     color: "#0047CC",
   },
+  ordersList: {
+    maxHeight: hp(40),
+  },
   orderItem: {
     borderRadius: 20,
-    marginBottom: 15,
+    marginBottom: hp(2),
     padding: 15,
     elevation: 5,
     shadowColor: "#000",
@@ -344,11 +419,17 @@ const styles = StyleSheet.create({
     color: "rgba(255,255,255,0.8)",
     fontSize: 14,
   },
+  emptyText: {
+    fontSize: hp(2),
+    color: "#6B7280",
+    textAlign: "center",
+    marginVertical: hp(2),
+  },
   buttonRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     padding: 20,
-    marginTop: -30,
+    marginTop: hp(-6),
   },
   actionBtn: {
     flex: 1,
@@ -366,43 +447,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     marginLeft: 8,
-  },
-  bottomNav: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    padding: 15,
-    backgroundColor: "#fff",
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    elevation: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -3 },
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-  },
-  navItem: {
-    alignItems: "center",
-  },
-  navItemActive: {
-    backgroundColor: "rgba(0, 71, 204, 0.1)",
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  navText: {
-    color: "#666666",
-    fontSize: 12,
-    marginTop: 4,
-  },
-  navTextActive: {
-    color: "#0047CC",
-    fontSize: 12,
-    marginTop: 4,
-    fontWeight: "600",
   },
   signOutButton: {
     width: 40,

@@ -149,6 +149,15 @@ export default function ClientsScreen({ navigation }) {
                 {item.address || "N/A"}
               </Text>
             </View>
+            <View style={styles.infoRow}>
+              <FontAwesome5 name="dollar-sign" size={wp(4)} color="#6B7280" />
+              <Text style={styles.infoText}>
+                Budget:{" "}
+                {item.budget
+                  ? `$${Number(item.budget).toLocaleString()}`
+                  : "N/A"}
+              </Text>
+            </View>
           </View>
         </Card.Content>
       </Card>
