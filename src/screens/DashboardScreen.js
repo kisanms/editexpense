@@ -23,12 +23,15 @@ import { useNavigation } from "@react-navigation/native";
 import { useAuth } from "../context/AuthContext";
 import { collection, onSnapshot } from "firebase/firestore";
 import { db } from "../config/firebase";
+import { scale } from "react-native-size-matters";
 
 const { width } = Dimensions.get("window");
 
 export default function DashboardScreen() {
   const navigation = useNavigation();
   const { logout } = useAuth();
+  const [employees, setEmployees] = useState([]);
+  const [clients, setClients] = useState([]);
   const [summaryData, setSummaryData] = useState([
     {
       icon: "briefcase",
@@ -59,6 +62,37 @@ export default function DashboardScreen() {
   const [orders, setOrders] = useState([]);
 
   useEffect(() => {
+    // Listener for employees
+    const employeesUnsubscribe = onSnapshot(
+      collection(db, "employees"),
+      (snapshot) => {
+        const employeesList = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setEmployees(employeesList);
+      },
+      (error) => {
+        console.error("Error fetching employees: ", error);
+      }
+    );
+
+    // Listener for clients
+    const clientsUnsubscribe = onSnapshot(
+      collection(db, "clients"),
+      (clientsSnapshot) => {
+        const clientsList = clientsSnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setClients(clientsList);
+
+        // Your existing client calculations can remain here or be moved below
+      },
+      (error) => {
+        console.error("Error fetching clients: ", error);
+      }
+    );
     // Listener for orders
     const ordersUnsubscribe = onSnapshot(
       collection(db, "orders"),
@@ -137,8 +171,12 @@ export default function DashboardScreen() {
       }
     );
 
-    // Cleanup orders listener on component unmount
-    return () => ordersUnsubscribe();
+    // Cleanup listeners on component unmount
+    return () => {
+      ordersUnsubscribe();
+      employeesUnsubscribe();
+      clientsUnsubscribe();
+    };
   }, []);
 
   const handleSignOut = async () => {
@@ -175,43 +213,56 @@ export default function DashboardScreen() {
     }
   };
 
-  const renderOrderCard = ({ item: order }) => (
-    <LinearGradient
-      colors={getGradientColors(order.status)}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={styles.orderItem}
-    >
-      <View style={styles.orderHeader}>
-        <View style={styles.avatar}>
-          <Ionicons name="person" size={24} color="white" />
-        </View>
-        <View style={styles.orderDetails}>
-          <Text style={styles.orderName}>{order.name || order.title}</Text>
-          <Text style={styles.orderMeta}>
-            {order.status} · Due:{" "}
-            {order.due ||
-              (order.deadline?.toDate
-                ? order.deadline.toDate().toLocaleDateString()
-                : "N/A")}
+  const renderOrderCard = ({ item: order }) => {
+    // Find the employee with matching ID
+    const employee = employees.find((emp) => emp.id === order.employeeId);
+    const employeeName = employee ? employee.fullName : "N/A";
+
+    // Find the client with matching ID
+    const client = clients.find((cli) => cli.id === order.clientId);
+    const clientName = client ? client.fullName : "N/A";
+
+    return (
+      <LinearGradient
+        colors={getGradientColors(order.status)}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.orderItem}
+      >
+        <View style={styles.orderHeader}>
+          <View style={styles.avatar}>
+            <Ionicons name="person" size={24} color="white" />
+          </View>
+          <View style={styles.orderDetails}>
+            <Text style={styles.orderName}>{order.name || order.title}</Text>
+
+            <Text style={styles.orderMeta}>
+              {order.status} · Due:{" "}
+              {order.due ||
+                (order.deadline?.toDate
+                  ? order.deadline.toDate().toLocaleDateString()
+                  : "N/A")}
+            </Text>
+          </View>
+          <Text style={styles.orderAmount}>
+            ${Number(order.amount).toLocaleString()}
           </Text>
         </View>
-        <Text style={styles.orderAmount}>
-          ${Number(order.amount).toLocaleString()}
-        </Text>
-      </View>
-      <View style={styles.orderFooter}>
-        <Text style={styles.orderAssigned}>
-          Assigned to: {order.employeeName || "N/A"}
-        </Text>
-      </View>
-    </LinearGradient>
-  );
+        <View style={styles.orderFooter}>
+          <Text style={styles.orderAssigned}>Assigned to: {employeeName}</Text>
+          <Text style={styles.orderClient}>Client: {clientName}</Text>
+        </View>
+      </LinearGradient>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="black" />
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: hp(12) }} // Add bottom padding to ensure content isn't hidden behind buttons
+      >
         {/* Header with Sign Out */}
         <LinearGradient
           colors={["#1E3A8A", "#3B82F6"]}
@@ -263,39 +314,39 @@ export default function DashboardScreen() {
             />
           )}
         </View>
-
-        {/* Action Buttons */}
-        <View style={styles.buttonRow}>
-          <TouchableOpacity
-            style={styles.actionBtn}
-            onPress={() => navigation.navigate("AddClient")}
-          >
-            <LinearGradient
-              colors={["#4158D0", "#C850C0"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.btnGradient}
-            >
-              <FontAwesome5 name="user-plus" size={20} color="#fff" />
-              <Text style={styles.btnText}>Add Client</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.actionBtn}
-            onPress={() => navigation.navigate("AddOrder")}
-          >
-            <LinearGradient
-              colors={["#0BAB64", "#3BB78F"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.btnGradient}
-            >
-              <FontAwesome5 name="file-invoice" size={20} color="#fff" />
-              <Text style={styles.btnText}>New Order</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-        </View>
       </ScrollView>
+
+      {/* Action Buttons - Now outside ScrollView with absolute positioning */}
+      <View style={styles.fixedButtonContainer}>
+        <TouchableOpacity
+          style={styles.actionBtn}
+          onPress={() => navigation.navigate("AddClient")}
+        >
+          <LinearGradient
+            colors={["#4158D0", "#C850C0"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.btnGradient}
+          >
+            <FontAwesome5 name="user-plus" size={20} color="#fff" />
+            <Text style={styles.btnText}>Add Client</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.actionBtn}
+          onPress={() => navigation.navigate("AddOrder")}
+        >
+          <LinearGradient
+            colors={["#0BAB64", "#3BB78F"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.btnGradient}
+          >
+            <FontAwesome5 name="file-invoice" size={20} color="#fff" />
+            <Text style={styles.btnText}>New Order</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 }
@@ -410,6 +461,8 @@ const styles = StyleSheet.create({
     color: "#fff",
   },
   orderFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginTop: 10,
     paddingTop: 10,
     borderTopWidth: 1,
@@ -419,17 +472,25 @@ const styles = StyleSheet.create({
     color: "rgba(255,255,255,0.8)",
     fontSize: 14,
   },
+  orderClient: {
+    color: "rgba(255,255,255,0.9)",
+    fontSize: 14,
+    marginTop: 2,
+  },
   emptyText: {
     fontSize: hp(2),
     color: "#6B7280",
     textAlign: "center",
     marginVertical: hp(2),
   },
-  buttonRow: {
+  fixedButtonContainer: {
+    position: "absolute",
+    bottom: scale(70),
+    // left: 0,
+    // right: 0,
     flexDirection: "row",
     justifyContent: "space-between",
     padding: 20,
-    marginTop: hp(-6),
   },
   actionBtn: {
     flex: 1,
