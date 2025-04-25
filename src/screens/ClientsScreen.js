@@ -6,6 +6,7 @@ import {
   FlatList,
   Animated,
   RefreshControl,
+  useColorScheme,
 } from "react-native";
 import {
   Text,
@@ -29,6 +30,18 @@ import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "../config/firebase";
 import { useFocusEffect } from "@react-navigation/native";
 
+const getTheme = (colorScheme) => ({
+  colors: {
+    primary: colorScheme === "dark" ? "#60A5FA" : "#1E3A8A",
+    error: colorScheme === "dark" ? "#F87171" : "#B91C1C",
+    background: colorScheme === "dark" ? "#1F2937" : "#F3F4F6",
+    text: colorScheme === "dark" ? "#F3F4F6" : "#1F2937",
+    placeholder: colorScheme === "dark" ? "#9CA3AF" : "#6B7280",
+    surface: colorScheme === "dark" ? "#374151" : "#FFFFFF",
+  },
+  roundness: wp(2),
+});
+
 export default function ClientsScreen({ navigation }) {
   const [clients, setClients] = useState([]);
   const [filteredClients, setFilteredClients] = useState([]);
@@ -37,6 +50,8 @@ export default function ClientsScreen({ navigation }) {
   const [fadeAnim] = useState(new Animated.Value(0));
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState("all");
+  const colorScheme = useColorScheme();
+  const theme = getTheme(colorScheme);
 
   useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -49,7 +64,6 @@ export default function ClientsScreen({ navigation }) {
   const fetchClients = async () => {
     try {
       setRefreshing(true);
-      // Fetch only active clients
       const q = query(
         collection(db, "clients"),
         where("status", "==", "active")
@@ -92,9 +106,9 @@ export default function ClientsScreen({ navigation }) {
     if (filter === "active") {
       filtered = clients.filter((client) => client.status === "active");
     } else if (filter === "inactive") {
-      filtered = []; // No inactive clients since we only fetch active ones
+      filtered = [];
     } else {
-      filtered = clients; // All clients (only active ones)
+      filtered = clients;
     }
     setFilteredClients(filtered);
     setShowFilterModal(false);
@@ -104,54 +118,68 @@ export default function ClientsScreen({ navigation }) {
     <TouchableOpacity
       onPress={() => navigation.navigate("ClientDetails", { client: item })}
     >
-      <Card style={styles.card}>
+      <Card style={[styles.card, { backgroundColor: theme.colors.surface }]}>
         <Card.Content>
           <View style={styles.cardHeader}>
-            <Text style={styles.clientName}>{item.fullName}</Text>
+            <Text style={[styles.clientName, { color: theme.colors.text }]}>
+              {item.fullName}
+            </Text>
             <Chip
               mode="outlined"
               style={[
                 styles.statusChip,
                 {
-                  backgroundColor: "#E6FFFA",
+                  backgroundColor:
+                    colorScheme === "dark" ? "#2DD4BF20" : "#E6FFFA",
                   borderColor: "#38B2AC",
                 },
               ]}
+              textStyle={[styles.statusText, { color: "#38B2AC" }]}
             >
-              <Text
-                style={[
-                  styles.statusText,
-                  {
-                    color: "#38B2AC",
-                  },
-                ]}
-              >
-                Active
-              </Text>
+              Active
             </Chip>
           </View>
           <View style={styles.clientInfo}>
             <View style={styles.infoRow}>
-              <FontAwesome5 name="envelope" size={wp(4)} color="#6B7280" />
-              <Text style={styles.infoText}>{item.email}</Text>
+              <FontAwesome5
+                name="envelope"
+                size={wp(4)}
+                color={theme.colors.placeholder}
+              />
+              <Text style={[styles.infoText, { color: theme.colors.text }]}>
+                {item.email}
+              </Text>
             </View>
             <View style={styles.infoRow}>
-              <FontAwesome5 name="phone" size={wp(4)} color="#6B7280" />
-              <Text style={styles.infoText}>{item.phone}</Text>
+              <FontAwesome5
+                name="phone"
+                size={wp(4)}
+                color={theme.colors.placeholder}
+              />
+              <Text style={[styles.infoText, { color: theme.colors.text }]}>
+                {item.phone}
+              </Text>
             </View>
             <View style={styles.infoRow}>
               <FontAwesome5
                 name="map-marker-alt"
                 size={wp(4)}
-                color="#6B7280"
+                color={theme.colors.placeholder}
               />
-              <Text style={styles.infoText} numberOfLines={1}>
+              <Text
+                style={[styles.infoText, { color: theme.colors.text }]}
+                numberOfLines={1}
+              >
                 {item.address || "N/A"}
               </Text>
             </View>
             <View style={styles.infoRow}>
-              <FontAwesome5 name="dollar-sign" size={wp(4)} color="#6B7280" />
-              <Text style={styles.infoText}>
+              <FontAwesome5
+                name="dollar-sign"
+                size={wp(4)}
+                color={theme.colors.placeholder}
+              />
+              <Text style={[styles.infoText, { color: theme.colors.text }]}>
                 Budget:{" "}
                 {item.budget
                   ? `$${Number(item.budget).toLocaleString()}`
@@ -165,9 +193,15 @@ export default function ClientsScreen({ navigation }) {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+    >
       <LinearGradient
-        colors={["#1E3A8A", "#3B82F6"]}
+        colors={
+          colorScheme === "dark"
+            ? ["#111827", "#1E40AF"]
+            : ["#1E3A8A", "#3B82F6"]
+        }
         style={styles.header}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -195,8 +229,11 @@ export default function ClientsScreen({ navigation }) {
           placeholder="Search clients..."
           onChangeText={handleSearch}
           value={searchQuery}
-          style={styles.searchBar}
-          iconColor="#1E3A8A"
+          style={[styles.searchBar, { backgroundColor: theme.colors.surface }]}
+          iconColor={theme.colors.primary}
+          placeholderTextColor={theme.colors.placeholder}
+          textColor={theme.colors.text}
+          theme={theme}
         />
 
         <FlatList
@@ -205,20 +242,27 @@ export default function ClientsScreen({ navigation }) {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={theme.colors.primary}
+            />
           }
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>No clients found</Text>
+              <Text style={[styles.emptyText, { color: theme.colors.text }]}>
+                No clients found
+              </Text>
             </View>
           }
         />
 
         <FAB
-          style={styles.fab}
+          style={[styles.fab, { backgroundColor: theme.colors.primary }]}
           icon="plus"
           onPress={() => navigation.navigate("AddClient")}
           color="#FFFFFF"
+          theme={theme}
         />
       </Animated.View>
 
@@ -226,14 +270,25 @@ export default function ClientsScreen({ navigation }) {
         <Modal
           visible={showFilterModal}
           onDismiss={() => setShowFilterModal(false)}
-          contentContainerStyle={styles.modalContent}
+          contentContainerStyle={[
+            styles.modalContent,
+            { backgroundColor: theme.colors.surface },
+          ]}
         >
-          <Text style={styles.modalTitle}>Filter Clients</Text>
-          <Divider style={styles.modalDivider} />
+          <Text style={[styles.modalTitle, { color: theme.colors.primary }]}>
+            Filter Clients
+          </Text>
+          <Divider
+            style={[
+              styles.modalDivider,
+              { backgroundColor: theme.colors.placeholder },
+            ]}
+          />
           <Button
             mode={selectedFilter === "all" ? "contained" : "outlined"}
             onPress={() => handleFilter("all")}
             style={styles.filterButton}
+            theme={theme}
           >
             All Clients
           </Button>
@@ -241,6 +296,7 @@ export default function ClientsScreen({ navigation }) {
             mode={selectedFilter === "active" ? "contained" : "outlined"}
             onPress={() => handleFilter("active")}
             style={styles.filterButton}
+            theme={theme}
           >
             Active Clients
           </Button>
@@ -253,7 +309,6 @@ export default function ClientsScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F3F4F6",
   },
   header: {
     paddingVertical: hp(3),
@@ -287,7 +342,6 @@ const styles = StyleSheet.create({
   searchBar: {
     margin: wp(4),
     elevation: 2,
-    backgroundColor: "#FFFFFF",
   },
   listContent: {
     padding: wp(4),
@@ -296,7 +350,6 @@ const styles = StyleSheet.create({
   card: {
     marginBottom: hp(2),
     elevation: 2,
-    backgroundColor: "#FFFFFF",
     borderRadius: wp(5),
   },
   cardHeader: {
@@ -308,7 +361,6 @@ const styles = StyleSheet.create({
   clientName: {
     fontSize: wp(4.5),
     fontWeight: "600",
-    color: "#1F2937",
   },
   statusChip: {
     height: hp(4),
@@ -327,7 +379,6 @@ const styles = StyleSheet.create({
   },
   infoText: {
     fontSize: wp(3.5),
-    color: "#6B7280",
     marginLeft: wp(2),
   },
   fab: {
@@ -335,7 +386,6 @@ const styles = StyleSheet.create({
     margin: wp(4),
     right: 0,
     bottom: hp(10),
-    backgroundColor: "#1E3A8A",
     elevation: 4,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
@@ -350,10 +400,8 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: wp(4),
-    color: "#6B7280",
   },
   modalContent: {
-    backgroundColor: "#FFFFFF",
     padding: wp(5),
     margin: wp(5),
     borderRadius: wp(4),
@@ -366,11 +414,9 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: wp(5.5),
     fontWeight: "700",
-    color: "#1E3A8A",
     marginBottom: hp(2),
   },
   modalDivider: {
-    backgroundColor: "#E5E7EB",
     marginBottom: hp(2),
   },
   filterButton: {
