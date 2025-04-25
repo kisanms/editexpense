@@ -7,6 +7,7 @@ import {
   Animated,
   Alert,
   RefreshControl,
+  useColorScheme,
 } from "react-native";
 import {
   Text,
@@ -29,6 +30,18 @@ import { doc, getDoc, deleteDoc } from "firebase/firestore";
 import { db } from "../config/firebase";
 import { useFocusEffect } from "@react-navigation/native";
 
+const getTheme = (colorScheme) => ({
+  colors: {
+    primary: colorScheme === "dark" ? "#60A5FA" : "#1E3A8A",
+    error: colorScheme === "dark" ? "#F87171" : "#B91C1C",
+    background: colorScheme === "dark" ? "#1F2937" : "#F3F4F6",
+    text: colorScheme === "dark" ? "#F3F4F6" : "#1F2937",
+    placeholder: colorScheme === "dark" ? "#9CA3AF" : "#6B7280",
+    surface: colorScheme === "dark" ? "#374151" : "#FFFFFF",
+  },
+  roundness: wp(2),
+});
+
 export default function ClientDetailsScreen({ route, navigation }) {
   const { client: initialClient } = route.params;
   const [client, setClient] = useState(initialClient);
@@ -36,6 +49,8 @@ export default function ClientDetailsScreen({ route, navigation }) {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const colorScheme = useColorScheme();
+  const theme = getTheme(colorScheme);
 
   useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -109,9 +124,15 @@ export default function ClientDetailsScreen({ route, navigation }) {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+    >
       <LinearGradient
-        colors={["#1E3A8A", "#3B82F6"]}
+        colors={
+          colorScheme === "dark"
+            ? ["#111827", "#1E40AF"]
+            : ["#1E3A8A", "#3B82F6"]
+        }
         style={styles.header}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -140,72 +161,109 @@ export default function ClientDetailsScreen({ route, navigation }) {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={theme.colors.primary}
+            />
           }
         >
           <View style={styles.profileHeader}>
             <Avatar.Text
               size={wp(20)}
               label={getInitials(client.fullName)}
-              style={styles.avatar}
+              style={[styles.avatar, { backgroundColor: theme.colors.primary }]}
               labelStyle={styles.avatarText}
-              color="#FFF"
-              theme={{ colors: { primary: "#3B82F6" } }}
+              color="#FFFFFF"
+              theme={theme}
             />
             <View style={styles.profileInfo}>
-              <Text style={styles.clientName}>{client.fullName}</Text>
+              <Text style={[styles.clientName, { color: theme.colors.text }]}>
+                {client.fullName}
+              </Text>
               <Chip
                 mode="outlined"
                 style={[
                   styles.statusChip,
                   {
                     backgroundColor:
-                      client.status === "active" ? "#E6FFFA" : "#FEE2E2",
+                      client.status === "active"
+                        ? colorScheme === "dark"
+                          ? "#2DD4BF20"
+                          : "#E6FFFA"
+                        : colorScheme === "dark"
+                        ? "#F8717120"
+                        : "#FEE2E2",
                     borderColor:
                       client.status === "active" ? "#38B2AC" : "#F87171",
                   },
                 ]}
+                textStyle={[
+                  styles.statusText,
+                  {
+                    color: client.status === "active" ? "#38B2AC" : "#F87171",
+                  },
+                ]}
               >
-                <Text
-                  style={[
-                    styles.statusText,
-                    {
-                      color: client.status === "active" ? "#38B2AC" : "#F87171",
-                    },
-                  ]}
-                >
-                  {client.status || "Unknown"}
-                </Text>
+                {client.status || "Unknown"}
               </Chip>
             </View>
           </View>
 
-          <Card style={styles.card}>
+          <Card
+            style={[styles.card, { backgroundColor: theme.colors.surface }]}
+          >
             <Card.Content>
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Contact Information</Text>
+                <Text
+                  style={[styles.sectionTitle, { color: theme.colors.primary }]}
+                >
+                  Contact Information
+                </Text>
                 <View style={styles.infoRow}>
                   <FontAwesome5
                     name="envelope"
                     size={wp(4.5)}
-                    color="#1E3A8A"
+                    color={theme.colors.primary}
                     style={styles.icon}
                   />
                   <View style={styles.infoContent}>
-                    <Text style={styles.infoLabel}>Email</Text>
-                    <Text style={styles.infoText}>{client.email}</Text>
+                    <Text
+                      style={[
+                        styles.infoLabel,
+                        { color: theme.colors.placeholder },
+                      ]}
+                    >
+                      Email
+                    </Text>
+                    <Text
+                      style={[styles.infoText, { color: theme.colors.text }]}
+                    >
+                      {client.email}
+                    </Text>
                   </View>
                 </View>
                 <View style={styles.infoRow}>
                   <FontAwesome5
                     name="phone"
                     size={wp(4.5)}
-                    color="#1E3A8A"
+                    color={theme.colors.primary}
                     style={styles.icon}
                   />
                   <View style={styles.infoContent}>
-                    <Text style={styles.infoLabel}>Phone</Text>
-                    <Text style={styles.infoText}>{client.phone}</Text>
+                    <Text
+                      style={[
+                        styles.infoLabel,
+                        { color: theme.colors.placeholder },
+                      ]}
+                    >
+                      Phone
+                    </Text>
+                    <Text
+                      style={[styles.infoText, { color: theme.colors.text }]}
+                    >
+                      {client.phone}
+                    </Text>
                   </View>
                 </View>
                 {client.address && (
@@ -213,34 +271,69 @@ export default function ClientDetailsScreen({ route, navigation }) {
                     <FontAwesome5
                       name="map-marker-alt"
                       size={wp(4.5)}
-                      color="#1E3A8A"
+                      color={theme.colors.primary}
                       style={styles.icon}
                     />
                     <View style={styles.infoContent}>
-                      <Text style={styles.infoLabel}>Address</Text>
-                      <Text style={styles.infoText}>{client.address}</Text>
+                      <Text
+                        style={[
+                          styles.infoLabel,
+                          { color: theme.colors.placeholder },
+                        ]}
+                      >
+                        Address
+                      </Text>
+                      <Text
+                        style={[styles.infoText, { color: theme.colors.text }]}
+                      >
+                        {client.address}
+                      </Text>
                     </View>
                   </View>
                 )}
               </View>
 
-              <Divider style={styles.divider} />
+              <Divider
+                style={[
+                  styles.divider,
+                  { backgroundColor: theme.colors.placeholder },
+                ]}
+              />
 
               {(client.budget || client.requirements) && (
                 <>
                   <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Preferences</Text>
+                    <Text
+                      style={[
+                        styles.sectionTitle,
+                        { color: theme.colors.primary },
+                      ]}
+                    >
+                      Preferences
+                    </Text>
                     {client.budget && (
                       <View style={styles.infoRow}>
                         <FontAwesome5
                           name="dollar-sign"
                           size={wp(4.5)}
-                          color="#1E3A8A"
+                          color={theme.colors.primary}
                           style={styles.icon}
                         />
                         <View style={styles.infoContent}>
-                          <Text style={styles.infoLabel}>Budget</Text>
-                          <Text style={styles.infoText}>
+                          <Text
+                            style={[
+                              styles.infoLabel,
+                              { color: theme.colors.placeholder },
+                            ]}
+                          >
+                            Budget
+                          </Text>
+                          <Text
+                            style={[
+                              styles.infoText,
+                              { color: theme.colors.text },
+                            ]}
+                          >
                             ${Number(client.budget).toLocaleString()}
                           </Text>
                         </View>
@@ -251,55 +344,108 @@ export default function ClientDetailsScreen({ route, navigation }) {
                         <FontAwesome5
                           name="list-ul"
                           size={wp(4.5)}
-                          color="#1E3A8A"
+                          color={theme.colors.primary}
                           style={styles.icon}
                         />
                         <View style={styles.infoContent}>
-                          <Text style={styles.infoLabel}>Requirements</Text>
-                          <Text style={styles.infoText}>
+                          <Text
+                            style={[
+                              styles.infoLabel,
+                              { color: theme.colors.placeholder },
+                            ]}
+                          >
+                            Requirements
+                          </Text>
+                          <Text
+                            style={[
+                              styles.infoText,
+                              { color: theme.colors.text },
+                            ]}
+                          >
                             {client.requirements}
                           </Text>
                         </View>
                       </View>
                     )}
                   </View>
-                  <Divider style={styles.divider} />
+                  <Divider
+                    style={[
+                      styles.divider,
+                      { backgroundColor: theme.colors.placeholder },
+                    ]}
+                  />
                 </>
               )}
 
               {client.tags && client.tags.length > 0 && (
                 <>
                   <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Tags</Text>
+                    <Text
+                      style={[
+                        styles.sectionTitle,
+                        { color: theme.colors.primary },
+                      ]}
+                    >
+                      Tags
+                    </Text>
                     <View style={styles.tagsContainer}>
                       {client.tags.map((tag, index) => (
                         <Chip
                           key={index}
-                          style={styles.tag}
-                          textStyle={styles.tagText}
+                          style={[
+                            styles.tag,
+                            {
+                              backgroundColor:
+                                colorScheme === "dark" ? "#4B5563" : "#EBF5FF",
+                              borderColor:
+                                colorScheme === "dark" ? "#6B7280" : "#BFDBFE",
+                            },
+                          ]}
+                          textStyle={[
+                            styles.tagText,
+                            { color: theme.colors.text },
+                          ]}
                         >
                           {tag}
                         </Chip>
                       ))}
                     </View>
                   </View>
-                  <Divider style={styles.divider} />
+                  <Divider
+                    style={[
+                      styles.divider,
+                      { backgroundColor: theme.colors.placeholder },
+                    ]}
+                  />
                 </>
               )}
 
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Additional Information</Text>
+                <Text
+                  style={[styles.sectionTitle, { color: theme.colors.primary }]}
+                >
+                  Additional Information
+                </Text>
                 {client.createdAt && (
                   <View style={styles.infoRow}>
                     <FontAwesome5
                       name="calendar"
                       size={wp(4.5)}
-                      color="#1E3A8A"
+                      color={theme.colors.primary}
                       style={styles.icon}
                     />
                     <View style={styles.infoContent}>
-                      <Text style={styles.infoLabel}>Joined</Text>
-                      <Text style={styles.infoText}>
+                      <Text
+                        style={[
+                          styles.infoLabel,
+                          { color: theme.colors.placeholder },
+                        ]}
+                      >
+                        Joined
+                      </Text>
+                      <Text
+                        style={[styles.infoText, { color: theme.colors.text }]}
+                      >
                         {client.createdAt.toDate?.()
                           ? client.createdAt.toDate().toLocaleDateString()
                           : "N/A"}
@@ -312,12 +458,23 @@ export default function ClientDetailsScreen({ route, navigation }) {
                     <FontAwesome5
                       name="credit-card"
                       size={wp(4.5)}
-                      color="#1E3A8A"
+                      color={theme.colors.primary}
                       style={styles.icon}
                     />
                     <View style={styles.infoContent}>
-                      <Text style={styles.infoLabel}>Payment Terms</Text>
-                      <Text style={styles.infoText}>{client.paymentTerms}</Text>
+                      <Text
+                        style={[
+                          styles.infoLabel,
+                          { color: theme.colors.placeholder },
+                        ]}
+                      >
+                        Payment Terms
+                      </Text>
+                      <Text
+                        style={[styles.infoText, { color: theme.colors.text }]}
+                      >
+                        {client.paymentTerms}
+                      </Text>
                     </View>
                   </View>
                 )}
@@ -326,12 +483,21 @@ export default function ClientDetailsScreen({ route, navigation }) {
                     <FontAwesome5
                       name="clock"
                       size={wp(4.5)}
-                      color="#1E3A8A"
+                      color={theme.colors.primary}
                       style={styles.icon}
                     />
                     <View style={styles.infoContent}>
-                      <Text style={styles.infoLabel}>Project Deadline</Text>
-                      <Text style={styles.infoText}>
+                      <Text
+                        style={[
+                          styles.infoLabel,
+                          { color: theme.colors.placeholder },
+                        ]}
+                      >
+                        Project Deadline
+                      </Text>
+                      <Text
+                        style={[styles.infoText, { color: theme.colors.text }]}
+                      >
                         {client.projectDeadline.toDate?.()
                           ? client.projectDeadline.toDate().toLocaleDateString()
                           : new Date(
@@ -346,12 +512,23 @@ export default function ClientDetailsScreen({ route, navigation }) {
                     <FontAwesome5
                       name="sticky-note"
                       size={wp(4.5)}
-                      color="#1E3A8A"
+                      color={theme.colors.primary}
                       style={styles.icon}
                     />
                     <View style={styles.infoContent}>
-                      <Text style={styles.infoLabel}>Notes</Text>
-                      <Text style={styles.infoText}>{client.notes}</Text>
+                      <Text
+                        style={[
+                          styles.infoLabel,
+                          { color: theme.colors.placeholder },
+                        ]}
+                      >
+                        Notes
+                      </Text>
+                      <Text
+                        style={[styles.infoText, { color: theme.colors.text }]}
+                      >
+                        {client.notes}
+                      </Text>
                     </View>
                   </View>
                 )}
@@ -366,15 +543,21 @@ export default function ClientDetailsScreen({ route, navigation }) {
               style={[styles.actionButton, styles.editButton]}
               labelStyle={styles.buttonLabel}
               icon="pencil"
+              theme={theme}
             >
               Edit Client
             </Button>
             <Button
               mode="outlined"
               onPress={() => setShowDeleteModal(true)}
-              style={[styles.actionButton, styles.deleteButton]}
-              labelStyle={[styles.buttonLabel, { color: "white" }]}
+              style={[
+                styles.actionButton,
+                styles.deleteButton,
+                { borderColor: theme.colors.error },
+              ]}
+              labelStyle={[styles.buttonLabel, { color: theme.colors.error }]}
               icon="delete"
+              theme={theme}
             >
               Delete Client
             </Button>
@@ -386,10 +569,15 @@ export default function ClientDetailsScreen({ route, navigation }) {
         <Modal
           visible={showDeleteModal}
           onDismiss={() => setShowDeleteModal(false)}
-          contentContainerStyle={styles.modalContent}
+          contentContainerStyle={[
+            styles.modalContent,
+            { backgroundColor: theme.colors.surface },
+          ]}
         >
-          <Text style={styles.modalTitle}>Delete Client</Text>
-          <Text style={styles.modalText}>
+          <Text style={[styles.modalTitle, { color: theme.colors.error }]}>
+            Delete Client
+          </Text>
+          <Text style={[styles.modalText, { color: theme.colors.text }]}>
             Are you sure you want to permanently delete {client.fullName}? This
             action cannot be undone.
           </Text>
@@ -398,6 +586,7 @@ export default function ClientDetailsScreen({ route, navigation }) {
               mode="outlined"
               onPress={() => setShowDeleteModal(false)}
               style={styles.modalButton}
+              theme={theme}
             >
               Cancel
             </Button>
@@ -405,7 +594,11 @@ export default function ClientDetailsScreen({ route, navigation }) {
               mode="contained"
               onPress={handleDelete}
               loading={isDeleting}
-              style={[styles.modalButton, { backgroundColor: "#EF4444" }]}
+              style={[
+                styles.modalButton,
+                { backgroundColor: theme.colors.error },
+              ]}
+              theme={theme}
             >
               Delete
             </Button>
@@ -419,7 +612,6 @@ export default function ClientDetailsScreen({ route, navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F3F4F6",
   },
   header: {
     paddingVertical: hp(3),
@@ -465,7 +657,6 @@ const styles = StyleSheet.create({
     marginBottom: hp(2),
   },
   avatar: {
-    backgroundColor: "#3B82F6",
     marginBottom: hp(1),
   },
   avatarText: {
@@ -478,7 +669,6 @@ const styles = StyleSheet.create({
   clientName: {
     fontSize: wp(6),
     fontWeight: "700",
-    color: "#1F2937",
     marginBottom: hp(1),
   },
   statusChip: {
@@ -491,7 +681,6 @@ const styles = StyleSheet.create({
   },
   card: {
     elevation: 4,
-    backgroundColor: "#FFFFFF",
     borderRadius: wp(4),
     marginBottom: hp(2),
     overflow: "hidden",
@@ -502,10 +691,8 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: wp(4.5),
     fontWeight: "600",
-    color: "#1E3A8A",
     marginBottom: hp(2),
     borderLeftWidth: 3,
-    borderLeftColor: "#3B82F6",
     paddingLeft: wp(2),
   },
   infoRow: {
@@ -523,16 +710,13 @@ const styles = StyleSheet.create({
   },
   infoLabel: {
     fontSize: wp(3.5),
-    color: "#6B7280",
     marginBottom: hp(0.5),
   },
   infoText: {
     fontSize: wp(4),
-    color: "#1F2937",
   },
   divider: {
     marginVertical: hp(2),
-    backgroundColor: "#E5E7EB",
     height: 1,
   },
   tagsContainer: {
@@ -543,12 +727,10 @@ const styles = StyleSheet.create({
   tag: {
     marginRight: wp(2),
     marginBottom: hp(1),
-    backgroundColor: "#EBF5FF",
-    borderColor: "#BFDBFE",
+    borderWidth: 1,
   },
   tagText: {
     fontSize: wp(3.5),
-    color: "#1E3A8A",
   },
   buttonContainer: {
     marginTop: hp(2),
@@ -564,24 +746,18 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   editButton: {
-    borderColor: "#1E3A8A",
     borderWidth: 1.5,
-    backgroundColor: "#1E3A8A",
     justifyContent: "center",
   },
   deleteButton: {
-    borderColor: "#EF4444",
     borderWidth: 1.5,
-    backgroundColor: "#EF4444",
     justifyContent: "center",
   },
   buttonLabel: {
     fontSize: wp(4.5),
     fontWeight: "600",
-    color: "#FFFFFF",
   },
   modalContent: {
-    backgroundColor: "#FFFFFF",
     padding: wp(5),
     margin: wp(5),
     borderRadius: wp(4),
@@ -594,12 +770,10 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: wp(5.5),
     fontWeight: "700",
-    color: "#EF4444",
     marginBottom: hp(2),
   },
   modalText: {
     fontSize: wp(4),
-    color: "#4B5563",
     marginBottom: hp(3),
     lineHeight: wp(5.5),
   },
