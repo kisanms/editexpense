@@ -8,6 +8,7 @@ import {
   Platform,
   Animated,
   Alert,
+  useColorScheme,
 } from "react-native";
 import {
   TextInput,
@@ -56,16 +57,17 @@ const validationSchema = Yup.object().shape({
   tags: Yup.array().of(Yup.string()),
 });
 
-const theme = {
+const getTheme = (colorScheme) => ({
   colors: {
-    primary: "#1E3A8A",
-    error: "#B91C1C",
-    background: "#FFFFFF",
-    text: "#1F2937",
-    placeholder: "#6B7280",
+    primary: colorScheme === "dark" ? "#60A5FA" : "#1E3A8A",
+    error: colorScheme === "dark" ? "#F87171" : "#B91C1C",
+    background: colorScheme === "dark" ? "#1F2937" : "#FFFFFF",
+    text: colorScheme === "dark" ? "#F3F4F6" : "#1F2937",
+    placeholder: colorScheme === "dark" ? "#9CA3AF" : "#6B7280",
+    surface: colorScheme === "dark" ? "#374151" : "#FFFFFF",
   },
   roundness: wp(2),
-};
+});
 
 export default function EditClientScreen({ route, navigation }) {
   const { client } = route.params;
@@ -75,6 +77,8 @@ export default function EditClientScreen({ route, navigation }) {
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [newTag, setNewTag] = useState("");
+  const colorScheme = useColorScheme();
+  const theme = getTheme(colorScheme);
 
   useEffect(() => {
     Animated.parallel([
@@ -109,7 +113,6 @@ export default function EditClientScreen({ route, navigation }) {
 
   const handleSubmit = async (values, { setSubmitting, setErrors }) => {
     try {
-      // Prepare data for Firestore
       const updatedValues = {
         ...values,
         budget: values.budget ? parseFloat(values.budget) : null,
@@ -162,9 +165,15 @@ export default function EditClientScreen({ route, navigation }) {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+    >
       <LinearGradient
-        colors={["#1E3A8A", "#3B82F6"]}
+        colors={
+          colorScheme === "dark"
+            ? ["#111827", "#1E40AF"]
+            : ["#1E3A8A", "#3B82F6"]
+        }
         style={styles.header}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -210,138 +219,267 @@ export default function EditClientScreen({ route, navigation }) {
               ]}
             >
               <ScrollView style={styles.scrollView}>
-                <Text style={styles.sectionTitle}>Basic Information</Text>
-                <View style={styles.sectionCard}>
-                  <Text style={styles.inputLabel}>Full Name *</Text>
+                <Text
+                  style={[styles.sectionTitle, { color: theme.colors.text }]}
+                >
+                  Basic Information
+                </Text>
+                <View
+                  style={[
+                    styles.sectionCard,
+                    { backgroundColor: theme.colors.surface },
+                  ]}
+                >
+                  <Text
+                    style={[styles.inputLabel, { color: theme.colors.text }]}
+                  >
+                    Full Name *
+                  </Text>
                   <TextInput
                     value={values.fullName}
                     onChangeText={handleChange("fullName")}
                     onBlur={handleBlur("fullName")}
                     mode="outlined"
-                    style={styles.input}
+                    style={[
+                      styles.input,
+                      { backgroundColor: theme.colors.surface },
+                    ]}
                     error={touched.fullName && errors.fullName}
-                    left={<TextInput.Icon icon="account" color="#1E3A8A" />}
+                    left={
+                      <TextInput.Icon
+                        icon="account"
+                        color={theme.colors.primary}
+                      />
+                    }
                     theme={theme}
+                    textColor={theme.colors.text}
+                    placeholderTextColor={theme.colors.placeholder}
+                    disabled={isSubmitting}
                   />
                   {touched.fullName && errors.fullName && (
                     <HelperText
                       type="error"
                       visible={touched.fullName && errors.fullName}
+                      style={{ color: theme.colors.error }}
                     >
                       {errors.fullName}
                     </HelperText>
                   )}
 
-                  <Text style={styles.inputLabel}>Email *</Text>
+                  <Text
+                    style={[styles.inputLabel, { color: theme.colors.text }]}
+                  >
+                    Email *
+                  </Text>
                   <TextInput
                     value={values.email}
                     onChangeText={handleChange("email")}
                     onBlur={handleBlur("email")}
                     mode="outlined"
-                    style={styles.input}
+                    style={[
+                      styles.input,
+                      { backgroundColor: theme.colors.surface },
+                    ]}
                     keyboardType="email-address"
                     error={touched.email && errors.email}
-                    left={<TextInput.Icon icon="email" color="#1E3A8A" />}
+                    left={
+                      <TextInput.Icon
+                        icon="email"
+                        color={theme.colors.primary}
+                      />
+                    }
                     theme={theme}
+                    textColor={theme.colors.text}
+                    placeholderTextColor={theme.colors.placeholder}
+                    disabled={isSubmitting}
                   />
                   {touched.email && errors.email && (
                     <HelperText
                       type="error"
                       visible={touched.email && errors.email}
+                      style={{ color: theme.colors.error }}
                     >
                       {errors.email}
                     </HelperText>
                   )}
 
-                  <Text style={styles.inputLabel}>Phone *</Text>
+                  <Text
+                    style={[styles.inputLabel, { color: theme.colors.text }]}
+                  >
+                    Phone *
+                  </Text>
                   <TextInput
                     value={values.phone}
                     onChangeText={handleChange("phone")}
                     onBlur={handleBlur("phone")}
                     mode="outlined"
-                    style={styles.input}
+                    style={[
+                      styles.input,
+                      { backgroundColor: theme.colors.surface },
+                    ]}
                     keyboardType="phone-pad"
                     error={touched.phone && errors.phone}
-                    left={<TextInput.Icon icon="phone" color="#1E3A8A" />}
+                    left={
+                      <TextInput.Icon
+                        icon="phone"
+                        color={theme.colors.primary}
+                      />
+                    }
                     theme={theme}
+                    textColor={theme.colors.text}
+                    placeholderTextColor={theme.colors.placeholder}
+                    disabled={isSubmitting}
                   />
                   {touched.phone && errors.phone && (
                     <HelperText
                       type="error"
                       visible={touched.phone && errors.phone}
+                      style={{ color: theme.colors.error }}
                     >
                       {errors.phone}
                     </HelperText>
                   )}
 
-                  <Text style={styles.inputLabel}>Address</Text>
+                  <Text
+                    style={[styles.inputLabel, { color: theme.colors.text }]}
+                  >
+                    Address
+                  </Text>
                   <TextInput
                     value={values.address}
                     onChangeText={handleChange("address")}
                     onBlur={handleBlur("address")}
                     mode="outlined"
-                    style={styles.input}
+                    style={[
+                      styles.input,
+                      { backgroundColor: theme.colors.surface },
+                    ]}
                     numberOfLines={3}
-                    left={<TextInput.Icon icon="map-marker" color="#1E3A8A" />}
+                    left={
+                      <TextInput.Icon
+                        icon="map-marker"
+                        color={theme.colors.primary}
+                      />
+                    }
                     theme={theme}
+                    textColor={theme.colors.text}
+                    placeholderTextColor={theme.colors.placeholder}
+                    disabled={isSubmitting}
                   />
                 </View>
 
-                <Text style={styles.sectionTitle}>Project Details</Text>
-                <View style={styles.sectionCard}>
-                  <Text style={styles.inputLabel}>Budget</Text>
+                <Text
+                  style={[styles.sectionTitle, { color: theme.colors.text }]}
+                >
+                  Project Details
+                </Text>
+                <View
+                  style={[
+                    styles.sectionCard,
+                    { backgroundColor: theme.colors.surface },
+                  ]}
+                >
+                  <Text
+                    style={[styles.inputLabel, { color: theme.colors.text }]}
+                  >
+                    Budget
+                  </Text>
                   <TextInput
                     value={values.budget}
                     onChangeText={handleChange("budget")}
                     onBlur={handleBlur("budget")}
                     mode="outlined"
-                    style={styles.input}
+                    style={[
+                      styles.input,
+                      { backgroundColor: theme.colors.surface },
+                    ]}
                     keyboardType="numeric"
                     left={
-                      <TextInput.Icon icon="currency-usd" color="#1E3A8A" />
+                      <TextInput.Icon
+                        icon="currency-usd"
+                        color={theme.colors.primary}
+                      />
                     }
                     theme={theme}
+                    textColor={theme.colors.text}
+                    placeholderTextColor={theme.colors.placeholder}
+                    disabled={isSubmitting}
                   />
                   {touched.budget && errors.budget && (
                     <HelperText
                       type="error"
                       visible={touched.budget && errors.budget}
+                      style={{ color: theme.colors.error }}
                     >
                       {errors.budget}
                     </HelperText>
                   )}
 
-                  <Text style={styles.inputLabel}>Requirements</Text>
+                  <Text
+                    style={[styles.inputLabel, { color: theme.colors.text }]}
+                  >
+                    Requirements
+                  </Text>
                   <TextInput
                     value={values.requirements}
                     onChangeText={handleChange("requirements")}
                     onBlur={handleBlur("requirements")}
                     mode="outlined"
-                    style={styles.input}
+                    style={[
+                      styles.input,
+                      { backgroundColor: theme.colors.surface },
+                    ]}
                     numberOfLines={4}
-                    left={<TextInput.Icon icon="text-box" color="#1E3A8A" />}
+                    left={
+                      <TextInput.Icon
+                        icon="text-box"
+                        color={theme.colors.primary}
+                      />
+                    }
                     theme={theme}
+                    textColor={theme.colors.text}
+                    placeholderTextColor={theme.colors.placeholder}
+                    disabled={isSubmitting}
                   />
 
-                  <Text style={styles.inputLabel}>Payment Terms</Text>
+                  <Text
+                    style={[styles.inputLabel, { color: theme.colors.text }]}
+                  >
+                    Payment Terms
+                  </Text>
                   <TouchableOpacity onPress={() => setShowTermsModal(true)}>
                     <TextInput
                       value={values.paymentTerms}
                       mode="outlined"
-                      style={styles.input}
+                      style={[
+                        styles.input,
+                        { backgroundColor: theme.colors.surface },
+                      ]}
                       editable={false}
                       left={
-                        <TextInput.Icon icon="credit-card" color="#1E3A8A" />
+                        <TextInput.Icon
+                          icon="credit-card"
+                          color={theme.colors.primary}
+                        />
                       }
                       right={
-                        <TextInput.Icon icon="chevron-down" color="#1E3A8A" />
+                        <TextInput.Icon
+                          icon="chevron-down"
+                          color={theme.colors.primary}
+                        />
                       }
                       theme={theme}
                       placeholder="Select payment terms"
+                      textColor={theme.colors.text}
+                      placeholderTextColor={theme.colors.placeholder}
                     />
                   </TouchableOpacity>
 
-                  <Text style={styles.inputLabel}>Project Deadline</Text>
+                  <Text
+                    style={[styles.inputLabel, { color: theme.colors.text }]}
+                  >
+                    Project Deadline
+                  </Text>
                   <TouchableOpacity onPress={() => setShowDatePicker(true)}>
                     <TextInput
                       value={
@@ -350,14 +488,27 @@ export default function EditClientScreen({ route, navigation }) {
                           : ""
                       }
                       mode="outlined"
-                      style={styles.input}
+                      style={[
+                        styles.input,
+                        { backgroundColor: theme.colors.surface },
+                      ]}
                       editable={false}
-                      left={<TextInput.Icon icon="calendar" color="#1E3A8A" />}
+                      left={
+                        <TextInput.Icon
+                          icon="calendar"
+                          color={theme.colors.primary}
+                        />
+                      }
                       right={
-                        <TextInput.Icon icon="chevron-down" color="#1E3A8A" />
+                        <TextInput.Icon
+                          icon="chevron-down"
+                          color={theme.colors.primary}
+                        />
                       }
                       theme={theme}
                       placeholder="Select deadline"
+                      textColor={theme.colors.text}
+                      placeholderTextColor={theme.colors.placeholder}
                     />
                   </TouchableOpacity>
                   {touched.projectDeadline && errors.projectDeadline && (
@@ -366,43 +517,93 @@ export default function EditClientScreen({ route, navigation }) {
                       visible={
                         touched.projectDeadline && errors.projectDeadline
                       }
+                      style={{ color: theme.colors.error }}
                     >
                       {errors.projectDeadline}
                     </HelperText>
                   )}
                 </View>
 
-                <Text style={styles.sectionTitle}>Additional Information</Text>
-                <View style={styles.sectionCard}>
-                  <Text style={styles.inputLabel}>Notes</Text>
+                <Text
+                  style={[styles.sectionTitle, { color: theme.colors.text }]}
+                >
+                  Additional Information
+                </Text>
+                <View
+                  style={[
+                    styles.sectionCard,
+                    { backgroundColor: theme.colors.surface },
+                  ]}
+                >
+                  <Text
+                    style={[styles.inputLabel, { color: theme.colors.text }]}
+                  >
+                    Notes
+                  </Text>
                   <TextInput
                     value={values.notes}
                     onChangeText={handleChange("notes")}
                     onBlur={handleBlur("notes")}
                     mode="outlined"
-                    style={styles.input}
+                    style={[
+                      styles.input,
+                      { backgroundColor: theme.colors.surface },
+                    ]}
                     multiline
                     numberOfLines={4}
-                    left={<TextInput.Icon icon="note-text" color="#1E3A8A" />}
+                    left={
+                      <TextInput.Icon
+                        icon="note-text"
+                        color={theme.colors.primary}
+                      />
+                    }
                     theme={theme}
+                    textColor={theme.colors.text}
+                    placeholderTextColor={theme.colors.placeholder}
+                    disabled={isSubmitting}
                   />
 
-                  <Text style={styles.inputLabel}>Tags</Text>
+                  <Text
+                    style={[styles.inputLabel, { color: theme.colors.text }]}
+                  >
+                    Tags
+                  </Text>
                   <View style={styles.tagsContainer}>
                     {values.tags.map((tag, index) => (
                       <Chip
                         key={index}
-                        style={styles.tag}
+                        style={[
+                          styles.tag,
+                          {
+                            backgroundColor:
+                              colorScheme === "dark" ? "#4B5563" : "#EBF5FF",
+                            borderColor:
+                              colorScheme === "dark" ? "#6B7280" : "#BFDBFE",
+                          },
+                        ]}
+                        textStyle={{ color: theme.colors.text }}
                         onClose={() => removeTag(tag, values, setFieldValue)}
                       >
                         {tag}
                       </Chip>
                     ))}
                     <TouchableOpacity
-                      style={styles.addTagButton}
+                      style={[
+                        styles.addTagButton,
+                        {
+                          backgroundColor:
+                            colorScheme === "dark" ? "#4B5563" : "#EBF5FF",
+                          borderColor:
+                            colorScheme === "dark" ? "#6B7280" : "#BFDBFE",
+                        },
+                      ]}
                       onPress={() => setShowTagModal(true)}
                     >
-                      <FontAwesome5 name="plus" size={wp(4)} color="#1E3A8A" />
+                      <FontAwesome5
+                        name="plus"
+                        size={wp(4)}
+                        color={theme.colors.primary}
+                      />
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -425,22 +626,35 @@ export default function EditClientScreen({ route, navigation }) {
                 <Modal
                   visible={showTagModal}
                   onDismiss={() => setShowTagModal(false)}
-                  contentContainerStyle={styles.modalContent}
+                  contentContainerStyle={[
+                    styles.modalContent,
+                    { backgroundColor: theme.colors.surface },
+                  ]}
                 >
-                  <Text style={styles.modalTitle}>Add New Tag</Text>
+                  <Text
+                    style={[styles.modalTitle, { color: theme.colors.text }]}
+                  >
+                    Add New Tag
+                  </Text>
                   <TextInput
                     value={newTag}
                     onChangeText={setNewTag}
                     mode="outlined"
-                    style={styles.modalInput}
+                    style={[
+                      styles.modalInput,
+                      { backgroundColor: theme.colors.surface },
+                    ]}
                     theme={theme}
                     placeholder="Enter tag name"
+                    textColor={theme.colors.text}
+                    placeholderTextColor={theme.colors.placeholder}
                   />
                   <View style={styles.modalButtons}>
                     <Button
                       mode="outlined"
                       onPress={() => setShowTagModal(false)}
                       style={styles.modalButton}
+                      theme={theme}
                     >
                       Cancel
                     </Button>
@@ -448,6 +662,7 @@ export default function EditClientScreen({ route, navigation }) {
                       mode="contained"
                       onPress={() => addTag(values, setFieldValue)}
                       style={styles.modalButton}
+                      theme={theme}
                     >
                       Add
                     </Button>
@@ -459,21 +674,36 @@ export default function EditClientScreen({ route, navigation }) {
                 <Modal
                   visible={showTermsModal}
                   onDismiss={() => setShowTermsModal(false)}
-                  contentContainerStyle={styles.modalContent}
+                  contentContainerStyle={[
+                    styles.modalContent,
+                    { backgroundColor: theme.colors.surface },
+                  ]}
                 >
-                  <Text style={styles.modalTitle}>Select Payment Terms</Text>
+                  <Text
+                    style={[styles.modalTitle, { color: theme.colors.text }]}
+                  >
+                    Select Payment Terms
+                  </Text>
                   {paymentTerms.map((terms, index) => (
                     <React.Fragment key={terms}>
                       <List.Item
                         title={terms}
-                        titleStyle={styles.modalItem}
+                        titleStyle={[
+                          styles.modalItem,
+                          { color: theme.colors.text },
+                        ]}
                         onPress={() => {
                           setFieldValue("paymentTerms", terms);
                           setShowTermsModal(false);
                         }}
                       />
                       {index < paymentTerms.length - 1 && (
-                        <Divider style={styles.modalDivider} />
+                        <Divider
+                          style={[
+                            styles.modalDivider,
+                            { backgroundColor: theme.colors.placeholder },
+                          ]}
+                        />
                       )}
                     </React.Fragment>
                   ))}
@@ -492,6 +722,7 @@ export default function EditClientScreen({ route, navigation }) {
                     }
                   }}
                   minimumDate={new Date()}
+                  themeVariant={colorScheme}
                 />
               )}
             </Animated.View>
@@ -505,7 +736,6 @@ export default function EditClientScreen({ route, navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F3F4F6",
   },
   header: {
     paddingVertical: hp(3),
@@ -539,7 +769,6 @@ const styles = StyleSheet.create({
   },
   formContainer: {
     flex: 1,
-    backgroundColor: "#F3F4F6",
   },
   scrollView: {
     padding: wp(5),
@@ -547,12 +776,10 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: wp(5.5),
     fontWeight: "700",
-    color: "#1E3A8A",
     marginVertical: hp(2),
     letterSpacing: 0.3,
   },
   sectionCard: {
-    backgroundColor: "#FFFFFF",
     borderRadius: wp(4),
     padding: wp(4),
     marginBottom: hp(2),
@@ -564,13 +791,12 @@ const styles = StyleSheet.create({
   },
   input: {
     marginBottom: hp(1.5),
-    backgroundColor: "#FFFFFF",
     borderRadius: wp(2),
+    height: hp(8),
   },
   inputLabel: {
     fontSize: wp(4),
     fontWeight: "600",
-    color: "#1F2937",
     marginBottom: hp(1),
     marginTop: hp(1),
   },
@@ -596,21 +822,17 @@ const styles = StyleSheet.create({
   tag: {
     marginRight: wp(2),
     marginBottom: hp(1),
-    backgroundColor: "#EBF5FF",
-    borderColor: "#BFDBFE",
+    borderWidth: 1,
   },
   addTagButton: {
     width: wp(10),
     height: wp(10),
     borderRadius: wp(5),
-    backgroundColor: "#EBF5FF",
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#BFDBFE",
   },
   modalContent: {
-    backgroundColor: "#FFFFFF",
     padding: wp(5),
     margin: wp(5),
     borderRadius: wp(4),
@@ -622,8 +844,7 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: wp(5.5),
-    fontWeight: "700",
-    color: "#1E3A8A",
+    fontthrusting: "700",
     marginBottom: hp(2.5),
   },
   modalInput: {
@@ -639,9 +860,6 @@ const styles = StyleSheet.create({
   },
   modalItem: {
     fontSize: wp(4),
-    color: "#1F2937",
   },
-  modalDivider: {
-    backgroundColor: "#E5E7EB",
-  },
+  modalDivider: {},
 });
