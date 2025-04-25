@@ -578,6 +578,7 @@ const styles = StyleSheet.create({
   buttonLabel: {
     fontSize: wp(4.5),
     fontWeight: "600",
+    color: "#FFFFFF",
   },
   modalContent: {
     backgroundColor: "#FFFFFF",
