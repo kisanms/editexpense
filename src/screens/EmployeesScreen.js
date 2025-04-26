@@ -6,8 +6,8 @@ import {
   FlatList,
   Animated,
   RefreshControl,
+  useColorScheme,
 } from "react-native";
-
 import {
   Text,
   Searchbar,
@@ -29,6 +29,18 @@ import {
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../config/firebase";
 
+const getTheme = (colorScheme) => ({
+  colors: {
+    primary: colorScheme === "dark" ? "#60A5FA" : "#1E3A8A",
+    error: colorScheme === "dark" ? "#F87171" : "#B91C1C",
+    background: colorScheme === "dark" ? "#1F2937" : "#F3F4F6",
+    text: colorScheme === "dark" ? "#F3F4F6" : "#1F2937",
+    placeholder: colorScheme === "dark" ? "#9CA3AF" : "#6B7280",
+    surface: colorScheme === "dark" ? "#374151" : "#FFFFFF",
+  },
+  roundness: wp(2),
+});
+
 export default function EmployeesScreen({ navigation }) {
   const [employees, setEmployees] = useState([]);
   const [filteredEmployees, setFilteredEmployees] = useState([]);
@@ -37,6 +49,8 @@ export default function EmployeesScreen({ navigation }) {
   const [fadeAnim] = useState(new Animated.Value(0));
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState("all");
+  const colorScheme = useColorScheme();
+  const theme = getTheme(colorScheme);
 
   useEffect(() => {
     fetchEmployees();
@@ -91,64 +105,97 @@ export default function EmployeesScreen({ navigation }) {
     <TouchableOpacity
       onPress={() => navigation.navigate("EmployeeDetails", { employee: item })}
     >
-      <Card style={styles.card}>
-        <LinearGradient
-          colors={["#FFFFFF", "#F9FAFB"]}
-          style={styles.cardGradient}
-        >
-          <Card.Content>
-            <View style={styles.cardHeader}>
-              <Text style={styles.employeeName}>{item.fullName}</Text>
-              <Chip
-                mode="flat"
-                style={[
-                  styles.statusChip,
-                  {
-                    backgroundColor:
-                      item.status === "active" ? "#D1FAE5" : "#FEE2E2",
-                    borderColor:
-                      item.status === "active" ? "#10B981" : "#EF4444",
-                  },
-                ]}
-                textStyle={styles.statusText}
-              >
-                {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
-              </Chip>
+      <Card style={[styles.card, { backgroundColor: theme.colors.surface }]}>
+        <Card.Content>
+          <View style={styles.cardHeader}>
+            <Text style={[styles.employeeName, { color: theme.colors.text }]}>
+              {item.fullName}
+            </Text>
+            <Chip
+              mode="flat"
+              style={[
+                styles.statusChip,
+                {
+                  backgroundColor:
+                    item.status === "active"
+                      ? colorScheme === "dark"
+                        ? "#2DD4BF20"
+                        : "#D1FAE5"
+                      : colorScheme === "dark"
+                      ? "#F8717120"
+                      : "#FEE2E2",
+                  borderColor:
+                    item.status === "active" ? "#38B2AC" : theme.colors.error,
+                },
+              ]}
+              textStyle={[
+                styles.statusText,
+                {
+                  color:
+                    item.status === "active" ? "#38B2AC" : theme.colors.error,
+                },
+              ]}
+            >
+              {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
+            </Chip>
+          </View>
+          <View style={styles.employeeInfo}>
+            <View style={styles.infoRow}>
+              <FontAwesome5
+                name="envelope"
+                size={wp(4)}
+                color={theme.colors.placeholder}
+              />
+              <Text style={[styles.infoText, { color: theme.colors.text }]}>
+                {item.email}
+              </Text>
             </View>
-            <View style={styles.employeeInfo}>
-              <View style={styles.infoRow}>
-                <FontAwesome5 name="envelope" size={wp(4)} color="#4B5563" />
-                <Text style={styles.infoText}>{item.email}</Text>
-              </View>
-              <View style={styles.infoRow}>
-                <FontAwesome5 name="phone" size={wp(4)} color="#4B5563" />
-                <Text style={styles.infoText}>{item.phone}</Text>
-              </View>
-              <View style={styles.infoRow}>
-                <FontAwesome5 name="tools" size={wp(4)} color="#4B5563" />
-                <Text style={styles.infoText}>{item.skills}</Text>
-              </View>
-              <View style={styles.infoRow}>
-                <FontAwesome5 name="briefcase" size={wp(4)} color="#4B5563" />
-                <Text style={styles.infoText}>
-                  {item.experience} years experience
-                </Text>
-              </View>
-              {/* <View style={styles.infoRow}>
-                <FontAwesome5 name="dollar-sign" size={wp(4)} color="#4B5563" />
-                <Text style={styles.infoText}>${item.salary}/month</Text>
-              </View> */}
+            <View style={styles.infoRow}>
+              <FontAwesome5
+                name="phone"
+                size={wp(4)}
+                color={theme.colors.placeholder}
+              />
+              <Text style={[styles.infoText, { color: theme.colors.text }]}>
+                {item.phone}
+              </Text>
             </View>
-          </Card.Content>
-        </LinearGradient>
+            <View style={styles.infoRow}>
+              <FontAwesome5
+                name="tools"
+                size={wp(4)}
+                color={theme.colors.placeholder}
+              />
+              <Text style={[styles.infoText, { color: theme.colors.text }]}>
+                {item.skills}
+              </Text>
+            </View>
+            <View style={styles.infoRow}>
+              <FontAwesome5
+                name="briefcase"
+                size={wp(4)}
+                color={theme.colors.placeholder}
+              />
+              <Text style={[styles.infoText, { color: theme.colors.text }]}>
+                {item.experience} years experience
+              </Text>
+            </View>
+          </View>
+        </Card.Content>
       </Card>
     </TouchableOpacity>
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+    >
       <LinearGradient
-        colors={["#1E3A8A", "#3B82F6"]}
+        colors={
+          colorScheme === "dark"
+            ? ["#111827", "#1E40AF"]
+            : ["#1E3A8A", "#3B82F6"]
+        }
         style={styles.header}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -176,8 +223,11 @@ export default function EmployeesScreen({ navigation }) {
           placeholder="Search employees..."
           onChangeText={handleSearch}
           value={searchQuery}
-          style={styles.searchBar}
-          iconColor="#1E3A8A"
+          style={[styles.searchBar, { backgroundColor: theme.colors.surface }]}
+          iconColor={theme.colors.primary}
+          placeholderTextColor={theme.colors.placeholder}
+          textColor={theme.colors.text}
+          theme={theme}
         />
 
         <FlatList
@@ -186,35 +236,53 @@ export default function EmployeesScreen({ navigation }) {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={theme.colors.primary}
+            />
           }
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>No employees found</Text>
+              <Text style={[styles.emptyText, { color: theme.colors.text }]}>
+                No employees found
+              </Text>
             </View>
           }
         />
       </Animated.View>
 
       <FAB
-        style={styles.fab}
+        style={[styles.fab, { backgroundColor: theme.colors.primary }]}
         icon="plus"
         onPress={() => navigation.navigate("AddEmployee")}
         color="#FFFFFF"
+        theme={theme}
       />
 
       <Portal>
         <Modal
           visible={showFilterModal}
           onDismiss={() => setShowFilterModal(false)}
-          contentContainerStyle={styles.modalContent}
+          contentContainerStyle={[
+            styles.modalContent,
+            { backgroundColor: theme.colors.surface },
+          ]}
         >
-          <Text style={styles.modalTitle}>Filter Employees</Text>
-          <Divider style={styles.modalDivider} />
+          <Text style={[styles.modalTitle, { color: theme.colors.primary }]}>
+            Filter Employees
+          </Text>
+          <Divider
+            style={[
+              styles.modalDivider,
+              { backgroundColor: theme.colors.placeholder },
+            ]}
+          />
           <Button
             mode={selectedFilter === "all" ? "contained" : "outlined"}
             onPress={() => handleFilter("all")}
             style={styles.filterButton}
+            theme={theme}
           >
             All Employees
           </Button>
@@ -222,6 +290,7 @@ export default function EmployeesScreen({ navigation }) {
             mode={selectedFilter === "active" ? "contained" : "outlined"}
             onPress={() => handleFilter("active")}
             style={styles.filterButton}
+            theme={theme}
           >
             Active Employees
           </Button>
@@ -229,6 +298,7 @@ export default function EmployeesScreen({ navigation }) {
             mode={selectedFilter === "inactive" ? "contained" : "outlined"}
             onPress={() => handleFilter("inactive")}
             style={styles.filterButton}
+            theme={theme}
           >
             Inactive Employees
           </Button>
@@ -241,7 +311,6 @@ export default function EmployeesScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F3F4F6",
   },
   header: {
     paddingVertical: hp(3),
@@ -275,7 +344,6 @@ const styles = StyleSheet.create({
   searchBar: {
     margin: wp(4),
     elevation: 2,
-    backgroundColor: "#FFFFFF",
   },
   listContent: {
     padding: wp(4),
@@ -284,17 +352,12 @@ const styles = StyleSheet.create({
   card: {
     marginBottom: hp(2),
     elevation: 6,
-    backgroundColor: "#FFFFFF",
     borderRadius: wp(4),
     overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 6,
-  },
-  cardGradient: {
-    paddingVertical: hp(1.5),
-    borderRadius: wp(4),
   },
   cardHeader: {
     flexDirection: "row",
@@ -306,7 +369,6 @@ const styles = StyleSheet.create({
   employeeName: {
     fontSize: wp(5),
     fontWeight: "700",
-    color: "#1F2937",
     flex: 1,
   },
   statusChip: {
@@ -318,7 +380,6 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: wp(3.5),
     fontWeight: "600",
-    color: "#1F2937",
   },
   employeeInfo: {
     paddingHorizontal: wp(2),
@@ -330,7 +391,6 @@ const styles = StyleSheet.create({
   },
   infoText: {
     fontSize: wp(3.8),
-    color: "#4B5563",
     marginLeft: wp(2.5),
     flex: 1,
   },
@@ -339,7 +399,6 @@ const styles = StyleSheet.create({
     margin: wp(4),
     right: 0,
     bottom: hp(10),
-    backgroundColor: "#1E3A8A",
     elevation: 4,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
@@ -354,10 +413,8 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: wp(4),
-    color: "#6B7280",
   },
   modalContent: {
-    backgroundColor: "#FFFFFF",
     padding: wp(5),
     margin: wp(5),
     borderRadius: wp(4),
@@ -370,11 +427,9 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: wp(5.5),
     fontWeight: "700",
-    color: "#1E3A8A",
     marginBottom: hp(2),
   },
   modalDivider: {
-    backgroundColor: "#E5E7EB",
     marginBottom: hp(2),
   },
   filterButton: {
