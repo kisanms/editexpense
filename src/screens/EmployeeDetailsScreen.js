@@ -5,6 +5,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Animated,
+  useColorScheme,
 } from "react-native";
 import {
   Text,
@@ -27,12 +28,26 @@ import {
 import { doc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../config/firebase";
 
+const getTheme = (colorScheme) => ({
+  colors: {
+    primary: colorScheme === "dark" ? "#60A5FA" : "#1E3A8A",
+    error: colorScheme === "dark" ? "#F87171" : "#B91C1C",
+    background: colorScheme === "dark" ? "#1F2937" : "#F3F4F6",
+    text: colorScheme === "dark" ? "#F3F4F6" : "#1F2937",
+    placeholder: colorScheme === "dark" ? "#9CA3AF" : "#6B7280",
+    surface: colorScheme === "dark" ? "#374151" : "#FFFFFF",
+  },
+  roundness: wp(2),
+});
+
 export default function EmployeeDetailsScreen({ route, navigation }) {
   const { employee } = route.params;
   const [fadeAnim] = useState(new Animated.Value(0));
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
+  const colorScheme = useColorScheme();
+  const theme = getTheme(colorScheme);
 
   useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -47,7 +62,7 @@ export default function EmployeeDetailsScreen({ route, navigation }) {
       const employeeRef = doc(db, "employees", employee.id);
       await updateDoc(employeeRef, {
         status,
-        updatedAt: serverTimestamp(), // This should now work
+        updatedAt: serverTimestamp(),
       });
       navigation.setParams({ employee: { ...employee, status } });
       setMenuVisible(false);
@@ -71,9 +86,15 @@ export default function EmployeeDetailsScreen({ route, navigation }) {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+    >
       <LinearGradient
-        colors={["#1E3A8A", "#3B82F6"]}
+        colors={
+          colorScheme === "dark"
+            ? ["#111827", "#1E40AF"]
+            : ["#1E3A8A", "#3B82F6"]
+        }
         style={styles.header}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -106,19 +127,33 @@ export default function EmployeeDetailsScreen({ route, navigation }) {
         ]}
       >
         <ScrollView contentContainerStyle={styles.scrollContent}>
-          <Card style={styles.card}>
+          <Card
+            style={[styles.card, { backgroundColor: theme.colors.surface }]}
+          >
             <Card.Content>
               <View style={styles.cardHeader}>
-                <Text style={styles.employeeName}>{employee.fullName}</Text>
+                <Text
+                  style={[styles.employeeName, { color: theme.colors.text }]}
+                >
+                  {employee.fullName}
+                </Text>
                 <Chip
                   mode="outlined"
                   style={[
                     styles.statusChip,
                     {
                       backgroundColor:
-                        employee.status === "active" ? "#D1FAE5" : "#FEE2E2",
+                        employee.status === "active"
+                          ? colorScheme === "dark"
+                            ? "#2DD4BF20"
+                            : "#D1FAE5"
+                          : colorScheme === "dark"
+                          ? "#F8717120"
+                          : "#FEE2E2",
                       borderColor:
-                        employee.status === "active" ? "#10B981" : "#EF4444",
+                        employee.status === "active"
+                          ? "#38B2AC"
+                          : theme.colors.error,
                     },
                   ]}
                 >
@@ -127,7 +162,9 @@ export default function EmployeeDetailsScreen({ route, navigation }) {
                       styles.statusText,
                       {
                         color:
-                          employee.status === "active" ? "#10B981" : "#EF4444",
+                          employee.status === "active"
+                            ? "#38B2AC"
+                            : theme.colors.error,
                       },
                     ]}
                   >
@@ -137,41 +174,81 @@ export default function EmployeeDetailsScreen({ route, navigation }) {
                 </Chip>
               </View>
 
-              <Divider style={styles.divider} />
+              <Divider
+                style={[
+                  styles.divider,
+                  { backgroundColor: theme.colors.placeholder },
+                ]}
+              />
 
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Contact Information</Text>
+                <Text
+                  style={[styles.sectionTitle, { color: theme.colors.text }]}
+                >
+                  Contact Information
+                </Text>
                 <View style={styles.infoRow}>
-                  <FontAwesome5 name="envelope" size={wp(4)} color="#6B7280" />
-                  <Text style={styles.infoText}>{employee.email}</Text>
+                  <FontAwesome5
+                    name="envelope"
+                    size={wp(4)}
+                    color={theme.colors.placeholder}
+                  />
+                  <Text style={[styles.infoText, { color: theme.colors.text }]}>
+                    {employee.email}
+                  </Text>
                 </View>
                 <View style={styles.infoRow}>
-                  <FontAwesome5 name="phone" size={wp(4)} color="#6B7280" />
-                  <Text style={styles.infoText}>{employee.phone}</Text>
+                  <FontAwesome5
+                    name="phone"
+                    size={wp(4)}
+                    color={theme.colors.placeholder}
+                  />
+                  <Text style={[styles.infoText, { color: theme.colors.text }]}>
+                    {employee.phone}
+                  </Text>
                 </View>
                 <View style={styles.infoRow}>
                   <FontAwesome5
                     name="map-marker-alt"
                     size={wp(4)}
-                    color="#6B7280"
+                    color={theme.colors.placeholder}
                   />
-                  <Text style={styles.infoText}>
+                  <Text style={[styles.infoText, { color: theme.colors.text }]}>
                     {employee.address || "N/A"}
                   </Text>
                 </View>
               </View>
 
-              <Divider style={styles.divider} />
+              <Divider
+                style={[
+                  styles.divider,
+                  { backgroundColor: theme.colors.placeholder },
+                ]}
+              />
 
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Professional Details</Text>
+                <Text
+                  style={[styles.sectionTitle, { color: theme.colors.text }]}
+                >
+                  Professional Details
+                </Text>
                 <View style={styles.infoRow}>
-                  <FontAwesome5 name="tools" size={wp(4)} color="#6B7280" />
-                  <Text style={styles.infoText}>{employee.skills}</Text>
+                  <FontAwesome5
+                    name="tools"
+                    size={wp(4)}
+                    color={theme.colors.placeholder}
+                  />
+                  <Text style={[styles.infoText, { color: theme.colors.text }]}>
+                    {employee.skills}
+                  </Text>
                 </View>
                 <View style={styles.infoRow}>
-                  <FontAwesome5 name="briefcase" size={wp(4)} color="#6B7280" />
-                  <Text style={styles.infoText}>
+                  <FontAwesome5
+                    name="briefcase"
+                    size={wp(4)}
+                    color={theme.colors.placeholder}
+                  />
+                  <Text style={[styles.infoText, { color: theme.colors.text }]}>
                     {employee.experience} years experience
                   </Text>
                 </View>
@@ -179,19 +256,34 @@ export default function EmployeeDetailsScreen({ route, navigation }) {
                   <FontAwesome5
                     name="dollar-sign"
                     size={wp(4)}
-                    color="#6B7280"
+                    color={theme.colors.placeholder}
                   />
-                  <Text style={styles.infoText}>${employee.salary}/month</Text>
+                  <Text style={[styles.infoText, { color: theme.colors.text }]}>
+                    {employee.salary ? `$${employee.salary}/month` : "N/A"}
+                  </Text>
                 </View>
               </View>
 
-              <Divider style={styles.divider} />
+              <Divider
+                style={[
+                  styles.divider,
+                  { backgroundColor: theme.colors.placeholder },
+                ]}
+              />
 
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Additional Information</Text>
+                <Text
+                  style={[styles.sectionTitle, { color: theme.colors.text }]}
+                >
+                  Additional Information
+                </Text>
                 <View style={styles.infoRow}>
-                  <FontAwesome5 name="calendar" size={wp(4)} color="#6B7280" />
-                  <Text style={styles.infoText}>
+                  <FontAwesome5
+                    name="calendar"
+                    size={wp(4)}
+                    color={theme.colors.placeholder}
+                  />
+                  <Text style={[styles.infoText, { color: theme.colors.text }]}>
                     Joined:{" "}
                     {employee.createdAt?.toDate().toLocaleDateString() || "N/A"}
                   </Text>
@@ -200,9 +292,9 @@ export default function EmployeeDetailsScreen({ route, navigation }) {
                   <FontAwesome5
                     name="info-circle"
                     size={wp(4)}
-                    color="#6B7280"
+                    color={theme.colors.placeholder}
                   />
-                  <Text style={styles.infoText}>
+                  <Text style={[styles.infoText, { color: theme.colors.text }]}>
                     Notes: {employee.notes || "No additional notes"}
                   </Text>
                 </View>
@@ -218,9 +310,13 @@ export default function EmployeeDetailsScreen({ route, navigation }) {
                 <Button
                   mode="contained"
                   onPress={() => setMenuVisible(true)}
-                  style={styles.statusButton}
+                  style={[
+                    styles.statusButton,
+                    { backgroundColor: theme.colors.primary },
+                  ]}
                   labelStyle={styles.buttonLabel}
                   icon="account-switch"
+                  theme={theme}
                 >
                   Set Status
                 </Button>
@@ -231,20 +327,23 @@ export default function EmployeeDetailsScreen({ route, navigation }) {
                 title="Active"
                 leadingIcon="check-circle"
                 disabled={employee.status === "active"}
+                titleStyle={{ color: theme.colors.text }}
               />
               <Menu.Item
                 onPress={() => handleStatusChange("inactive")}
                 title="Inactive"
                 leadingIcon="close-circle"
                 disabled={employee.status === "inactive"}
+                titleStyle={{ color: theme.colors.text }}
               />
             </Menu>
             <Button
               mode="outlined"
               onPress={() => setShowDeleteModal(true)}
-              style={styles.deleteButton}
-              labelStyle={[styles.buttonLabel, { color: "#EF4444" }]}
+              style={[styles.deleteButton, { borderColor: theme.colors.error }]}
+              labelStyle={[styles.buttonLabel, { color: theme.colors.error }]}
               icon="delete"
+              theme={theme}
             >
               Delete Employee
             </Button>
@@ -256,10 +355,15 @@ export default function EmployeeDetailsScreen({ route, navigation }) {
         <Modal
           visible={showDeleteModal}
           onDismiss={() => setShowDeleteModal(false)}
-          contentContainerStyle={styles.modalContent}
+          contentContainerStyle={[
+            styles.modalContent,
+            { backgroundColor: theme.colors.surface },
+          ]}
         >
-          <Text style={styles.modalTitle}>Delete Employee</Text>
-          <Text style={styles.modalText}>
+          <Text style={[styles.modalTitle, { color: theme.colors.primary }]}>
+            Delete Employee
+          </Text>
+          <Text style={[styles.modalText, { color: theme.colors.text }]}>
             Are you sure you want to permanently delete this employee? This
             action cannot be undone.
           </Text>
@@ -268,6 +372,7 @@ export default function EmployeeDetailsScreen({ route, navigation }) {
               mode="outlined"
               onPress={() => setShowDeleteModal(false)}
               style={styles.modalButton}
+              theme={theme}
             >
               Cancel
             </Button>
@@ -275,7 +380,11 @@ export default function EmployeeDetailsScreen({ route, navigation }) {
               mode="contained"
               onPress={handleDelete}
               loading={isDeleting}
-              style={[styles.modalButton, { backgroundColor: "#EF4444" }]}
+              style={[
+                styles.modalButton,
+                { backgroundColor: theme.colors.error },
+              ]}
+              theme={theme}
             >
               Delete
             </Button>
@@ -289,7 +398,6 @@ export default function EmployeeDetailsScreen({ route, navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F3F4F6",
   },
   header: {
     paddingVertical: hp(3),
@@ -328,7 +436,6 @@ const styles = StyleSheet.create({
   },
   card: {
     elevation: 2,
-    backgroundColor: "#FFFFFF",
     borderRadius: wp(3),
   },
   cardHeader: {
@@ -340,7 +447,6 @@ const styles = StyleSheet.create({
   employeeName: {
     fontSize: wp(5.5),
     fontWeight: "700",
-    color: "#1F2937",
   },
   statusChip: {
     height: hp(4),
@@ -351,7 +457,6 @@ const styles = StyleSheet.create({
   },
   divider: {
     marginVertical: hp(2),
-    backgroundColor: "#E5E7EB",
   },
   section: {
     marginBottom: hp(2),
@@ -359,7 +464,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: wp(4.5),
     fontWeight: "600",
-    color: "#1F2937",
     marginBottom: hp(1),
   },
   infoRow: {
@@ -369,7 +473,6 @@ const styles = StyleSheet.create({
   },
   infoText: {
     fontSize: wp(4),
-    color: "#6B7280",
     marginLeft: wp(2),
   },
   buttonContainer: {
@@ -380,19 +483,16 @@ const styles = StyleSheet.create({
   statusButton: {
     flex: 1,
     marginRight: wp(2),
-    backgroundColor: "#1E3A8A",
   },
   deleteButton: {
     flex: 1,
     marginLeft: wp(2),
-    borderColor: "#EF4444",
   },
   buttonLabel: {
     fontSize: wp(4),
     fontWeight: "600",
   },
   modalContent: {
-    backgroundColor: "#FFFFFF",
     padding: wp(5),
     margin: wp(5),
     borderRadius: wp(4),
@@ -405,12 +505,10 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: wp(5.5),
     fontWeight: "700",
-    color: "#1E3A8A",
     marginBottom: hp(2),
   },
   modalText: {
     fontSize: wp(4),
-    color: "#6B7280",
     marginBottom: hp(3),
   },
   modalButtons: {

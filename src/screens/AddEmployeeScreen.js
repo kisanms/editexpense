@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   ScrollView,
@@ -8,6 +8,7 @@ import {
   Platform,
   Animated,
   Alert,
+  useColorScheme,
 } from "react-native";
 import { TextInput, Text, Button, HelperText } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -33,22 +34,25 @@ const validationSchema = Yup.object().shape({
   experience: Yup.string().required("Experience is required"),
 });
 
-const theme = {
+const getTheme = (colorScheme) => ({
   colors: {
-    primary: "#1E3A8A",
-    error: "#B91C1C",
-    background: "#FFFFFF",
-    text: "#1F2937",
-    placeholder: "#6B7280",
+    primary: colorScheme === "dark" ? "#60A5FA" : "#1E3A8A",
+    error: colorScheme === "dark" ? "#F87171" : "#B91C1C",
+    background: colorScheme === "dark" ? "#1F2937" : "#F3F4F6",
+    text: colorScheme === "dark" ? "#F3F4F6" : "#1F2937",
+    placeholder: colorScheme === "dark" ? "#9CA3AF" : "#6B7280",
+    surface: colorScheme === "dark" ? "#374151" : "#FFFFFF",
   },
   roundness: wp(2),
-};
+});
 
 export default function AddEmployeeScreen({ navigation }) {
   const [fadeAnim] = useState(new Animated.Value(0));
   const [scaleAnim] = useState(new Animated.Value(0.95));
+  const colorScheme = useColorScheme();
+  const theme = getTheme(colorScheme);
 
-  React.useEffect(() => {
+  useEffect(() => {
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -112,9 +116,15 @@ export default function AddEmployeeScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+    >
       <LinearGradient
-        colors={["#1E3A8A", "#3B82F6"]}
+        colors={
+          colorScheme === "dark"
+            ? ["#111827", "#1E40AF"]
+            : ["#1E3A8A", "#3B82F6"]
+        }
         style={styles.header}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -160,93 +170,162 @@ export default function AddEmployeeScreen({ navigation }) {
             >
               <ScrollView style={styles.scrollView}>
                 {/* Section: Personal Information */}
-                <Text style={styles.sectionTitle}>Personal Information</Text>
-                <View style={styles.sectionCard}>
-                  <Text style={styles.inputLabel}>Full Name *</Text>
+                <Text
+                  style={[styles.sectionTitle, { color: theme.colors.primary }]}
+                >
+                  Personal Information
+                </Text>
+                <View
+                  style={[
+                    styles.sectionCard,
+                    { backgroundColor: theme.colors.surface },
+                  ]}
+                >
+                  <Text
+                    style={[styles.inputLabel, { color: theme.colors.text }]}
+                  >
+                    Full Name *
+                  </Text>
                   <TextInput
                     value={values.fullName}
                     onChangeText={handleChange("fullName")}
                     onBlur={handleBlur("fullName")}
                     mode="outlined"
-                    style={styles.input}
+                    style={[
+                      styles.input,
+                      { backgroundColor: theme.colors.surface },
+                    ]}
                     error={touched.fullName && errors.fullName}
-                    left={<TextInput.Icon icon="account" color="#1E3A8A" />}
+                    left={
+                      <TextInput.Icon
+                        icon="account"
+                        color={theme.colors.primary}
+                      />
+                    }
                     theme={theme}
                     placeholder="Enter full name"
+                    textColor={theme.colors.text}
+                    placeholderTextColor={theme.colors.placeholder}
+                    disabled={isSubmitting}
                   />
                   {touched.fullName && errors.fullName && (
                     <HelperText
                       type="error"
                       visible={touched.fullName && errors.fullName}
-                      style={styles.errorText}
+                      style={{ color: theme.colors.error }}
                     >
                       {errors.fullName}
                     </HelperText>
                   )}
 
-                  <Text style={styles.inputLabel}>Email *</Text>
+                  <Text
+                    style={[styles.inputLabel, { color: theme.colors.text }]}
+                  >
+                    Email *
+                  </Text>
                   <TextInput
                     value={values.email}
                     onChangeText={handleChange("email")}
                     onBlur={handleBlur("email")}
                     mode="outlined"
-                    style={styles.input}
+                    style={[
+                      styles.input,
+                      { backgroundColor: theme.colors.surface },
+                    ]}
                     keyboardType="email-address"
                     error={touched.email && errors.email}
-                    left={<TextInput.Icon icon="email" color="#1E3A8A" />}
+                    left={
+                      <TextInput.Icon
+                        icon="email"
+                        color={theme.colors.primary}
+                      />
+                    }
                     theme={theme}
                     placeholder="Enter email address"
+                    textColor={theme.colors.text}
+                    placeholderTextColor={theme.colors.placeholder}
+                    disabled={isSubmitting}
                   />
                   {touched.email && errors.email && (
                     <HelperText
                       type="error"
                       visible={touched.email && errors.email}
-                      style={styles.errorText}
+                      style={{ color: theme.colors.error }}
                     >
                       {errors.email}
                     </HelperText>
                   )}
 
-                  <Text style={styles.inputLabel}>Phone *</Text>
+                  <Text
+                    style={[styles.inputLabel, { color: theme.colors.text }]}
+                  >
+                    Phone *
+                  </Text>
                   <TextInput
                     value={values.phone}
                     onChangeText={handleChange("phone")}
                     onBlur={handleBlur("phone")}
                     mode="outlined"
-                    style={styles.input}
+                    style={[
+                      styles.input,
+                      { backgroundColor: theme.colors.surface },
+                    ]}
                     keyboardType="phone-pad"
                     error={touched.phone && errors.phone}
-                    left={<TextInput.Icon icon="phone" color="#1E3A8A" />}
+                    left={
+                      <TextInput.Icon
+                        icon="phone"
+                        color={theme.colors.primary}
+                      />
+                    }
                     theme={theme}
                     placeholder="Enter phone number"
+                    textColor={theme.colors.text}
+                    placeholderTextColor={theme.colors.placeholder}
+                    disabled={isSubmitting}
                   />
                   {touched.phone && errors.phone && (
                     <HelperText
                       type="error"
                       visible={touched.phone && errors.phone}
-                      style={styles.errorText}
+                      style={{ color: theme.colors.error }}
                     >
                       {errors.phone}
                     </HelperText>
                   )}
 
-                  <Text style={styles.inputLabel}>Address *</Text>
+                  <Text
+                    style={[styles.inputLabel, { color: theme.colors.text }]}
+                  >
+                    Address *
+                  </Text>
                   <TextInput
                     value={values.address}
                     onChangeText={handleChange("address")}
                     onBlur={handleBlur("address")}
                     mode="outlined"
-                    style={styles.input}
+                    style={[
+                      styles.input,
+                      { backgroundColor: theme.colors.surface },
+                    ]}
                     numberOfLines={3}
-                    left={<TextInput.Icon icon="map-marker" color="#1E3A8A" />}
+                    left={
+                      <TextInput.Icon
+                        icon="map-marker"
+                        color={theme.colors.primary}
+                      />
+                    }
                     theme={theme}
                     placeholder="Enter address"
+                    textColor={theme.colors.text}
+                    placeholderTextColor={theme.colors.placeholder}
+                    disabled={isSubmitting}
                   />
                   {touched.address && errors.address && (
                     <HelperText
                       type="error"
                       visible={touched.address && errors.address}
-                      style={styles.errorText}
+                      style={{ color: theme.colors.error }}
                     >
                       {errors.address}
                     </HelperText>
@@ -254,47 +333,86 @@ export default function AddEmployeeScreen({ navigation }) {
                 </View>
 
                 {/* Section: Professional Details */}
-                <Text style={styles.sectionTitle}>Professional Details</Text>
-                <View style={styles.sectionCard}>
-                  <Text style={styles.inputLabel}>Skills *</Text>
+                <Text
+                  style={[styles.sectionTitle, { color: theme.colors.primary }]}
+                >
+                  Professional Details
+                </Text>
+                <View
+                  style={[
+                    styles.sectionCard,
+                    { backgroundColor: theme.colors.surface },
+                  ]}
+                >
+                  <Text
+                    style={[styles.inputLabel, { color: theme.colors.text }]}
+                  >
+                    Skills *
+                  </Text>
                   <TextInput
                     value={values.skills}
                     onChangeText={handleChange("skills")}
                     onBlur={handleBlur("skills")}
                     mode="outlined"
-                    style={styles.input}
+                    style={[
+                      styles.input,
+                      { backgroundColor: theme.colors.surface },
+                    ]}
                     error={touched.skills && errors.skills}
-                    left={<TextInput.Icon icon="tools" color="#1E3A8A" />}
+                    left={
+                      <TextInput.Icon
+                        icon="tools"
+                        color={theme.colors.primary}
+                      />
+                    }
                     theme={theme}
                     placeholder="Enter skills (comma separated)"
+                    textColor={theme.colors.text}
+                    placeholderTextColor={theme.colors.placeholder}
+                    disabled={isSubmitting}
                   />
                   {touched.skills && errors.skills && (
                     <HelperText
                       type="error"
                       visible={touched.skills && errors.skills}
-                      style={styles.errorText}
+                      style={{ color: theme.colors.error }}
                     >
                       {errors.skills}
                     </HelperText>
                   )}
 
-                  <Text style={styles.inputLabel}>Experience *</Text>
+                  <Text
+                    style={[styles.inputLabel, { color: theme.colors.text }]}
+                  >
+                    Experience *
+                  </Text>
                   <TextInput
                     value={values.experience}
                     onChangeText={handleChange("experience")}
                     onBlur={handleBlur("experience")}
                     mode="outlined"
-                    style={styles.input}
+                    style={[
+                      styles.input,
+                      { backgroundColor: theme.colors.surface },
+                    ]}
                     error={touched.experience && errors.experience}
-                    left={<TextInput.Icon icon="briefcase" color="#1E3A8A" />}
+                    left={
+                      <TextInput.Icon
+                        icon="briefcase"
+                        color={theme.colors.primary}
+                      />
+                    }
                     theme={theme}
                     placeholder="Enter years of experience"
+                    textColor={theme.colors.text}
+                    placeholderTextColor={theme.colors.placeholder}
+                    disabled={isSubmitting}
                   />
                   {touched.experience && errors.experience && (
                     <HelperText
                       type="error"
                       visible={touched.experience && errors.experience}
-                      style={styles.errorText}
+                      style={{ color: theme.colors.error }}
                     >
                       {errors.experience}
                     </HelperText>
@@ -325,7 +443,6 @@ export default function AddEmployeeScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F3F4F6",
   },
   header: {
     paddingVertical: hp(3),
@@ -359,7 +476,6 @@ const styles = StyleSheet.create({
   },
   formContainer: {
     flex: 1,
-    backgroundColor: "#F3F4F6",
   },
   scrollView: {
     padding: wp(5),
@@ -367,12 +483,10 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: wp(5.5),
     fontWeight: "700",
-    color: "#1E3A8A",
     marginVertical: hp(2),
     letterSpacing: 0.3,
   },
   sectionCard: {
-    backgroundColor: "#FFFFFF",
     borderRadius: wp(4),
     padding: wp(4),
     marginBottom: hp(2),
@@ -384,13 +498,12 @@ const styles = StyleSheet.create({
   },
   input: {
     marginBottom: hp(1.5),
-    backgroundColor: "#FFFFFF",
     borderRadius: wp(2),
+    height: hp(8),
   },
   inputLabel: {
     fontSize: wp(4),
     fontWeight: "600",
-    color: "#1F2937",
     marginBottom: hp(1),
     marginTop: hp(1),
   },
