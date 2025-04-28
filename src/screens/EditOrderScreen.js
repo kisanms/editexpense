@@ -8,6 +8,7 @@ import {
   Platform,
   Animated,
   Alert,
+  useColorScheme,
 } from "react-native";
 import {
   TextInput,
@@ -52,16 +53,17 @@ const validationSchema = Yup.object().shape({
   deadline: Yup.date().required("Deadline is required"),
 });
 
-const theme = {
+const getTheme = (colorScheme) => ({
   colors: {
-    primary: "#1E3A8A",
-    error: "#B91C1C",
-    background: "#FFFFFF",
-    text: "#1F2937",
-    placeholder: "#6B7280",
+    primary: colorScheme === "dark" ? "#60A5FA" : "#1E3A8A",
+    error: colorScheme === "dark" ? "#F87171" : "#B91C1C",
+    background: colorScheme === "dark" ? "#1F2937" : "#F3F4F6",
+    text: colorScheme === "dark" ? "#F3F4F6" : "#1F2937",
+    placeholder: colorScheme === "dark" ? "#9CA3AF" : "#6B7280",
+    surface: colorScheme === "dark" ? "#374151" : "#FFFFFF",
   },
   roundness: wp(2),
-};
+});
 
 export default function EditOrderScreen({ route, navigation }) {
   const { order } = route.params;
@@ -72,6 +74,8 @@ export default function EditOrderScreen({ route, navigation }) {
   const [employees, setEmployees] = useState([]);
   const [fadeAnim] = useState(new Animated.Value(0));
   const [scaleAnim] = useState(new Animated.Value(0.95));
+  const colorScheme = useColorScheme();
+  const theme = getTheme(colorScheme);
 
   useEffect(() => {
     fetchClients();
@@ -164,9 +168,15 @@ export default function EditOrderScreen({ route, navigation }) {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+    >
       <LinearGradient
-        colors={["#1E3A8A", "#3B82F6"]}
+        colors={
+          colorScheme === "dark"
+            ? ["#111827", "#1E40AF"]
+            : ["#1E3A8A", "#3B82F6"]
+        }
         style={styles.header}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -213,99 +223,168 @@ export default function EditOrderScreen({ route, navigation }) {
             >
               <ScrollView style={styles.scrollView}>
                 {/* Section: Order Details */}
-                <Text style={styles.sectionTitle}>Order Details</Text>
-                <View style={styles.sectionCard}>
-                  <Text style={styles.inputLabel}>Title *</Text>
+                <Text
+                  style={[styles.sectionTitle, { color: theme.colors.primary }]}
+                >
+                  Order Details
+                </Text>
+                <View
+                  style={[
+                    styles.sectionCard,
+                    { backgroundColor: theme.colors.surface },
+                  ]}
+                >
+                  <Text
+                    style={[styles.inputLabel, { color: theme.colors.text }]}
+                  >
+                    Title *
+                  </Text>
                   <TextInput
                     value={values.title}
                     onChangeText={handleChange("title")}
                     onBlur={handleBlur("title")}
                     mode="outlined"
-                    style={styles.input}
+                    style={[
+                      styles.input,
+                      { backgroundColor: theme.colors.surface },
+                    ]}
                     error={touched.title && errors.title}
-                    left={<TextInput.Icon icon="text-box" color="#1E3A8A" />}
+                    left={
+                      <TextInput.Icon
+                        icon="text-box"
+                        color={theme.colors.primary}
+                      />
+                    }
                     theme={theme}
                     placeholder="Enter order title"
+                    textColor={theme.colors.text}
+                    placeholderTextColor={theme.colors.placeholder}
+                    disabled={isSubmitting}
                   />
                   {touched.title && errors.title && (
                     <HelperText
                       type="error"
                       visible={touched.title && errors.title}
-                      style={styles.errorText}
+                      style={{ color: theme.colors.error }}
                     >
                       {errors.title}
                     </HelperText>
                   )}
 
-                  <Text style={styles.inputLabel}>Description *</Text>
+                  <Text
+                    style={[styles.inputLabel, { color: theme.colors.text }]}
+                  >
+                    Description *
+                  </Text>
                   <TextInput
                     value={values.description}
                     onChangeText={handleChange("description")}
                     onBlur={handleBlur("description")}
                     mode="outlined"
-                    style={styles.input}
+                    style={[
+                      styles.input,
+                      { backgroundColor: theme.colors.surface },
+                    ]}
                     numberOfLines={4}
                     error={touched.description && errors.description}
-                    left={<TextInput.Icon icon="text" color="#1E3A8A" />}
+                    left={
+                      <TextInput.Icon
+                        icon="text"
+                        color={theme.colors.primary}
+                      />
+                    }
                     theme={theme}
                     placeholder="Enter order description"
+                    textColor={theme.colors.text}
+                    placeholderTextColor={theme.colors.placeholder}
+                    disabled={isSubmitting}
                   />
                   {touched.description && errors.description && (
                     <HelperText
                       type="error"
                       visible={touched.description && errors.description}
-                      style={styles.errorText}
+                      style={{ color: theme.colors.error }}
                     >
                       {errors.description}
                     </HelperText>
                   )}
 
-                  <Text style={styles.inputLabel}>Amount *</Text>
+                  <Text
+                    style={[styles.inputLabel, { color: theme.colors.text }]}
+                  >
+                    Amount *
+                  </Text>
                   <TextInput
                     value={values.amount}
                     onChangeText={handleChange("amount")}
                     onBlur={handleBlur("amount")}
                     mode="outlined"
-                    style={styles.input}
+                    style={[
+                      styles.input,
+                      { backgroundColor: theme.colors.surface },
+                    ]}
                     keyboardType="numeric"
                     error={touched.amount && errors.amount}
                     left={
-                      <TextInput.Icon icon="currency-usd" color="#1E3A8A" />
+                      <TextInput.Icon
+                        icon="currency-usd"
+                        color={theme.colors.primary}
+                      />
                     }
                     theme={theme}
                     placeholder="Enter order amount"
+                    textColor={theme.colors.text}
+                    placeholderTextColor={theme.colors.placeholder}
+                    disabled={isSubmitting}
                   />
                   {touched.amount && errors.amount && (
                     <HelperText
                       type="error"
                       visible={touched.amount && errors.amount}
-                      style={styles.errorText}
+                      style={{ color: theme.colors.error }}
                     >
                       {errors.amount}
                     </HelperText>
                   )}
 
-                  <Text style={styles.inputLabel}>Deadline *</Text>
+                  <Text
+                    style={[styles.inputLabel, { color: theme.colors.text }]}
+                  >
+                    Deadline *
+                  </Text>
                   <TouchableOpacity onPress={() => setShowDatePicker(true)}>
                     <TextInput
                       value={values.deadline.toLocaleDateString()}
                       mode="outlined"
-                      style={styles.input}
+                      style={[
+                        styles.input,
+                        { backgroundColor: theme.colors.surface },
+                      ]}
                       editable={false}
                       error={touched.deadline && errors.deadline}
-                      left={<TextInput.Icon icon="calendar" color="#1E3A8A" />}
+                      left={
+                        <TextInput.Icon
+                          icon="calendar"
+                          color={theme.colors.primary}
+                        />
+                      }
                       right={
-                        <TextInput.Icon icon="chevron-down" color="#1E3A8A" />
+                        <TextInput.Icon
+                          icon="chevron-down"
+                          color={theme.colors.primary}
+                        />
                       }
                       theme={theme}
                       placeholder="Select deadline"
+                      textColor={theme.colors.text}
+                      placeholderTextColor={theme.colors.placeholder}
                     />
                   </TouchableOpacity>
                   {touched.deadline && errors.deadline && (
                     <HelperText
                       type="error"
                       visible={touched.deadline && errors.deadline}
-                      style={styles.errorText}
+                      style={{ color: theme.colors.error }}
                     >
                       {errors.deadline}
                     </HelperText>
@@ -313,9 +392,22 @@ export default function EditOrderScreen({ route, navigation }) {
                 </View>
 
                 {/* Section: Client & Employee Selection */}
-                <Text style={styles.sectionTitle}>Assign Order</Text>
-                <View style={styles.sectionCard}>
-                  <Text style={styles.inputLabel}>Select Client *</Text>
+                <Text
+                  style={[styles.sectionTitle, { color: theme.colors.primary }]}
+                >
+                  Assign Order
+                </Text>
+                <View
+                  style={[
+                    styles.sectionCard,
+                    { backgroundColor: theme.colors.surface },
+                  ]}
+                >
+                  <Text
+                    style={[styles.inputLabel, { color: theme.colors.text }]}
+                  >
+                    Select Client *
+                  </Text>
                   <TouchableOpacity onPress={() => setShowClientModal(true)}>
                     <TextInput
                       value={
@@ -323,28 +415,45 @@ export default function EditOrderScreen({ route, navigation }) {
                           ?.fullName || ""
                       }
                       mode="outlined"
-                      style={styles.input}
+                      style={[
+                        styles.input,
+                        { backgroundColor: theme.colors.surface },
+                      ]}
                       editable={false}
                       error={touched.clientId && errors.clientId}
-                      left={<TextInput.Icon icon="account" color="#1E3A8A" />}
+                      left={
+                        <TextInput.Icon
+                          icon="account"
+                          color={theme.colors.primary}
+                        />
+                      }
                       right={
-                        <TextInput.Icon icon="chevron-down" color="#1E3A8A" />
+                        <TextInput.Icon
+                          icon="chevron-down"
+                          color={theme.colors.primary}
+                        />
                       }
                       theme={theme}
                       placeholder="Select client"
+                      textColor={theme.colors.text}
+                      placeholderTextColor={theme.colors.placeholder}
                     />
                   </TouchableOpacity>
                   {touched.clientId && errors.clientId && (
                     <HelperText
                       type="error"
                       visible={touched.clientId && errors.clientId}
-                      style={styles.errorText}
+                      style={{ color: theme.colors.error }}
                     >
                       {errors.clientId}
                     </HelperText>
                   )}
 
-                  <Text style={styles.inputLabel}>Select Employee *</Text>
+                  <Text
+                    style={[styles.inputLabel, { color: theme.colors.text }]}
+                  >
+                    Select Employee *
+                  </Text>
                   <TouchableOpacity onPress={() => setShowEmployeeModal(true)}>
                     <TextInput
                       value={
@@ -352,24 +461,35 @@ export default function EditOrderScreen({ route, navigation }) {
                           ?.fullName || ""
                       }
                       mode="outlined"
-                      style={styles.input}
+                      style={[
+                        styles.input,
+                        { backgroundColor: theme.colors.surface },
+                      ]}
                       editable={false}
                       error={touched.employeeId && errors.employeeId}
                       left={
-                        <TextInput.Icon icon="account-group" color="#1E3A8A" />
+                        <TextInput.Icon
+                          icon="account-group"
+                          color={theme.colors.primary}
+                        />
                       }
                       right={
-                        <TextInput.Icon icon="chevron-down" color="#1E3A8A" />
+                        <TextInput.Icon
+                          icon="chevron-down"
+                          color={theme.colors.primary}
+                        />
                       }
                       theme={theme}
                       placeholder="Select employee"
+                      textColor={theme.colors.text}
+                      placeholderTextColor={theme.colors.placeholder}
                     />
                   </TouchableOpacity>
                   {touched.employeeId && errors.employeeId && (
                     <HelperText
                       type="error"
                       visible={touched.employeeId && errors.employeeId}
-                      style={styles.errorText}
+                      style={{ color: theme.colors.error }}
                     >
                       {errors.employeeId}
                     </HelperText>
@@ -395,21 +515,37 @@ export default function EditOrderScreen({ route, navigation }) {
                 <Modal
                   visible={showClientModal}
                   onDismiss={() => setShowClientModal(false)}
-                  contentContainerStyle={styles.modalContent}
+                  contentContainerStyle={[
+                    styles.modalContent,
+                    { backgroundColor: theme.colors.surface },
+                  ]}
                 >
-                  <Text style={styles.modalTitle}>Select Client</Text>
+                  <Text
+                    style={[styles.modalTitle, { color: theme.colors.primary }]}
+                  >
+                    Select Client
+                  </Text>
                   {clients.map((client) => (
                     <React.Fragment key={client.id}>
                       <List.Item
                         title={client.fullName}
                         description={`${client.email} | ${client.phone}`}
-                        titleStyle={styles.modalItem}
+                        titleStyle={[
+                          styles.modalItem,
+                          { color: theme.colors.text },
+                        ]}
+                        descriptionStyle={{ color: theme.colors.placeholder }}
                         onPress={() => {
                           setFieldValue("clientId", client.id);
                           setShowClientModal(false);
                         }}
                       />
-                      <Divider style={styles.modalDivider} />
+                      <Divider
+                        style={[
+                          styles.modalDivider,
+                          { backgroundColor: theme.colors.placeholder },
+                        ]}
+                      />
                     </React.Fragment>
                   ))}
                 </Modal>
@@ -420,21 +556,37 @@ export default function EditOrderScreen({ route, navigation }) {
                 <Modal
                   visible={showEmployeeModal}
                   onDismiss={() => setShowEmployeeModal(false)}
-                  contentContainerStyle={styles.modalContent}
+                  contentContainerStyle={[
+                    styles.modalContent,
+                    { backgroundColor: theme.colors.surface },
+                  ]}
                 >
-                  <Text style={styles.modalTitle}>Select Employee</Text>
+                  <Text
+                    style={[styles.modalTitle, { color: theme.colors.primary }]}
+                  >
+                    Select Employee
+                  </Text>
                   {employees.map((employee) => (
                     <React.Fragment key={employee.id}>
                       <List.Item
                         title={employee.fullName}
                         description={`${employee.skills} | ${employee.experience} years`}
-                        titleStyle={styles.modalItem}
+                        titleStyle={[
+                          styles.modalItem,
+                          { color: theme.colors.text },
+                        ]}
+                        descriptionStyle={{ color: theme.colors.placeholder }}
                         onPress={() => {
                           setFieldValue("employeeId", employee.id);
                           setShowEmployeeModal(false);
                         }}
                       />
-                      <Divider style={styles.modalDivider} />
+                      <Divider
+                        style={[
+                          styles.modalDivider,
+                          { backgroundColor: theme.colors.placeholder },
+                        ]}
+                      />
                     </React.Fragment>
                   ))}
                 </Modal>
@@ -466,7 +618,6 @@ export default function EditOrderScreen({ route, navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F3F4F6",
   },
   header: {
     paddingVertical: hp(3),
@@ -500,7 +651,6 @@ const styles = StyleSheet.create({
   },
   formContainer: {
     flex: 1,
-    backgroundColor: "#F3F4F6",
   },
   scrollView: {
     padding: wp(5),
@@ -508,12 +658,10 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: wp(5.5),
     fontWeight: "700",
-    color: "#1E3A8A",
     marginVertical: hp(2),
     letterSpacing: 0.3,
   },
   sectionCard: {
-    backgroundColor: "#FFFFFF",
     borderRadius: wp(4),
     padding: wp(4),
     marginBottom: hp(2),
@@ -525,13 +673,11 @@ const styles = StyleSheet.create({
   },
   input: {
     marginBottom: hp(1.5),
-    backgroundColor: "#FFFFFF",
     borderRadius: wp(2),
   },
   inputLabel: {
     fontSize: wp(4),
     fontWeight: "600",
-    color: "#1F2937",
     marginBottom: hp(1),
     marginTop: hp(1),
   },
@@ -554,7 +700,6 @@ const styles = StyleSheet.create({
     marginBottom: hp(1),
   },
   modalContent: {
-    backgroundColor: "#FFFFFF",
     padding: wp(5),
     margin: wp(5),
     borderRadius: wp(4),
@@ -567,14 +712,10 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: wp(5.5),
     fontWeight: "700",
-    color: "#1E3A8A",
     marginBottom: hp(2.5),
   },
   modalItem: {
     fontSize: wp(4),
-    color: "#1F2937",
   },
-  modalDivider: {
-    backgroundColor: "#E5E7EB",
-  },
+  modalDivider: {},
 });

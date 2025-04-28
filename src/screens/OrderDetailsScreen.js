@@ -5,6 +5,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Animated,
+  useColorScheme,
 } from "react-native";
 import {
   Text,
@@ -34,6 +35,18 @@ import {
 } from "firebase/firestore";
 import { db } from "../config/firebase";
 
+const getTheme = (colorScheme) => ({
+  colors: {
+    primary: colorScheme === "dark" ? "#60A5FA" : "#1E3A8A",
+    error: colorScheme === "dark" ? "#F87171" : "#B91C1C",
+    background: colorScheme === "dark" ? "#1F2937" : "#F3F4F6",
+    text: colorScheme === "dark" ? "#F3F4F6" : "#1F2937",
+    placeholder: colorScheme === "dark" ? "#9CA3AF" : "#6B7280",
+    surface: colorScheme === "dark" ? "#374151" : "#FFFFFF",
+  },
+  roundness: wp(2),
+});
+
 export default function OrderDetailsScreen({ route, navigation }) {
   const { order } = route.params;
   const [fadeAnim] = useState(new Animated.Value(0));
@@ -42,6 +55,8 @@ export default function OrderDetailsScreen({ route, navigation }) {
   const [client, setClient] = useState(null);
   const [employee, setEmployee] = useState(null);
   const [menuVisible, setMenuVisible] = useState(false);
+  const colorScheme = useColorScheme();
+  const theme = getTheme(colorScheme);
 
   useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -102,13 +117,29 @@ export default function OrderDetailsScreen({ route, navigation }) {
   const getStatusColor = (status) => {
     switch (status) {
       case "in-progress":
-        return { bg: "#EFF6FF", text: "#3B82F6", border: "#3B82F6" };
+        return {
+          bg: colorScheme === "dark" ? "#3B82F620" : "#EFF6FF",
+          text: theme.colors.primary,
+          border: theme.colors.primary,
+        };
       case "completed":
-        return { bg: "#E6FFFA", text: "#38B2AC", border: "#38B2AC" };
+        return {
+          bg: colorScheme === "dark" ? "#2DD4BF20" : "#E6FFFA",
+          text: "#38B2AC",
+          border: "#38B2AC",
+        };
       case "cancelled":
-        return { bg: "#FEE2E2", text: "#EF4444", border: "#EF4444" };
+        return {
+          bg: colorScheme === "dark" ? "#F8717120" : "#FEE2E2",
+          text: theme.colors.error,
+          border: theme.colors.error,
+        };
       default:
-        return { bg: "#F3F4F6", text: "#6B7280", border: "#6B7280" };
+        return {
+          bg: colorScheme === "dark" ? "#4B5563" : "#F3F4F6",
+          text: theme.colors.placeholder,
+          border: theme.colors.placeholder,
+        };
     }
   };
 
@@ -126,9 +157,15 @@ export default function OrderDetailsScreen({ route, navigation }) {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+    >
       <LinearGradient
-        colors={["#1E3A8A", "#3B82F6"]}
+        colors={
+          colorScheme === "dark"
+            ? ["#111827", "#1E40AF"]
+            : ["#1E3A8A", "#3B82F6"]
+        }
         style={styles.header}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -161,10 +198,12 @@ export default function OrderDetailsScreen({ route, navigation }) {
         ]}
       >
         <ScrollView contentContainerStyle={styles.scrollContent}>
-          <Card style={styles.card}>
+          <Card
+            style={[styles.card, { backgroundColor: theme.colors.surface }]}
+          >
             <Card.Content>
               <View style={styles.cardHeader}>
-                <Text style={styles.orderTitle}>
+                <Text style={[styles.orderTitle, { color: theme.colors.text }]}>
                   Order #{order.id.slice(-6)}
                 </Text>
                 <Chip
@@ -195,18 +234,39 @@ export default function OrderDetailsScreen({ route, navigation }) {
                   style={styles.progressBar}
                 />
                 <View style={styles.progressLabels}>
-                  <Text style={styles.progressLabel}>In Progress</Text>
-                  <Text style={styles.progressLabel}>Completed</Text>
+                  <Text
+                    style={[styles.progressLabel, { color: theme.colors.text }]}
+                  >
+                    In Progress
+                  </Text>
+                  <Text
+                    style={[styles.progressLabel, { color: theme.colors.text }]}
+                  >
+                    Completed
+                  </Text>
                 </View>
               </View>
 
-              <Divider style={styles.divider} />
+              <Divider
+                style={[
+                  styles.divider,
+                  { backgroundColor: theme.colors.placeholder },
+                ]}
+              />
 
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Order Information</Text>
+                <Text
+                  style={[styles.sectionTitle, { color: theme.colors.text }]}
+                >
+                  Order Information
+                </Text>
                 <View style={styles.infoRow}>
-                  <FontAwesome5 name="calendar" size={wp(4)} color="#6B7280" />
-                  <Text style={styles.infoText}>
+                  <FontAwesome5
+                    name="calendar"
+                    size={wp(4)}
+                    color={theme.colors.placeholder}
+                  />
+                  <Text style={[styles.infoText, { color: theme.colors.text }]}>
                     Created:{" "}
                     {order.createdAt?.toDate().toLocaleDateString() || "N/A"}
                   </Text>
@@ -215,26 +275,37 @@ export default function OrderDetailsScreen({ route, navigation }) {
                   <FontAwesome5
                     name="dollar-sign"
                     size={wp(4)}
-                    color="#6B7280"
+                    color={theme.colors.placeholder}
                   />
-                  <Text style={styles.infoText}>Amount: ${order.amount}</Text>
+                  <Text style={[styles.infoText, { color: theme.colors.text }]}>
+                    Amount: ${order.amount}
+                  </Text>
                 </View>
                 <View style={styles.infoRow}>
                   <FontAwesome5
                     name="info-circle"
                     size={wp(4)}
-                    color="#6B7280"
+                    color={theme.colors.placeholder}
                   />
-                  <Text style={styles.infoText}>
+                  <Text style={[styles.infoText, { color: theme.colors.text }]}>
                     Description: {order.description}
                   </Text>
                 </View>
               </View>
 
-              <Divider style={styles.divider} />
+              <Divider
+                style={[
+                  styles.divider,
+                  { backgroundColor: theme.colors.placeholder },
+                ]}
+              />
 
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Client Information</Text>
+                <Text
+                  style={[styles.sectionTitle, { color: theme.colors.text }]}
+                >
+                  Client Information
+                </Text>
                 {client ? (
                   <TouchableOpacity
                     onPress={() =>
@@ -242,25 +313,52 @@ export default function OrderDetailsScreen({ route, navigation }) {
                     }
                   >
                     <View style={styles.infoRow}>
-                      <FontAwesome5 name="user" size={wp(4)} color="#6B7280" />
-                      <Text style={styles.infoText}>{client.fullName}</Text>
+                      <FontAwesome5
+                        name="user"
+                        size={wp(4)}
+                        color={theme.colors.placeholder}
+                      />
+                      <Text
+                        style={[styles.infoText, { color: theme.colors.text }]}
+                      >
+                        {client.fullName}
+                      </Text>
                     </View>
                     <View style={styles.infoRow}>
-                      <FontAwesome5 name="phone" size={wp(4)} color="#6B7280" />
-                      <Text style={styles.infoText}>{client.phone}</Text>
+                      <FontAwesome5
+                        name="phone"
+                        size={wp(4)}
+                        color={theme.colors.placeholder}
+                      />
+                      <Text
+                        style={[styles.infoText, { color: theme.colors.text }]}
+                      >
+                        {client.phone}
+                      </Text>
                     </View>
                   </TouchableOpacity>
                 ) : (
-                  <Text style={styles.loadingText}>
+                  <Text
+                    style={[styles.loadingText, { color: theme.colors.text }]}
+                  >
                     Loading client details...
                   </Text>
                 )}
               </View>
 
-              <Divider style={styles.divider} />
+              <Divider
+                style={[
+                  styles.divider,
+                  { backgroundColor: theme.colors.placeholder },
+                ]}
+              />
 
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Assigned Employee</Text>
+                <Text
+                  style={[styles.sectionTitle, { color: theme.colors.text }]}
+                >
+                  Assigned Employee
+                </Text>
                 {employee ? (
                   <TouchableOpacity
                     onPress={() =>
@@ -271,30 +369,35 @@ export default function OrderDetailsScreen({ route, navigation }) {
                       <FontAwesome5
                         name="user-tie"
                         size={wp(4)}
-                        color="#6B7280"
+                        color={theme.colors.placeholder}
                       />
-                      <Text style={styles.infoText}>{employee.fullName}</Text>
+                      <Text
+                        style={[styles.infoText, { color: theme.colors.text }]}
+                      >
+                        {employee.fullName}
+                      </Text>
                     </View>
                     <View style={styles.infoRow}>
-                      <FontAwesome5 name="tools" size={wp(4)} color="#6B7280" />
-                      <Text style={styles.infoText}>{employee.skills}</Text>
+                      <FontAwesome5
+                        name="tools"
+                        size={wp(4)}
+                        color={theme.colors.placeholder}
+                      />
+                      <Text
+                        style={[styles.infoText, { color: theme.colors.text }]}
+                      >
+                        {employee.skills}
+                      </Text>
                     </View>
                   </TouchableOpacity>
                 ) : (
-                  <Text style={styles.loadingText}>
+                  <Text
+                    style={[styles.loadingText, { color: theme.colors.text }]}
+                  >
                     Loading employee details...
                   </Text>
                 )}
               </View>
-
-              {/* <Divider style={styles.divider} />
-
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Additional Notes</Text>
-                <Text style={styles.notesText}>
-                  {order.notes || "No additional notes"}
-                </Text>
-              </View> */}
             </Card.Content>
           </Card>
 
@@ -306,9 +409,13 @@ export default function OrderDetailsScreen({ route, navigation }) {
                 <Button
                   mode="contained"
                   onPress={() => setMenuVisible(true)}
-                  style={styles.statusButton}
+                  style={[
+                    styles.statusButton,
+                    { backgroundColor: theme.colors.primary },
+                  ]}
                   labelStyle={styles.buttonLabel}
                   icon="account-switch"
+                  theme={theme}
                 >
                   Set Status
                 </Button>
@@ -319,26 +426,30 @@ export default function OrderDetailsScreen({ route, navigation }) {
                 title="In Progress"
                 leadingIcon="progress-clock"
                 disabled={order.status === "in-progress"}
+                titleStyle={{ color: theme.colors.text }}
               />
               <Menu.Item
                 onPress={() => handleStatusChange("completed")}
                 title="Completed"
                 leadingIcon="check-circle"
                 disabled={order.status === "completed"}
+                titleStyle={{ color: theme.colors.text }}
               />
               <Menu.Item
                 onPress={() => handleStatusChange("cancelled")}
                 title="Cancelled"
                 leadingIcon="close-circle"
                 disabled={order.status === "cancelled"}
+                titleStyle={{ color: theme.colors.text }}
               />
             </Menu>
             <Button
               mode="outlined"
               onPress={() => setShowDeleteModal(true)}
-              style={styles.deleteButton}
-              labelStyle={[styles.buttonLabel, { color: "#EF4444" }]}
+              style={[styles.deleteButton, { borderColor: theme.colors.error }]}
+              labelStyle={[styles.buttonLabel, { color: theme.colors.error }]}
               icon="delete"
+              theme={theme}
             >
               Delete Order
             </Button>
@@ -350,18 +461,24 @@ export default function OrderDetailsScreen({ route, navigation }) {
         <Modal
           visible={showDeleteModal}
           onDismiss={() => setShowDeleteModal(false)}
-          contentContainerStyle={styles.modalContent}
+          contentContainerStyle={[
+            styles.modalContent,
+            { backgroundColor: theme.colors.surface },
+          ]}
         >
-          <Text style={styles.modalTitle}>Delete Order</Text>
-          <Text style={styles.modalText}>
+          <Text style={[styles.modalTitle, { color: theme.colors.primary }]}>
+            Delete Order
+          </Text>
+          <Text style={[styles.modalText, { color: theme.colors.text }]}>
             Are you sure you want to permanently delete this order? This action
             cannot be undone.
           </Text>
           <View style={styles.modalButtons}>
             <Button
-              mode="outlined"
+              mode="contained-tonal"
               onPress={() => setShowDeleteModal(false)}
               style={styles.modalButton}
+              theme={theme}
             >
               Cancel
             </Button>
@@ -369,7 +486,11 @@ export default function OrderDetailsScreen({ route, navigation }) {
               mode="contained"
               onPress={handleDelete}
               loading={isDeleting}
-              style={[styles.modalButton, { backgroundColor: "#EF4444" }]}
+              style={[
+                styles.modalButton,
+                { backgroundColor: theme.colors.error },
+              ]}
+              theme={theme}
             >
               Delete
             </Button>
@@ -383,7 +504,6 @@ export default function OrderDetailsScreen({ route, navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F3F4F6",
   },
   header: {
     paddingVertical: hp(3),
@@ -418,7 +538,6 @@ const styles = StyleSheet.create({
   },
   card: {
     elevation: 2,
-    backgroundColor: "#FFFFFF",
     borderRadius: wp(3),
   },
   cardHeader: {
@@ -430,7 +549,6 @@ const styles = StyleSheet.create({
   orderTitle: {
     fontSize: wp(5.5),
     fontWeight: "700",
-    color: "#1F2937",
   },
   statusChip: {
     height: hp(4),
@@ -453,11 +571,9 @@ const styles = StyleSheet.create({
   },
   progressLabel: {
     fontSize: wp(3.5),
-    color: "#6B7280",
   },
   divider: {
     marginVertical: hp(2),
-    backgroundColor: "#E5E7EB",
   },
   section: {
     marginBottom: hp(2),
@@ -465,7 +581,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: wp(4.5),
     fontWeight: "600",
-    color: "#1F2937",
     marginBottom: hp(1),
   },
   infoRow: {
@@ -475,18 +590,11 @@ const styles = StyleSheet.create({
   },
   infoText: {
     fontSize: wp(4),
-    color: "#6B7280",
     marginLeft: wp(2),
   },
   loadingText: {
     fontSize: wp(4),
-    color: "#6B7280",
     fontStyle: "italic",
-  },
-  notesText: {
-    fontSize: wp(4),
-    color: "#6B7280",
-    lineHeight: hp(3),
   },
   buttonContainer: {
     marginTop: hp(4),
@@ -496,19 +604,16 @@ const styles = StyleSheet.create({
   statusButton: {
     flex: 1,
     marginRight: wp(2),
-    backgroundColor: "#1E3A8A",
   },
   deleteButton: {
     flex: 1,
     marginLeft: wp(2),
-    borderColor: "#EF4444",
   },
   buttonLabel: {
     fontSize: wp(4),
     fontWeight: "600",
   },
   modalContent: {
-    backgroundColor: "#FFFFFF",
     padding: wp(5),
     margin: wp(5),
     borderRadius: wp(4),
@@ -521,12 +626,10 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: wp(5.5),
     fontWeight: "700",
-    color: "#1E3A8A",
     marginBottom: hp(2),
   },
   modalText: {
     fontSize: wp(4),
-    color: "#6B7280",
     marginBottom: hp(3),
   },
   modalButtons: {

@@ -6,6 +6,7 @@ import {
   FlatList,
   Animated,
   RefreshControl,
+  useColorScheme,
 } from "react-native";
 import {
   Text,
@@ -28,6 +29,18 @@ import {
 import { collection, getDocs, doc, getDoc } from "firebase/firestore";
 import { db } from "../config/firebase";
 
+const getTheme = (colorScheme) => ({
+  colors: {
+    primary: colorScheme === "dark" ? "#60A5FA" : "#1E3A8A",
+    error: colorScheme === "dark" ? "#F87171" : "#B91C1C",
+    background: colorScheme === "dark" ? "#1F2937" : "#F3F4F6",
+    text: colorScheme === "dark" ? "#F3F4F6" : "#1F2937",
+    placeholder: colorScheme === "dark" ? "#9CA3AF" : "#6B7280",
+    surface: colorScheme === "dark" ? "#374151" : "#FFFFFF",
+  },
+  roundness: wp(2),
+});
+
 export default function OrdersScreen({ navigation }) {
   const [orders, setOrders] = useState([]);
   const [filteredOrders, setFilteredOrders] = useState([]);
@@ -36,6 +49,8 @@ export default function OrdersScreen({ navigation }) {
   const [fadeAnim] = useState(new Animated.Value(0));
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState("all");
+  const colorScheme = useColorScheme();
+  const theme = getTheme(colorScheme);
 
   useEffect(() => {
     fetchOrders();
@@ -48,20 +63,17 @@ export default function OrdersScreen({ navigation }) {
 
   const fetchOrders = async () => {
     try {
-      // Step 1: Fetch all orders
       const ordersSnapshot = await getDocs(collection(db, "orders"));
       let ordersList = ordersSnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       }));
 
-      // Step 2: Fetch client and employee names for each order
       ordersList = await Promise.all(
         ordersList.map(async (order) => {
           let clientName = "Unknown Client";
           let employeeName = "Unknown Employee";
 
-          // Fetch client name
           if (order.clientId) {
             const clientDoc = await getDoc(doc(db, "clients", order.clientId));
             if (clientDoc.exists()) {
@@ -69,7 +81,6 @@ export default function OrdersScreen({ navigation }) {
             }
           }
 
-          // Fetch employee name
           if (order.employeeId) {
             const employeeDoc = await getDoc(
               doc(db, "employees", order.employeeId)
@@ -87,11 +98,10 @@ export default function OrdersScreen({ navigation }) {
         })
       );
 
-      // Step 3: Sort orders by createdAt in descending order
       ordersList.sort((a, b) => {
         const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(0);
         const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(0);
-        return dateB - dateA; // Descending order
+        return dateB - dateA;
       });
 
       setOrders(ordersList);
@@ -100,6 +110,7 @@ export default function OrdersScreen({ navigation }) {
       console.error("Error fetching orders: ", error);
     }
   };
+
   const onRefresh = async () => {
     setRefreshing(true);
     await fetchOrders();
@@ -131,13 +142,29 @@ export default function OrdersScreen({ navigation }) {
   const getStatusColor = (status) => {
     switch (status) {
       case "in-progress":
-        return { bg: "#EFF6FF", border: "#3B82F6", text: "#3B82F6" };
+        return {
+          bg: colorScheme === "dark" ? "#3B82F620" : "#EFF6FF",
+          border: theme.colors.primary,
+          text: theme.colors.primary,
+        };
       case "completed":
-        return { bg: "#ECFDF5", border: "#10B981", text: "#10B981" };
+        return {
+          bg: colorScheme === "dark" ? "#2DD4BF20" : "#ECFDF5",
+          border: "#10B981",
+          text: "#10B981",
+        };
       case "cancelled":
-        return { bg: "#FEF2F2", border: "#EF4444", text: "#EF4444" };
+        return {
+          bg: colorScheme === "dark" ? "#F8717120" : "#FEF2F2",
+          border: theme.colors.error,
+          text: theme.colors.error,
+        };
       default:
-        return { bg: "#F3F4F6", border: "#6B7280", text: "#6B7280" };
+        return {
+          bg: colorScheme === "dark" ? "#4B5563" : "#F3F4F6",
+          border: theme.colors.placeholder,
+          text: theme.colors.placeholder,
+        };
     }
   };
 
@@ -147,10 +174,12 @@ export default function OrdersScreen({ navigation }) {
       <TouchableOpacity
         onPress={() => navigation.navigate("OrderDetails", { order: item })}
       >
-        <Card style={styles.card}>
+        <Card style={[styles.card, { backgroundColor: theme.colors.surface }]}>
           <Card.Content>
             <View style={styles.cardHeader}>
-              <Text style={styles.orderTitle}>{item.title}</Text>
+              <Text style={[styles.orderTitle, { color: theme.colors.text }]}>
+                {item.title}
+              </Text>
               <Chip
                 mode="outlined"
                 style={[
@@ -175,22 +204,42 @@ export default function OrdersScreen({ navigation }) {
             </View>
             <View style={styles.orderInfo}>
               <View style={styles.infoRow}>
-                <FontAwesome5 name="user" size={wp(4)} color="#6B7280" />
-                <Text style={styles.infoText}>{item.clientName || "N/A"}</Text>
+                <FontAwesome5
+                  name="user"
+                  size={wp(4)}
+                  color={theme.colors.placeholder}
+                />
+                <Text style={[styles.infoText, { color: theme.colors.text }]}>
+                  {item.clientName || "N/A"}
+                </Text>
               </View>
               <View style={styles.infoRow}>
-                <FontAwesome5 name="user-tie" size={wp(4)} color="#6B7280" />
-                <Text style={styles.infoText}>
+                <FontAwesome5
+                  name="user-tie"
+                  size={wp(4)}
+                  color={theme.colors.placeholder}
+                />
+                <Text style={[styles.infoText, { color: theme.colors.text }]}>
                   {item.employeeName || "N/A"}
                 </Text>
               </View>
               <View style={styles.infoRow}>
-                <FontAwesome5 name="dollar-sign" size={wp(4)} color="#6B7280" />
-                <Text style={styles.infoText}>${item.amount}</Text>
+                <FontAwesome5
+                  name="dollar-sign"
+                  size={wp(4)}
+                  color={theme.colors.placeholder}
+                />
+                <Text style={[styles.infoText, { color: theme.colors.text }]}>
+                  ${item.amount}
+                </Text>
               </View>
               <View style={styles.infoRow}>
-                <FontAwesome5 name="calendar" size={wp(4)} color="#6B7280" />
-                <Text style={styles.infoText}>
+                <FontAwesome5
+                  name="calendar"
+                  size={wp(4)}
+                  color={theme.colors.placeholder}
+                />
+                <Text style={[styles.infoText, { color: theme.colors.text }]}>
                   Deadline:{" "}
                   {item.deadline?.toDate().toLocaleDateString() || "N/A"}
                 </Text>
@@ -203,9 +252,15 @@ export default function OrdersScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+    >
       <LinearGradient
-        colors={["#1E3A8A", "#3B82F6"]}
+        colors={
+          colorScheme === "dark"
+            ? ["#111827", "#1E40AF"]
+            : ["#1E3A8A", "#3B82F6"]
+        }
         style={styles.header}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -233,8 +288,11 @@ export default function OrdersScreen({ navigation }) {
           placeholder="Search orders..."
           onChangeText={handleSearch}
           value={searchQuery}
-          style={styles.searchBar}
-          iconColor="#1E3A8A"
+          style={[styles.searchBar, { backgroundColor: theme.colors.surface }]}
+          iconColor={theme.colors.primary}
+          placeholderTextColor={theme.colors.placeholder}
+          textColor={theme.colors.text}
+          theme={theme}
         />
 
         <FlatList
@@ -243,20 +301,27 @@ export default function OrdersScreen({ navigation }) {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={theme.colors.primary}
+            />
           }
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>No orders found</Text>
+              <Text style={[styles.emptyText, { color: theme.colors.text }]}>
+                No orders found
+              </Text>
             </View>
           }
         />
 
         <FAB
-          style={styles.fab}
+          style={[styles.fab, { backgroundColor: theme.colors.primary }]}
           icon="plus"
           onPress={() => navigation.navigate("AddOrder")}
           color="#FFFFFF"
+          theme={theme}
         />
       </Animated.View>
 
@@ -264,14 +329,25 @@ export default function OrdersScreen({ navigation }) {
         <Modal
           visible={showFilterModal}
           onDismiss={() => setShowFilterModal(false)}
-          contentContainerStyle={styles.modalContent}
+          contentContainerStyle={[
+            styles.modalContent,
+            { backgroundColor: theme.colors.surface },
+          ]}
         >
-          <Text style={styles.modalTitle}>Filter Orders</Text>
-          <Divider style={styles.modalDivider} />
+          <Text style={[styles.modalTitle, { color: theme.colors.primary }]}>
+            Filter Orders
+          </Text>
+          <Divider
+            style={[
+              styles.modalDivider,
+              { backgroundColor: theme.colors.placeholder },
+            ]}
+          />
           <Button
             mode={selectedFilter === "all" ? "contained" : "outlined"}
             onPress={() => handleFilter("all")}
             style={styles.filterButton}
+            theme={theme}
           >
             All Orders
           </Button>
@@ -279,6 +355,7 @@ export default function OrdersScreen({ navigation }) {
             mode={selectedFilter === "in-progress" ? "contained" : "outlined"}
             onPress={() => handleFilter("in-progress")}
             style={styles.filterButton}
+            theme={theme}
           >
             In Progress
           </Button>
@@ -286,6 +363,7 @@ export default function OrdersScreen({ navigation }) {
             mode={selectedFilter === "completed" ? "contained" : "outlined"}
             onPress={() => handleFilter("completed")}
             style={styles.filterButton}
+            theme={theme}
           >
             Completed
           </Button>
@@ -293,6 +371,7 @@ export default function OrdersScreen({ navigation }) {
             mode={selectedFilter === "cancelled" ? "contained" : "outlined"}
             onPress={() => handleFilter("cancelled")}
             style={styles.filterButton}
+            theme={theme}
           >
             Cancelled
           </Button>
@@ -305,7 +384,6 @@ export default function OrdersScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F3F4F6",
   },
   header: {
     paddingVertical: hp(3),
@@ -339,7 +417,6 @@ const styles = StyleSheet.create({
   searchBar: {
     margin: wp(4),
     elevation: 2,
-    backgroundColor: "#FFFFFF",
   },
   listContent: {
     padding: wp(4),
@@ -348,7 +425,6 @@ const styles = StyleSheet.create({
   card: {
     marginBottom: hp(2),
     elevation: 2,
-    backgroundColor: "#FFFFFF",
     borderRadius: wp(3),
   },
   cardHeader: {
@@ -360,7 +436,6 @@ const styles = StyleSheet.create({
   orderTitle: {
     fontSize: wp(4.5),
     fontWeight: "600",
-    color: "#1F2937",
   },
   statusChip: {
     height: hp(4),
@@ -379,7 +454,6 @@ const styles = StyleSheet.create({
   },
   infoText: {
     fontSize: wp(3.5),
-    color: "#6B7280",
     marginLeft: wp(2),
   },
   fab: {
@@ -387,7 +461,6 @@ const styles = StyleSheet.create({
     margin: wp(4),
     right: 0,
     bottom: hp(10),
-    backgroundColor: "#1E3A8A",
     elevation: 4,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
@@ -400,18 +473,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: hp(5),
   },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingVertical: hp(5),
-  },
   emptyText: {
     fontSize: wp(4),
-    color: "#6B7280",
   },
   modalContent: {
-    backgroundColor: "#FFFFFF",
     padding: wp(5),
     margin: wp(5),
     borderRadius: wp(4),
@@ -424,11 +489,9 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: wp(5.5),
     fontWeight: "700",
-    color: "#1E3A8A",
     marginBottom: hp(2),
   },
   modalDivider: {
-    backgroundColor: "#E5E7EB",
     marginBottom: hp(2),
   },
   filterButton: {
