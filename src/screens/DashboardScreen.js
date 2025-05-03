@@ -231,19 +231,17 @@ export default function DashboardScreen() {
     const client = clients.find((cli) => cli.id === order.clientId);
     const clientName = client ? client.fullName : "N/A";
 
+    const statusColor = getIconColor(order.status);
+
     return (
       <View style={styles.orderItem}>
         <View style={styles.orderHeader}>
           <View style={styles.avatar}>
-            <Ionicons
-              name="person"
-              size={24}
-              color={getIconColor(order.status)}
-            />
+            <Ionicons name="person" size={24} color={statusColor} />
           </View>
           <View style={styles.orderDetails}>
             <Text style={styles.orderName}>{order.name || order.title}</Text>
-            <Text style={styles.orderMeta}>
+            <Text style={[styles.orderMeta, { color: statusColor }]}>
               {order.status} · Due:{" "}
               {order.due ||
                 (order.deadline?.toDate
@@ -460,7 +458,6 @@ const styles = StyleSheet.create({
     color: "#000",
   },
   orderMeta: {
-    color: "#6B7280",
     fontSize: 14,
     marginTop: 2,
   },
