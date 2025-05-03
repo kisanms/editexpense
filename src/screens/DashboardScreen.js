@@ -22,7 +22,6 @@ import { useNavigation } from "@react-navigation/native";
 import { useAuth } from "../context/AuthContext";
 import { collection, onSnapshot } from "firebase/firestore";
 import { db } from "../config/firebase";
-import { scale } from "react-native-size-matters";
 
 const { width } = Dimensions.get("window");
 
@@ -210,16 +209,16 @@ export default function DashboardScreen() {
     ]);
   };
 
-  const getGradientColors = (status) => {
+  const getIconColor = (status) => {
     switch (status?.toLowerCase()) {
       case "in-progress":
-        return ["#0047CC", "#0047CC"];
+        return "#0047CC";
       case "completed":
-        return ["#4CAF50", "#4CAF50"];
+        return "#4CAF50";
       case "cancelled":
-        return ["#F44336", "#F44336"];
+        return "#F44336";
       default:
-        return ["#0047CC", "#0047CC"];
+        return "#0047CC";
     }
   };
 
@@ -233,15 +232,14 @@ export default function DashboardScreen() {
     const clientName = client ? client.fullName : "N/A";
 
     return (
-      <LinearGradient
-        colors={getGradientColors(order.status)}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.orderItem}
-      >
+      <View style={styles.orderItem}>
         <View style={styles.orderHeader}>
           <View style={styles.avatar}>
-            <Ionicons name="person" size={24} color="white" />
+            <Ionicons
+              name="person"
+              size={24}
+              color={getIconColor(order.status)}
+            />
           </View>
           <View style={styles.orderDetails}>
             <Text style={styles.orderName}>{order.name || order.title}</Text>
@@ -261,7 +259,7 @@ export default function DashboardScreen() {
           <Text style={styles.orderAssigned}>Assigned to: {employeeName}</Text>
           <Text style={styles.orderClient}>Client: {clientName}</Text>
         </View>
-      </LinearGradient>
+      </View>
     );
   };
 
@@ -323,35 +321,39 @@ export default function DashboardScreen() {
         </View>
       </ScrollView>
 
-      {/* Action Buttons */}
-      <View style={styles.fixedButtonContainer}>
-        <TouchableOpacity
-          style={styles.actionBtn}
-          onPress={() => navigation.navigate("AddClient")}
-        >
-          <LinearGradient
-            colors={["#4158D0", "#C850C0"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.btnGradient}
-          >
-            <FontAwesome5 name="user-plus" size={20} color="#fff" />
-            <Text style={styles.btnText}>Add Client</Text>
-          </LinearGradient>
+      {/* Bottom Navigation */}
+      <View style={styles.bottomNav}>
+        <TouchableOpacity style={styles.navItem}>
+          <Ionicons name="home" size={wp(6)} color="#0047CC" />
+          <Text style={[styles.navText, { color: "#0047CC" }]}>Home</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={styles.actionBtn}
-          onPress={() => navigation.navigate("AddOrder")}
+          style={styles.navItem}
+          onPress={() => navigation.navigate("Clients")}
         >
-          <LinearGradient
-            colors={["#0BAB64", "#3BB78F"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.btnGradient}
-          >
-            <FontAwesome5 name="file-invoice" size={20} color="#fff" />
-            <Text style={styles.btnText}>New Order</Text>
-          </LinearGradient>
+          <Ionicons name="people" size={wp(6)} color="#6B7280" />
+          <Text style={styles.navText}>Clients</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.navItem}
+          onPress={() => navigation.navigate("Employees")}
+        >
+          <Ionicons name="person" size={wp(6)} color="#6B7280" />
+          <Text style={styles.navText}>Employees</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.navItem}
+          onPress={() => navigation.navigate("Orders")}
+        >
+          <Ionicons name="document-text" size={wp(6)} color="#6B7280" />
+          <Text style={styles.navText}>Orders</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.navItem}
+          onPress={() => navigation.navigate("Reports")}
+        >
+          <Ionicons name="stats-chart" size={wp(6)} color="#6B7280" />
+          <Text style={styles.navText}>Reports</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -429,6 +431,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginBottom: hp(2),
     padding: 15,
+    backgroundColor: "#fff",
     elevation: 5,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
@@ -443,7 +446,7 @@ const styles = StyleSheet.create({
     width: 45,
     height: 45,
     borderRadius: 23,
-    backgroundColor: "rgba(255,255,255,0.2)",
+    backgroundColor: "#F3F4F6",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -454,17 +457,17 @@ const styles = StyleSheet.create({
   orderName: {
     fontSize: 16,
     fontWeight: "bold",
-    color: "#fff",
+    color: "#000",
   },
   orderMeta: {
-    color: "rgba(255,255,255,0.8)",
+    color: "#6B7280",
     fontSize: 14,
     marginTop: 2,
   },
   orderAmount: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#fff",
+    color: "#000",
   },
   orderFooter: {
     flexDirection: "row",
@@ -472,14 +475,14 @@ const styles = StyleSheet.create({
     marginTop: 10,
     paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.2)",
+    borderTopColor: "#E5E7EB",
   },
   orderAssigned: {
-    color: "rgba(255,255,255,0.8)",
+    color: "#6B7280",
     fontSize: 14,
   },
   orderClient: {
-    color: "rgba(255,255,255,0.9)",
+    color: "#6B7280",
     fontSize: 14,
     marginTop: 2,
   },
@@ -489,30 +492,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginVertical: hp(2),
   },
-  fixedButtonContainer: {
-    position: "absolute",
-    bottom: scale(70),
-    flexDirection: "row",
-    justifyContent: "space-between",
-    padding: 20,
-  },
-  actionBtn: {
-    flex: 1,
-    marginHorizontal: 5,
-  },
-  btnGradient: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 15,
-    borderRadius: 15,
-  },
-  btnText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "600",
-    marginLeft: 8,
-  },
   signOutButton: {
     width: 40,
     height: 40,
@@ -520,5 +499,26 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.2)",
     justifyContent: "center",
     alignItems: "center",
+  },
+  bottomNav: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    paddingVertical: hp("1%"),
+    borderTopWidth: 1,
+    borderTopColor: "#E5E7EB",
+    position: "absolute",
+    bottom: 0,
+    width: "100%",
+    elevation: 5,
+  },
+  navItem: {
+    alignItems: "center",
+  },
+  navText: {
+    fontSize: wp("3%"),
+    color: "#6B7280",
+    marginTop: hp("0.5%"),
   },
 });
