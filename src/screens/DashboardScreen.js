@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   Dimensions,
-  Animated,
   Alert,
   StatusBar,
   FlatList,
@@ -37,25 +36,25 @@ export default function DashboardScreen() {
       icon: "briefcase",
       label: "Total Projects",
       value: "0",
-      gradientColors: ["#0047CC", "#0047CC"],
+      iconColor: "#0047CC",
     },
     {
       icon: "dollar-sign",
       label: "Total Profit",
       value: "$0",
-      gradientColors: ["#4CAF50", "#4CAF50"],
+      iconColor: "#4CAF50",
     },
     {
       icon: "arrow-up",
       label: "Income",
       value: "$0",
-      gradientColors: ["#2196F3", "#2196F3"],
+      iconColor: "#2196F3",
     },
     {
       icon: "arrow-down",
       label: "Expenses",
       value: "$0",
-      gradientColors: ["#F44336", "#F44336"],
+      iconColor: "#F44336",
     },
   ]);
 
@@ -142,25 +141,25 @@ export default function DashboardScreen() {
                 icon: "briefcase",
                 label: "Total Projects",
                 value: totalProjects.toString(),
-                gradientColors: ["#0047CC", "#0047CC"],
+                iconColor: "#0047CC",
               },
               {
                 icon: "dollar-sign",
                 label: "Total Profit",
                 value: `$${totalProfit.toLocaleString()}`,
-                gradientColors: ["#4CAF50", "#4CAF50"],
+                iconColor: "#4CAF50",
               },
               {
                 icon: "arrow-up",
                 label: "Income",
                 value: `$${totalClientBudget.toLocaleString()}`,
-                gradientColors: ["#2196F3", "#2196F3"],
+                iconColor: "#2196F3",
               },
               {
                 icon: "arrow-down",
                 label: "Expenses",
                 value: `$${totalOrderAmount.toLocaleString()}`,
-                gradientColors: ["#F44336", "#F44336"],
+                iconColor: "#F44336",
               },
             ]);
           },
@@ -197,7 +196,7 @@ export default function DashboardScreen() {
         style: "cancel",
       },
       {
-        text: " Pennyroyal",
+        text: "Sign Out",
         onPress: async () => {
           try {
             await logout();
@@ -293,17 +292,15 @@ export default function DashboardScreen() {
         {/* Summary Cards */}
         <View style={styles.summaryContainer}>
           {summaryData.map((item, index) => (
-            <LinearGradient
-              key={index}
-              colors={item.gradientColors}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.card}
-            >
-              <FontAwesome5 name={item.icon} size={24} color="#fff" />
+            <View key={index} style={styles.card}>
+              <FontAwesome5
+                name={item.icon}
+                size={wp(6)}
+                color={item.iconColor}
+              />
+              <Text style={styles.cardLabel}>{item.label.toUpperCase()}</Text>
               <Text style={styles.cardValue}>{item.value}</Text>
-              <Text style={styles.cardLabel}>{item.label}</Text>
-            </LinearGradient>
+            </View>
           ))}
         </View>
 
@@ -387,30 +384,34 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
-    padding: wp("5%"),
-    marginTop: hp("-3.5%"),
-    marginBottom: hp(-2),
+    paddingHorizontal: wp("5%"),
+    paddingVertical: hp("2%"),
+    backgroundColor: "#fff",
   },
   card: {
-    width: width * 0.43,
-    padding: 15,
-    borderRadius: wp(5),
-    marginBottom: hp(0.7),
+    width: wp("42%"),
+    padding: wp("4%"),
+    borderRadius: wp("5%"),
+    marginBottom: hp("2%"),
+    alignItems: "flex-start",
+    backgroundColor: "#fff",
     elevation: 5,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
   },
-  cardValue: {
-    fontSize: hp(2.5),
-    fontWeight: "bold",
-    color: "#fff",
-    marginVertical: hp(0.01),
-  },
   cardLabel: {
-    fontSize: hp(1.7),
-    color: "rgba(255,255,255,0.8)",
+    fontSize: wp("3%"),
+    color: "#6B7280",
+    marginTop: hp("1%"),
+    fontWeight: "600",
+  },
+  cardValue: {
+    fontSize: wp("5%"),
+    fontWeight: "bold",
+    color: "#000",
+    marginTop: hp("0.5%"),
   },
   section: {
     padding: hp(2),
