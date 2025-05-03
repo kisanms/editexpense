@@ -32,6 +32,7 @@ import EmployeesScreen from "../screens/EmployeesScreen";
 import EditClientScreen from "../screens/EditClientScreen";
 import EditEmployeeScreen from "../screens/EditEmployeeScreen";
 import EditOrderScreen from "../screens/EditOrderScreen";
+import ProfileScreen from "../screens/ProfileScreen";
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -108,7 +109,7 @@ function MainTabs() {
       <Tab.Screen name="Clients" component={ClientsScreen} />
       <Tab.Screen name="Employees" component={EmployeesScreen} />
       <Tab.Screen name="Orders" component={OrdersScreen} />
-      <Tab.Screen name="Reports" component={ReportsScreen} />
+      {/* <Tab.Screen name="Reports" component={ReportsScreen} /> */}
     </Tab.Navigator>
   );
 }
@@ -156,6 +157,9 @@ const AppNavigator = () => {
       <Stack.Screen name="OrderDetails" component={OrderDetailsScreen} />
       <Stack.Screen name="AddOrder" component={AddOrderScreen} />
       <Stack.Screen name="EditOrder" component={EditOrderScreen} />
+
+      {/* Profile Screen */}
+      <Stack.Screen name="Profile" component={ProfileScreen} />
     </Stack.Navigator>
   );
 };
