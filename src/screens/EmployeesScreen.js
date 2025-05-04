@@ -160,7 +160,7 @@ export default function EmployeesScreen({ navigation }) {
                 {item.phone}
               </Text>
             </View>
-            <View style={styles.infoRow}>
+            {/* <View style={styles.infoRow}>
               <FontAwesome5
                 name="tools"
                 size={wp(4)}
@@ -179,7 +179,7 @@ export default function EmployeesScreen({ navigation }) {
               <Text style={[styles.infoText, { color: theme.colors.text }]}>
                 {item.experience} years experience
               </Text>
-            </View>
+            </View> */}
           </View>
         </Card.Content>
       </Card>
