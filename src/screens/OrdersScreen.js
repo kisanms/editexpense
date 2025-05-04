@@ -446,6 +446,9 @@ const styles = StyleSheet.create({
   },
   orderInfo: {
     marginTop: hp(1),
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   infoRow: {
     flexDirection: "row",
