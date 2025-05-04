@@ -213,7 +213,7 @@ export default function OrdersScreen({ navigation }) {
                   {item.clientName || "N/A"}
                 </Text>
               </View>
-              <View style={styles.infoRow}>
+              {/* <View style={styles.infoRow}>
                 <FontAwesome5
                   name="user-tie"
                   size={wp(4)}
@@ -222,8 +222,8 @@ export default function OrdersScreen({ navigation }) {
                 <Text style={[styles.infoText, { color: theme.colors.text }]}>
                   {item.employeeName || "N/A"}
                 </Text>
-              </View>
-              <View style={styles.infoRow}>
+              </View> */}
+              {/* <View style={styles.infoRow}>
                 <FontAwesome5
                   name="dollar-sign"
                   size={wp(4)}
@@ -232,7 +232,7 @@ export default function OrdersScreen({ navigation }) {
                 <Text style={[styles.infoText, { color: theme.colors.text }]}>
                   ${item.amount}
                 </Text>
-              </View>
+              </View> */}
               <View style={styles.infoRow}>
                 <FontAwesome5
                   name="calendar"
