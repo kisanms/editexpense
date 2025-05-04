@@ -292,7 +292,7 @@ export default function DashboardScreen() {
     >
       <StatusBar
         barStyle={colorScheme === "dark" ? "light-content" : "dark-content"}
-        backgroundColor={colorScheme === "dark" ? "#1E3A8A" : "black"}
+        backgroundColor={colorScheme === "light" ? "white" : "black"}
       />
       <ScrollView
         showsVerticalScrollIndicator={false}
