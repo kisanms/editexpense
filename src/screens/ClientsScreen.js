@@ -160,7 +160,7 @@ export default function ClientsScreen({ navigation }) {
                 {item.phone}
               </Text>
             </View>
-            <View style={styles.infoRow}>
+            {/* <View style={styles.infoRow}>
               <FontAwesome5
                 name="map-marker-alt"
                 size={wp(4)}
@@ -185,7 +185,7 @@ export default function ClientsScreen({ navigation }) {
                   ? `$${Number(item.budget).toLocaleString()}`
                   : "N/A"}
               </Text>
-            </View>
+            </View> */}
           </View>
         </Card.Content>
       </Card>
