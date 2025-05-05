@@ -7,6 +7,7 @@ import {
   Animated,
   RefreshControl,
   useColorScheme,
+  Linking,
 } from "react-native";
 import {
   Text,
@@ -114,6 +115,18 @@ export default function ClientsScreen({ navigation }) {
     setShowFilterModal(false);
   };
 
+  const handleEmailPress = (email) => {
+    Linking.openURL(`mailto:${email}`).catch((err) =>
+      console.error("Error opening email: ", err)
+    );
+  };
+
+  const handlePhonePress = (phone) => {
+    Linking.openURL(`tel:${phone}`).catch((err) =>
+      console.error("Error making call: ", err)
+    );
+  };
+
   const renderClientCard = ({ item }) => (
     <TouchableOpacity
       onPress={() => navigation.navigate("ClientDetails", { client: item })}
@@ -140,52 +153,44 @@ export default function ClientsScreen({ navigation }) {
             </Chip>
           </View>
           <View style={styles.clientInfo}>
-            <View style={styles.infoRow}>
+            <TouchableOpacity
+              style={styles.infoRow}
+              onPress={() => handleEmailPress(item.email)}
+            >
               <FontAwesome5
                 name="envelope"
                 size={wp(4)}
-                color={theme.colors.placeholder}
+                color={theme.colors.primary}
               />
-              <Text style={[styles.infoText, { color: theme.colors.text }]}>
+              <Text
+                style={[
+                  styles.infoText,
+                  styles.linkText,
+                  { color: theme.colors.primary },
+                ]}
+              >
                 {item.email}
               </Text>
-            </View>
-            <View style={styles.infoRow}>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.infoRow}
+              onPress={() => handlePhonePress(item.phone)}
+            >
               <FontAwesome5
                 name="phone"
                 size={wp(4)}
-                color={theme.colors.placeholder}
-              />
-              <Text style={[styles.infoText, { color: theme.colors.text }]}>
-                {item.phone}
-              </Text>
-            </View>
-            {/* <View style={styles.infoRow}>
-              <FontAwesome5
-                name="map-marker-alt"
-                size={wp(4)}
-                color={theme.colors.placeholder}
+                color={theme.colors.primary}
               />
               <Text
-                style={[styles.infoText, { color: theme.colors.text }]}
-                numberOfLines={1}
+                style={[
+                  styles.infoText,
+                  styles.linkText,
+                  { color: theme.colors.primary },
+                ]}
               >
-                {item.address || "N/A"}
+                {item.phone}
               </Text>
-            </View>
-            <View style={styles.infoRow}>
-              <FontAwesome5
-                name="dollar-sign"
-                size={wp(4)}
-                color={theme.colors.placeholder}
-              />
-              <Text style={[styles.infoText, { color: theme.colors.text }]}>
-                Budget:{" "}
-                {item.budget
-                  ? `$${Number(item.budget).toLocaleString()}`
-                  : "N/A"}
-              </Text>
-            </View> */}
+            </TouchableOpacity>
           </View>
         </Card.Content>
       </Card>
@@ -371,18 +376,20 @@ const styles = StyleSheet.create({
   },
   clientInfo: {
     marginTop: hp(1),
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
   },
   infoRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: hp(0.5),
+    marginBottom: hp(1),
+    paddingVertical: hp(0.5),
   },
   infoText: {
     fontSize: wp(3.5),
     marginLeft: wp(2),
+  },
+  linkText: {
+    textDecorationLine: "underline",
+    fontWeight: "500",
   },
   fab: {
     position: "absolute",
