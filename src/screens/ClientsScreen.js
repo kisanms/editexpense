@@ -371,6 +371,9 @@ const styles = StyleSheet.create({
   },
   clientInfo: {
     marginTop: hp(1),
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   infoRow: {
     flexDirection: "row",
