@@ -80,4 +80,4 @@ Would you like me to start implementing this authentication system? I can begin 
 4. Setting up the organization creation logic
 
 Dashboard screen 
-
+Client screen
