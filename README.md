@@ -79,5 +79,5 @@ Would you like me to start implementing this authentication system? I can begin 
 3. Implementing the role selection modal
 4. Setting up the organization creation logic
 
-Let me know if you want me to proceed with the implementation or if you'd like to discuss/modify any part of this flow first.
+Dashboard screen 
 
