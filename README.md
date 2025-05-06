@@ -81,3 +81,5 @@ Would you like me to start implementing this authentication system? I can begin 
 
 Dashboard screen 
 Client screen
+employee screen
+order screen 
