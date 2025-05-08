@@ -1,6 +1,4 @@
-Here’s a cleaned-up and professional version of your GitHub `README.md` file for the **Realtor Service Management Application**, with improved structure, formatting, and clarity:
 
----
 
 # 🏠 Realtor Service Management Application
 
