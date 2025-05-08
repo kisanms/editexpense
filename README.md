@@ -1,85 +1,139 @@
-﻿**Edit Expense**
+Here’s a cleaned-up and professional version of your GitHub `README.md` file for the **Realtor Service Management Application**, with improved structure, formatting, and clarity:
 
-- Got the idea how to implement into the app
-- Logic build issue
-- issue in organisation navigation
+---
 
-- Add member working 19 march 2025
+# 🏠 Realtor Service Management Application
 
-- add order changes
+A role-based service management app designed for real estate teams. This system supports organization-based user grouping, role-based access control, and streamlined order management for admins and partners.
 
-- same organisation user cannot see the data
+---
 
-- rebuild 01/04/2025
+## ✨ Features
 
+* 🔐 Firebase Authentication with role-based access (Admin / Partner)
+* 🏢 Organization creation and member invitation system
+* 👥 Partner joining via secure invitation code
+* 📋 Order management system
+* 📊 Separate dashboards for Admins and Partners
+* 🔄 Real-time database updates using Firestore
+* 📅 Rebuild Date: `01/04/2025`
 
-Auth flow
+---
 
-I'll help you develop this Realtor Service Management application. Let me outline the implementation plan and flow for the authentication part first.
+## 🚧 Development Progress
 
-Implementation Flow for Authentication:
+### 🔄 Edit Expense
 
-1. **Authentication System Structure**:
-   - Firebase Authentication for user management
-   - Firestore Database for storing user profiles and organization data
-   - Custom role-based access control (RBAC) system
+* ✔ Got the idea of implementation
+* ⚠ Facing logic build issues
+* ⚠ Navigation issue in organization context
 
-2. **Authentication Flow**:
-   ```
-   A. Registration Flow:
-   1. User enters basic info (username, email, password, confirm password)
-   2. User selects role (Partner/Admin) via modal dropdown
-   3. If Admin:
-      - Creates new organization
-      - Gets admin privileges
-      - Receives organization creation confirmation
-   4. If Partner:
-      - Needs organization key/invitation code
-      - Validates key against existing organizations
-      - Joins existing organization
-   5. Account creation confirmation
+### 👥 Add Member
 
-   B. Login Flow:
-   1. User enters credentials
-   2. System validates against Firebase
-   3. System checks user role and organization
-   4. Redirects to appropriate dashboard
-   ```
+* ✅ Add member functionality working as of `19 March 2025`
 
-3. **Database Structure**:
-   ```
-   Users Collection:
-   - userId (Firebase Auth UID)
-   - email
-   - username
-   - role (admin/partner)
-   - organizationId
-   - createdAt
-   - lastLogin
+### 🛒 Order Handling
 
-   Organizations Collection:
-   - organizationId
-   - name
-   - adminId
-   - partners: [userId1, userId2, ...]
-   - createdAt
-   - invitationKey
-   ```
+* ✅ Add order changes integrated
 
-4. **Security Implementation**:
-   - Password hashing and encryption
-   - Secure invitation key generation
-   - Role-based access control
-   - Session management
-   - Input validation
+### 🚫 Data Access Issue
 
-Would you like me to start implementing this authentication system? I can begin with:
-1. Setting up the necessary Firebase configuration
-2. Creating the login and registration screens
-3. Implementing the role selection modal
-4. Setting up the organization creation logic
+* ⚠ Users in the same organization cannot yet view shared data properly (under investigation)
 
-Dashboard screen 
-Client screen
-employee screen
-order screen 
+---
+
+## 🔐 Authentication Flow
+
+### 🔧 Structure
+
+* Firebase Authentication (Auth)
+* Firestore Database (Data storage)
+* Custom RBAC (Role-Based Access Control)
+
+### 🔁 Registration Flow
+
+```
+1. User signs up with email, password, and username
+2. User selects a role: Admin or Partner
+3. If Admin:
+   - Creates a new organization
+   - Gains admin privileges
+   - Receives a confirmation
+4. If Partner:
+   - Enters invitation key
+   - Joins existing organization if key is valid
+5. Account creation completed
+```
+
+### 🔁 Login Flow
+
+```
+1. User logs in with credentials
+2. Auth system validates credentials
+3. Retrieves role and organization info
+4. Redirects to appropriate dashboard
+```
+
+---
+
+## 🗃 Database Schema
+
+### 📄 Users Collection
+
+```json
+{
+  "userId": "Firebase UID",
+  "email": "user@example.com",
+  "username": "User Name",
+  "role": "admin / partner",
+  "organizationId": "org_123",
+  "createdAt": "timestamp",
+  "lastLogin": "timestamp"
+}
+```
+
+### 🏢 Organizations Collection
+
+```json
+{
+  "organizationId": "org_123",
+  "name": "Real Estate Group",
+  "adminId": "userId",
+  "partners": ["userId1", "userId2"],
+  "createdAt": "timestamp",
+  "invitationKey": "secureKey"
+}
+```
+
+---
+
+## 🔐 Security Highlights
+
+* Password management handled by Firebase
+* Invitation key generation for secure partner onboarding
+* Role-based access control across the application
+* Input validation and secure session management
+
+---
+
+## 📱 Screens Overview
+
+* **Dashboard Screen**
+* **Client Screen**
+* **Employee Screen**
+* **Order Screen**
+
+---
+
+## 🚀 Next Steps
+
+Would you like help starting with:
+
+1. Firebase Configuration Setup
+2. UI: Login & Registration Screens
+3. Role Selection Modal
+4. Organization Creation Logic
+
+---
+
+Let me know if you'd like to include badges, demo screenshots, or deployment instructions too.
