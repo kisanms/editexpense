@@ -132,6 +132,4 @@ Would you like help starting with:
 3. Role Selection Modal
 4. Organization Creation Logic
 
----
 
-Let me know if you'd like to include badges, demo screenshots, or deployment instructions too.
