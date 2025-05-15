@@ -32,7 +32,7 @@ import {
   heightPercentageToDP as hp,
 } from "react-native-responsive-screen";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-import { db } from "../config/firebase";
+import { db } from "../../config/firebase";
 
 const commonTags = [
   "Residential",

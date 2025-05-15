@@ -31,7 +31,7 @@ import {
   heightPercentageToDP as hp,
 } from "react-native-responsive-screen";
 import { doc, updateDoc, serverTimestamp } from "firebase/firestore";
-import { db } from "../config/firebase";
+import { db } from "../../config/firebase";
 import DateTimePicker from "@react-native-community/datetimepicker";
 
 const paymentTerms = [

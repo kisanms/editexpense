@@ -27,7 +27,7 @@ import {
   heightPercentageToDP as hp,
 } from "react-native-responsive-screen";
 import { doc, getDoc, deleteDoc } from "firebase/firestore";
-import { db } from "../config/firebase";
+import { db } from "../../config/firebase";
 import { useFocusEffect } from "@react-navigation/native";
 
 const getTheme = (colorScheme) => ({
