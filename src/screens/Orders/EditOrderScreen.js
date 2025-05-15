@@ -39,7 +39,7 @@ import {
   query,
   where,
 } from "firebase/firestore";
-import { db } from "../config/firebase";
+import { db } from "../../config/firebase";
 
 const validationSchema = Yup.object().shape({
   clientId: Yup.string().required("Client selection is required"),

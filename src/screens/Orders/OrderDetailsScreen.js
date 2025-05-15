@@ -16,6 +16,7 @@ import {
   IconButton,
   Portal,
   Modal,
+  ProgressBar,
   Menu,
 } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -25,8 +26,14 @@ import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from "react-native-responsive-screen";
-import { doc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
-import { db } from "../config/firebase";
+import {
+  doc,
+  getDoc,
+  updateDoc,
+  deleteDoc,
+  serverTimestamp,
+} from "firebase/firestore";
+import { db } from "../../config/firebase";
 
 const getTheme = (colorScheme) => ({
   colors: {
@@ -40,11 +47,13 @@ const getTheme = (colorScheme) => ({
   roundness: wp(2),
 });
 
-export default function EmployeeDetailsScreen({ route, navigation }) {
-  const { employee } = route.params;
+export default function OrderDetailsScreen({ route, navigation }) {
+  const { order } = route.params;
   const [fadeAnim] = useState(new Animated.Value(0));
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [client, setClient] = useState(null);
+  const [employee, setEmployee] = useState(null);
   const [menuVisible, setMenuVisible] = useState(false);
   const colorScheme = useColorScheme();
   const theme = getTheme(colorScheme);
@@ -55,16 +64,36 @@ export default function EmployeeDetailsScreen({ route, navigation }) {
       duration: 600,
       useNativeDriver: true,
     }).start();
+
+    const fetchDetails = async () => {
+      try {
+        const clientDoc = await getDoc(doc(db, "clients", order.clientId));
+        const employeeDoc = await getDoc(
+          doc(db, "employees", order.employeeId)
+        );
+
+        if (clientDoc.exists()) {
+          setClient({ id: clientDoc.id, ...clientDoc.data() });
+        }
+        if (employeeDoc.exists()) {
+          setEmployee({ id: employeeDoc.id, ...employeeDoc.data() });
+        }
+      } catch (error) {
+        console.error("Error fetching details: ", error);
+      }
+    };
+
+    fetchDetails();
   }, []);
 
   const handleStatusChange = async (status) => {
     try {
-      const employeeRef = doc(db, "employees", employee.id);
-      await updateDoc(employeeRef, {
+      const orderRef = doc(db, "orders", order.id);
+      await updateDoc(orderRef, {
         status,
         updatedAt: serverTimestamp(),
       });
-      navigation.setParams({ employee: { ...employee, status } });
+      navigation.setParams({ order: { ...order, status } });
       setMenuVisible(false);
     } catch (error) {
       console.error("Error updating status: ", error);
@@ -74,14 +103,56 @@ export default function EmployeeDetailsScreen({ route, navigation }) {
   const handleDelete = async () => {
     try {
       setIsDeleting(true);
-      const employeeRef = doc(db, "employees", employee.id);
-      await deleteDoc(employeeRef);
+      const orderRef = doc(db, "orders", order.id);
+      await deleteDoc(orderRef);
       navigation.goBack();
     } catch (error) {
-      console.error("Error deleting employee: ", error);
+      console.error("Error deleting order: ", error);
     } finally {
       setIsDeleting(false);
       setShowDeleteModal(false);
+    }
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "in-progress":
+        return {
+          bg: colorScheme === "dark" ? "#3B82F620" : "#EFF6FF",
+          text: theme.colors.primary,
+          border: theme.colors.primary,
+        };
+      case "completed":
+        return {
+          bg: colorScheme === "dark" ? "#2DD4BF20" : "#E6FFFA",
+          text: "#38B2AC",
+          border: "#38B2AC",
+        };
+      case "cancelled":
+        return {
+          bg: colorScheme === "dark" ? "#F8717120" : "#FEE2E2",
+          text: theme.colors.error,
+          border: theme.colors.error,
+        };
+      default:
+        return {
+          bg: colorScheme === "dark" ? "#4B5563" : "#F3F4F6",
+          text: theme.colors.placeholder,
+          border: theme.colors.placeholder,
+        };
+    }
+  };
+
+  const getProgressValue = (status) => {
+    switch (status) {
+      case "in-progress":
+        return 0.5;
+      case "completed":
+        return 1;
+      case "cancelled":
+        return 0;
+      default:
+        return 0;
     }
   };
 
@@ -106,11 +177,11 @@ export default function EmployeeDetailsScreen({ route, navigation }) {
           >
             <FontAwesome5 name="arrow-left" size={wp(5)} color="#fff" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Employee Details</Text>
+          <Text style={styles.headerTitle}>Order Details</Text>
           <View style={styles.headerActions}>
             <TouchableOpacity
               style={styles.backButton}
-              onPress={() => navigation.navigate("EditEmployee", { employee })}
+              onPress={() => navigation.navigate("EditOrder", { order })}
             >
               <FontAwesome5 name="pencil-alt" size={wp(5)} color="#fff" />
             </TouchableOpacity>
@@ -132,89 +203,46 @@ export default function EmployeeDetailsScreen({ route, navigation }) {
           >
             <Card.Content>
               <View style={styles.cardHeader}>
-                <Text
-                  style={[styles.employeeName, { color: theme.colors.text }]}
-                >
-                  {employee.fullName}
+                <Text style={[styles.orderTitle, { color: theme.colors.text }]}>
+                  Order #{order.id.slice(-6)}
                 </Text>
                 <Chip
                   mode="outlined"
                   style={[
                     styles.statusChip,
                     {
-                      backgroundColor:
-                        employee.status === "active"
-                          ? colorScheme === "dark"
-                            ? "#2DD4BF20"
-                            : "#D1FAE5"
-                          : colorScheme === "dark"
-                          ? "#F8717120"
-                          : "#FEE2E2",
-                      borderColor:
-                        employee.status === "active"
-                          ? "#38B2AC"
-                          : theme.colors.error,
+                      backgroundColor: getStatusColor(order.status).bg,
+                      borderColor: getStatusColor(order.status).border,
                     },
                   ]}
                 >
                   <Text
                     style={[
                       styles.statusText,
-                      {
-                        color:
-                          employee.status === "active"
-                            ? "#38B2AC"
-                            : theme.colors.error,
-                      },
+                      { color: getStatusColor(order.status).text },
                     ]}
                   >
-                    {employee.status.charAt(0).toUpperCase() +
-                      employee.status.slice(1)}
+                    {order.status}
                   </Text>
                 </Chip>
               </View>
 
-              <Divider
-                style={[
-                  styles.divider,
-                  { backgroundColor: theme.colors.placeholder },
-                ]}
-              />
-
-              <View style={styles.section}>
-                <Text
-                  style={[styles.sectionTitle, { color: theme.colors.text }]}
-                >
-                  Contact Information
-                </Text>
-                <View style={styles.infoRow}>
-                  <FontAwesome5
-                    name="envelope"
-                    size={wp(4)}
-                    color={theme.colors.placeholder}
-                  />
-                  <Text style={[styles.infoText, { color: theme.colors.text }]}>
-                    {employee.email}
+              <View style={styles.progressContainer}>
+                <ProgressBar
+                  progress={getProgressValue(order.status)}
+                  color={getStatusColor(order.status).text}
+                  style={styles.progressBar}
+                />
+                <View style={styles.progressLabels}>
+                  <Text
+                    style={[styles.progressLabel, { color: theme.colors.text }]}
+                  >
+                    In Progress
                   </Text>
-                </View>
-                <View style={styles.infoRow}>
-                  <FontAwesome5
-                    name="phone"
-                    size={wp(4)}
-                    color={theme.colors.placeholder}
-                  />
-                  <Text style={[styles.infoText, { color: theme.colors.text }]}>
-                    {employee.phone}
-                  </Text>
-                </View>
-                <View style={styles.infoRow}>
-                  <FontAwesome5
-                    name="map-marker-alt"
-                    size={wp(4)}
-                    color={theme.colors.placeholder}
-                  />
-                  <Text style={[styles.infoText, { color: theme.colors.text }]}>
-                    {employee.address || "N/A"}
+                  <Text
+                    style={[styles.progressLabel, { color: theme.colors.text }]}
+                  >
+                    Completed
                   </Text>
                 </View>
               </View>
@@ -230,26 +258,17 @@ export default function EmployeeDetailsScreen({ route, navigation }) {
                 <Text
                   style={[styles.sectionTitle, { color: theme.colors.text }]}
                 >
-                  Professional Details
+                  Order Information
                 </Text>
                 <View style={styles.infoRow}>
                   <FontAwesome5
-                    name="tools"
+                    name="calendar"
                     size={wp(4)}
                     color={theme.colors.placeholder}
                   />
                   <Text style={[styles.infoText, { color: theme.colors.text }]}>
-                    {employee.skills}
-                  </Text>
-                </View>
-                <View style={styles.infoRow}>
-                  <FontAwesome5
-                    name="briefcase"
-                    size={wp(4)}
-                    color={theme.colors.placeholder}
-                  />
-                  <Text style={[styles.infoText, { color: theme.colors.text }]}>
-                    {employee.experience} years experience
+                    Created:{" "}
+                    {order.createdAt?.toDate().toLocaleDateString() || "N/A"}
                   </Text>
                 </View>
                 <View style={styles.infoRow}>
@@ -259,7 +278,17 @@ export default function EmployeeDetailsScreen({ route, navigation }) {
                     color={theme.colors.placeholder}
                   />
                   <Text style={[styles.infoText, { color: theme.colors.text }]}>
-                    {employee.salary ? `$${employee.salary}/month` : "N/A"}
+                    Amount: ${order.amount}
+                  </Text>
+                </View>
+                <View style={styles.infoRow}>
+                  <FontAwesome5
+                    name="info-circle"
+                    size={wp(4)}
+                    color={theme.colors.placeholder}
+                  />
+                  <Text style={[styles.infoText, { color: theme.colors.text }]}>
+                    Description: {order.description}
                   </Text>
                 </View>
               </View>
@@ -275,29 +304,99 @@ export default function EmployeeDetailsScreen({ route, navigation }) {
                 <Text
                   style={[styles.sectionTitle, { color: theme.colors.text }]}
                 >
-                  Additional Information
+                  Client Information
                 </Text>
-                <View style={styles.infoRow}>
-                  <FontAwesome5
-                    name="calendar"
-                    size={wp(4)}
-                    color={theme.colors.placeholder}
-                  />
-                  <Text style={[styles.infoText, { color: theme.colors.text }]}>
-                    Joined:{" "}
-                    {employee.createdAt?.toDate().toLocaleDateString() || "N/A"}
+                {client ? (
+                  <TouchableOpacity
+                    onPress={() =>
+                      navigation.navigate("ClientDetails", { client })
+                    }
+                  >
+                    <View style={styles.infoRow}>
+                      <FontAwesome5
+                        name="user"
+                        size={wp(4)}
+                        color={theme.colors.placeholder}
+                      />
+                      <Text
+                        style={[styles.infoText, { color: theme.colors.text }]}
+                      >
+                        {client.fullName}
+                      </Text>
+                    </View>
+                    <View style={styles.infoRow}>
+                      <FontAwesome5
+                        name="phone"
+                        size={wp(4)}
+                        color={theme.colors.placeholder}
+                      />
+                      <Text
+                        style={[styles.infoText, { color: theme.colors.text }]}
+                      >
+                        {client.phone}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                ) : (
+                  <Text
+                    style={[styles.loadingText, { color: theme.colors.text }]}
+                  >
+                    Loading client details...
                   </Text>
-                </View>
-                <View style={styles.infoRow}>
-                  <FontAwesome5
-                    name="info-circle"
-                    size={wp(4)}
-                    color={theme.colors.placeholder}
-                  />
-                  <Text style={[styles.infoText, { color: theme.colors.text }]}>
-                    Notes: {employee.notes || "No additional notes"}
+                )}
+              </View>
+
+              <Divider
+                style={[
+                  styles.divider,
+                  { backgroundColor: theme.colors.placeholder },
+                ]}
+              />
+
+              <View style={styles.section}>
+                <Text
+                  style={[styles.sectionTitle, { color: theme.colors.text }]}
+                >
+                  Assigned Employee
+                </Text>
+                {employee ? (
+                  <TouchableOpacity
+                    onPress={() =>
+                      navigation.navigate("EmployeeDetails", { employee })
+                    }
+                  >
+                    <View style={styles.infoRow}>
+                      <FontAwesome5
+                        name="user-tie"
+                        size={wp(4)}
+                        color={theme.colors.placeholder}
+                      />
+                      <Text
+                        style={[styles.infoText, { color: theme.colors.text }]}
+                      >
+                        {employee.fullName}
+                      </Text>
+                    </View>
+                    <View style={styles.infoRow}>
+                      <FontAwesome5
+                        name="tools"
+                        size={wp(4)}
+                        color={theme.colors.placeholder}
+                      />
+                      <Text
+                        style={[styles.infoText, { color: theme.colors.text }]}
+                      >
+                        {employee.skills}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                ) : (
+                  <Text
+                    style={[styles.loadingText, { color: theme.colors.text }]}
+                  >
+                    Loading employee details...
                   </Text>
-                </View>
+                )}
               </View>
             </Card.Content>
           </Card>
@@ -323,17 +422,24 @@ export default function EmployeeDetailsScreen({ route, navigation }) {
               }
             >
               <Menu.Item
-                onPress={() => handleStatusChange("active")}
-                title="Active"
-                leadingIcon="check-circle"
-                disabled={employee.status === "active"}
+                onPress={() => handleStatusChange("in-progress")}
+                title="In Progress"
+                leadingIcon="progress-clock"
+                disabled={order.status === "in-progress"}
                 titleStyle={{ color: theme.colors.text }}
               />
               <Menu.Item
-                onPress={() => handleStatusChange("inactive")}
-                title="Inactive"
+                onPress={() => handleStatusChange("completed")}
+                title="Completed"
+                leadingIcon="check-circle"
+                disabled={order.status === "completed"}
+                titleStyle={{ color: theme.colors.text }}
+              />
+              <Menu.Item
+                onPress={() => handleStatusChange("cancelled")}
+                title="Cancelled"
                 leadingIcon="close-circle"
-                disabled={employee.status === "inactive"}
+                disabled={order.status === "cancelled"}
                 titleStyle={{ color: theme.colors.text }}
               />
             </Menu>
@@ -345,7 +451,7 @@ export default function EmployeeDetailsScreen({ route, navigation }) {
               icon="delete"
               theme={theme}
             >
-              Delete Employee
+              Delete Order
             </Button>
           </View>
         </ScrollView>
@@ -361,15 +467,15 @@ export default function EmployeeDetailsScreen({ route, navigation }) {
           ]}
         >
           <Text style={[styles.modalTitle, { color: theme.colors.primary }]}>
-            Delete Employee
+            Delete Order
           </Text>
           <Text style={[styles.modalText, { color: theme.colors.text }]}>
-            Are you sure you want to permanently delete this employee? This
-            action cannot be undone.
+            Are you sure you want to permanently delete this order? This action
+            cannot be undone.
           </Text>
           <View style={styles.modalButtons}>
             <Button
-              mode="outlined"
+              mode="contained-tonal"
               onPress={() => setShowDeleteModal(false)}
               style={styles.modalButton}
               theme={theme}
@@ -423,10 +529,6 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: "center",
   },
-  headerActions: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
   content: {
     flex: 1,
   },
@@ -444,7 +546,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: hp(2),
   },
-  employeeName: {
+  orderTitle: {
     fontSize: wp(5.5),
     fontWeight: "700",
   },
@@ -454,6 +556,21 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: wp(3.5),
     fontWeight: "600",
+  },
+  progressContainer: {
+    marginVertical: hp(2),
+  },
+  progressBar: {
+    height: hp(1),
+    borderRadius: wp(1),
+  },
+  progressLabels: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: hp(1),
+  },
+  progressLabel: {
+    fontSize: wp(3.5),
   },
   divider: {
     marginVertical: hp(2),
@@ -474,6 +591,10 @@ const styles = StyleSheet.create({
   infoText: {
     fontSize: wp(4),
     marginLeft: wp(2),
+  },
+  loadingText: {
+    fontSize: wp(4),
+    fontStyle: "italic",
   },
   buttonContainer: {
     marginTop: hp(4),

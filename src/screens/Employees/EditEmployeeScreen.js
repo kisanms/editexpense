@@ -20,8 +20,8 @@ import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from "react-native-responsive-screen";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-import { db } from "../config/firebase";
+import { doc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { db } from "../../config/firebase";
 
 const validationSchema = Yup.object().shape({
   fullName: Yup.string().required("Full name is required"),
@@ -46,7 +46,8 @@ const getTheme = (colorScheme) => ({
   roundness: wp(2),
 });
 
-export default function AddEmployeeScreen({ navigation }) {
+export default function EditEmployeeScreen({ route, navigation }) {
+  const { employee } = route.params;
   const [fadeAnim] = useState(new Animated.Value(0));
   const [scaleAnim] = useState(new Animated.Value(0.95));
   const colorScheme = useColorScheme();
@@ -69,44 +70,38 @@ export default function AddEmployeeScreen({ navigation }) {
   }, []);
 
   const initialValues = {
-    fullName: "",
-    email: "",
-    phone: "",
-    address: "",
-    skills: "",
-    experience: "",
+    fullName: employee.fullName,
+    email: employee.email,
+    phone: employee.phone,
+    address: employee.address || "",
+    skills: employee.skills,
+    experience: employee.experience.toString(),
   };
 
-  const handleSubmit = async (values, { setSubmitting, resetForm }) => {
+  const handleSubmit = async (values, { setSubmitting }) => {
     try {
-      const docRef = await addDoc(collection(db, "employees"), {
+      const employeeRef = doc(db, "employees", employee.id);
+      await updateDoc(employeeRef, {
         ...values,
-        createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
-        status: "active",
       });
-
-      console.log("Employee added with ID: ", docRef.id);
 
       Alert.alert(
         "Success",
-        "Employee added successfully!",
+        "Employee updated successfully!",
         [
           {
             text: "OK",
-            onPress: () => {
-              resetForm();
-              navigation.goBack();
-            },
+            onPress: () => navigation.goBack(),
           },
         ],
         { cancelable: false }
       );
     } catch (error) {
-      console.error("Error adding employee: ", error);
+      console.error("Error updating employee: ", error);
       Alert.alert(
         "Error",
-        "Failed to add employee. Please try again.",
+        "Failed to update employee. Please try again.",
         [{ text: "OK" }],
         { cancelable: false }
       );
@@ -136,7 +131,7 @@ export default function AddEmployeeScreen({ navigation }) {
           >
             <FontAwesome5 name="arrow-left" size={wp(5)} color="#fff" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Add New Employee</Text>
+          <Text style={styles.headerTitle}>Edit Employee</Text>
           <View style={{ width: wp(5) }} />
         </View>
       </LinearGradient>
@@ -429,7 +424,7 @@ export default function AddEmployeeScreen({ navigation }) {
                   theme={theme}
                   icon="check"
                 >
-                  Add Employee
+                  Update Employee
                 </Button>
               </ScrollView>
             </Animated.View>
