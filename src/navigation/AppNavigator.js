@@ -18,7 +18,7 @@ import {
 // Import screens
 import LoginScreen from "../screens/Auth/LoginScreen";
 import RegisterScreen from "../screens/Auth/RegisterScreen";
-import DashboardScreen from "../screens/DashboardScreen";
+import DashboardScreen from "../screens/Home/DashboardScreen";
 import AddClientScreen from "../screens/Clients/AddClientScreen";
 import ClientsScreen from "../screens/Clients/ClientsScreen";
 import OrdersScreen from "../screens/Orders/OrdersScreen";
@@ -32,7 +32,7 @@ import EmployeesScreen from "../screens/Employees/EmployeesScreen";
 import EditClientScreen from "../screens/Clients/EditClientScreen";
 import EditEmployeeScreen from "../screens/Employees/EditEmployeeScreen";
 import EditOrderScreen from "../screens/Orders/EditOrderScreen";
-import ProfileScreen from "../screens/ProfileScreen";
+import ProfileScreen from "../screens/Home/ProfileScreen";
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
