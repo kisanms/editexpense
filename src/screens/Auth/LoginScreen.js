@@ -13,7 +13,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { TextInput, Button, Text, Surface } from "react-native-paper";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../../context/AuthContext";
 import { LinearGradient } from "expo-linear-gradient";
 import {
   widthPercentageToDP as wp,
@@ -76,7 +76,7 @@ const LoginScreen = ({ navigation }) => {
             <Surface style={styles.surface}>
               <View style={styles.logoContainer}>
                 <Image
-                  source={require("../../assets/icon.png")}
+                  source={require("../../../assets/icon.png")}
                   style={styles.logo}
                   resizeMode="contain"
                 />

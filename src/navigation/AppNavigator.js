@@ -16,8 +16,8 @@ import {
 } from "react-native-responsive-screen";
 
 // Import screens
-import LoginScreen from "../screens/LoginScreen";
-import RegisterScreen from "../screens/RegisterScreen";
+import LoginScreen from "../screens/Auth/LoginScreen";
+import RegisterScreen from "../screens/Auth/RegisterScreen";
 import DashboardScreen from "../screens/DashboardScreen";
 import AddClientScreen from "../screens/Clients/AddClientScreen";
 import ClientsScreen from "../screens/Clients/ClientsScreen";
