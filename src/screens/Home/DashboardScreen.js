@@ -32,6 +32,7 @@ export default function DashboardScreen() {
   const { user, userProfile, businessDetails } = useAuth();
   const [employees, setEmployees] = useState([]);
   const [clients, setClients] = useState([]);
+  const [orders, setOrders] = useState([]);
   const [summaryData, setSummaryData] = useState([
     {
       icon: "briefcase",
@@ -59,8 +60,7 @@ export default function DashboardScreen() {
     },
   ]);
 
-  const [orders, setOrders] = useState([]);
-
+  // Fetch data from Firestore
   useEffect(() => {
     if (!userProfile?.businessId) {
       console.warn("No business ID found for user");
@@ -127,46 +127,6 @@ export default function DashboardScreen() {
         });
 
         setOrders(ordersList);
-
-        // Calculate totals using the filtered clients list
-        const totalProjects = ordersList.length;
-        const totalClientBudget = clients.reduce((sum, client) => {
-          return sum + (Number(client.budget) || 0);
-        }, 0);
-
-        const totalOrderAmount = ordersList.reduce((sum, order) => {
-          return sum + (Number(order.amount) || 0);
-        }, 0);
-
-        const totalProfit = totalClientBudget - totalOrderAmount;
-
-        // Update summaryData
-        setSummaryData([
-          {
-            icon: "briefcase",
-            label: "Total Projects",
-            value: totalProjects.toString(),
-            iconColor: "#0047CC",
-          },
-          {
-            icon: "dollar-sign",
-            label: "Total Profit",
-            value: `$${totalProfit.toLocaleString()}`,
-            iconColor: "#4CAF50",
-          },
-          {
-            icon: "arrow-up",
-            label: "Income",
-            value: `$${totalClientBudget.toLocaleString()}`,
-            iconColor: "#2196F3",
-          },
-          {
-            icon: "arrow-down",
-            label: "Expenses",
-            value: `$${totalOrderAmount.toLocaleString()}`,
-            iconColor: "#F44336",
-          },
-        ]);
       },
       (error) => {
         console.error("Error fetching orders: ", error);
@@ -181,6 +141,45 @@ export default function DashboardScreen() {
       clientsUnsubscribe();
     };
   }, [userProfile?.businessId]);
+
+  // Update summaryData whenever orders or clients change
+  useEffect(() => {
+    const totalProjects = orders.length;
+    const totalClientBudget = clients.reduce((sum, client) => {
+      return sum + (Number(client.budget) || 0);
+    }, 0);
+    const totalOrderAmount = orders.reduce((sum, order) => {
+      return sum + (Number(order.amount) || 0);
+    }, 0);
+    const totalProfit = totalClientBudget - totalOrderAmount;
+
+    setSummaryData([
+      {
+        icon: "briefcase",
+        label: "Total Projects",
+        value: totalProjects.toString(),
+        iconColor: "#0047CC",
+      },
+      {
+        icon: "dollar-sign",
+        label: "Total Profit",
+        value: `$${totalProfit.toLocaleString()}`,
+        iconColor: "#4CAF50",
+      },
+      {
+        icon: "arrow-up",
+        label: "Income",
+        value: `$${totalClientBudget.toLocaleString()}`,
+        iconColor: "#2196F3",
+      },
+      {
+        icon: "arrow-down",
+        label: "Expenses",
+        value: `$${totalOrderAmount.toLocaleString()}`,
+        iconColor: "#F44336",
+      },
+    ]);
+  }, [orders, clients]);
 
   const getIconColor = (status) => {
     switch (status?.toLowerCase()) {
