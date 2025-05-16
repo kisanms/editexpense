@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Animated,
   useColorScheme,
+  Alert,
 } from "react-native";
 import {
   Text,
@@ -32,8 +33,11 @@ import {
   updateDoc,
   deleteDoc,
   serverTimestamp,
+  query,
+  where,
 } from "firebase/firestore";
 import { db } from "../../config/firebase";
+import { useAuth } from "../../context/AuthContext";
 
 const getTheme = (colorScheme) => ({
   colors: {
@@ -49,6 +53,7 @@ const getTheme = (colorScheme) => ({
 
 export default function OrderDetailsScreen({ route, navigation }) {
   const { order } = route.params;
+  const { userProfile } = useAuth();
   const [fadeAnim] = useState(new Animated.Value(0));
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -59,6 +64,21 @@ export default function OrderDetailsScreen({ route, navigation }) {
   const theme = getTheme(colorScheme);
 
   useEffect(() => {
+    if (!userProfile?.businessId) {
+      console.warn("No business ID found for user");
+      return;
+    }
+
+    // Security check - verify order belongs to user's business
+    if (order.businessId !== userProfile.businessId) {
+      Alert.alert(
+        "Access Denied",
+        "You don't have permission to view this order.",
+        [{ text: "OK", onPress: () => navigation.goBack() }]
+      );
+      return;
+    }
+
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 600,
@@ -67,10 +87,20 @@ export default function OrderDetailsScreen({ route, navigation }) {
 
     const fetchDetails = async () => {
       try {
-        const clientDoc = await getDoc(doc(db, "clients", order.clientId));
-        const employeeDoc = await getDoc(
-          doc(db, "employees", order.employeeId)
+        // Only fetch client and employee if they belong to the same business
+        const clientQuery = query(
+          doc(db, "clients", order.clientId),
+          where("businessId", "==", userProfile.businessId)
         );
+        const employeeQuery = query(
+          doc(db, "employees", order.employeeId),
+          where("businessId", "==", userProfile.businessId)
+        );
+
+        const [clientDoc, employeeDoc] = await Promise.all([
+          getDoc(clientQuery),
+          getDoc(employeeQuery),
+        ]);
 
         if (clientDoc.exists()) {
           setClient({ id: clientDoc.id, ...clientDoc.data() });
@@ -84,10 +114,20 @@ export default function OrderDetailsScreen({ route, navigation }) {
     };
 
     fetchDetails();
-  }, []);
+  }, [userProfile?.businessId, order]);
 
   const handleStatusChange = async (status) => {
     try {
+      // Additional security check
+      if (order.businessId !== userProfile.businessId) {
+        Alert.alert(
+          "Access Denied",
+          "You don't have permission to modify this order.",
+          [{ text: "OK" }]
+        );
+        return;
+      }
+
       const orderRef = doc(db, "orders", order.id);
       await updateDoc(orderRef, {
         status,
@@ -102,15 +142,31 @@ export default function OrderDetailsScreen({ route, navigation }) {
 
   const handleDelete = async () => {
     try {
+      // Additional security check
+      if (order.businessId !== userProfile.businessId) {
+        Alert.alert(
+          "Access Denied",
+          "You don't have permission to delete this order.",
+          [{ text: "OK" }]
+        );
+        return;
+      }
+
       setIsDeleting(true);
       const orderRef = doc(db, "orders", order.id);
       await deleteDoc(orderRef);
+      setShowDeleteModal(false);
       navigation.goBack();
     } catch (error) {
       console.error("Error deleting order: ", error);
+      Alert.alert(
+        "Error",
+        "Failed to delete order. Please try again.",
+        [{ text: "OK" }],
+        { cancelable: false }
+      );
     } finally {
       setIsDeleting(false);
-      setShowDeleteModal(false);
     }
   };
 

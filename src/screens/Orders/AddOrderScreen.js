@@ -39,6 +39,7 @@ import {
   where,
 } from "firebase/firestore";
 import { db } from "../../config/firebase";
+import { useAuth } from "../../context/AuthContext";
 
 const validationSchema = Yup.object().shape({
   clientId: Yup.string().required("Client selection is required"),
@@ -66,6 +67,7 @@ const getTheme = (colorScheme) => ({
 });
 
 export default function AddOrderScreen({ navigation }) {
+  const { userProfile } = useAuth();
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showClientModal, setShowClientModal] = useState(false);
   const [showEmployeeModal, setShowEmployeeModal] = useState(false);
@@ -77,6 +79,10 @@ export default function AddOrderScreen({ navigation }) {
   const theme = getTheme(colorScheme);
 
   useEffect(() => {
+    if (!userProfile?.businessId) {
+      console.warn("No business ID found for user");
+      return;
+    }
     fetchClients();
     fetchEmployees();
     Animated.parallel([
@@ -92,11 +98,15 @@ export default function AddOrderScreen({ navigation }) {
         useNativeDriver: true,
       }),
     ]).start();
-  }, []);
+  }, [userProfile?.businessId]);
 
   const fetchClients = async () => {
     try {
-      const querySnapshot = await getDocs(collection(db, "clients"));
+      const clientsQuery = query(
+        collection(db, "clients"),
+        where("businessId", "==", userProfile.businessId)
+      );
+      const querySnapshot = await getDocs(clientsQuery);
       const clientsList = querySnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
@@ -109,11 +119,12 @@ export default function AddOrderScreen({ navigation }) {
 
   const fetchEmployees = async () => {
     try {
-      const q = query(
+      const employeesQuery = query(
         collection(db, "employees"),
+        where("businessId", "==", userProfile.businessId),
         where("status", "==", "active")
       );
-      const querySnapshot = await getDocs(q);
+      const querySnapshot = await getDocs(employeesQuery);
       const employeesList = querySnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
@@ -136,11 +147,14 @@ export default function AddOrderScreen({ navigation }) {
 
   const handleSubmit = async (values, { setSubmitting, resetForm }) => {
     try {
-      const docRef = await addDoc(collection(db, "orders"), {
+      const orderData = {
         ...values,
+        businessId: userProfile.businessId,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
-      });
+      };
+
+      const docRef = await addDoc(collection(db, "orders"), orderData);
 
       console.log("Order added with ID: ", docRef.id);
 

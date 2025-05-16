@@ -26,8 +26,16 @@ import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from "react-native-responsive-screen";
-import { collection, getDocs, doc, getDoc } from "firebase/firestore";
+import {
+  collection,
+  getDocs,
+  doc,
+  getDoc,
+  query,
+  where,
+} from "firebase/firestore";
 import { db } from "../../config/firebase";
+import { useAuth } from "../../context/AuthContext";
 
 const getTheme = (colorScheme) => ({
   colors: {
@@ -42,6 +50,7 @@ const getTheme = (colorScheme) => ({
 });
 
 export default function OrdersScreen({ navigation }) {
+  const { userProfile } = useAuth();
   const [orders, setOrders] = useState([]);
   const [filteredOrders, setFilteredOrders] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -53,17 +62,25 @@ export default function OrdersScreen({ navigation }) {
   const theme = getTheme(colorScheme);
 
   useEffect(() => {
+    if (!userProfile?.businessId) {
+      console.warn("No business ID found for user");
+      return;
+    }
     fetchOrders();
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 600,
       useNativeDriver: true,
     }).start();
-  }, []);
+  }, [userProfile?.businessId]);
 
   const fetchOrders = async () => {
     try {
-      const ordersSnapshot = await getDocs(collection(db, "orders"));
+      const ordersQuery = query(
+        collection(db, "orders"),
+        where("businessId", "==", userProfile.businessId)
+      );
+      const ordersSnapshot = await getDocs(ordersQuery);
       let ordersList = ordersSnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),

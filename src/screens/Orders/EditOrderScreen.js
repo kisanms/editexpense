@@ -40,6 +40,7 @@ import {
   where,
 } from "firebase/firestore";
 import { db } from "../../config/firebase";
+import { useAuth } from "../../context/AuthContext";
 
 const validationSchema = Yup.object().shape({
   clientId: Yup.string().required("Client selection is required"),
@@ -67,6 +68,7 @@ const getTheme = (colorScheme) => ({
 
 export default function EditOrderScreen({ route, navigation }) {
   const { order } = route.params;
+  const { userProfile } = useAuth();
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showClientModal, setShowClientModal] = useState(false);
   const [showEmployeeModal, setShowEmployeeModal] = useState(false);
@@ -78,6 +80,21 @@ export default function EditOrderScreen({ route, navigation }) {
   const theme = getTheme(colorScheme);
 
   useEffect(() => {
+    if (!userProfile?.businessId) {
+      console.warn("No business ID found for user");
+      return;
+    }
+
+    // Security check - verify order belongs to user's business
+    if (order.businessId !== userProfile.businessId) {
+      Alert.alert(
+        "Access Denied",
+        "You don't have permission to edit this order.",
+        [{ text: "OK", onPress: () => navigation.goBack() }]
+      );
+      return;
+    }
+
     fetchClients();
     fetchEmployees();
     Animated.parallel([
@@ -93,11 +110,15 @@ export default function EditOrderScreen({ route, navigation }) {
         useNativeDriver: true,
       }),
     ]).start();
-  }, []);
+  }, [userProfile?.businessId, order]);
 
   const fetchClients = async () => {
     try {
-      const querySnapshot = await getDocs(collection(db, "clients"));
+      const clientsQuery = query(
+        collection(db, "clients"),
+        where("businessId", "==", userProfile.businessId)
+      );
+      const querySnapshot = await getDocs(clientsQuery);
       const clientsList = querySnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
@@ -110,11 +131,12 @@ export default function EditOrderScreen({ route, navigation }) {
 
   const fetchEmployees = async () => {
     try {
-      const q = query(
+      const employeesQuery = query(
         collection(db, "employees"),
+        where("businessId", "==", userProfile.businessId),
         where("status", "==", "active")
       );
-      const querySnapshot = await getDocs(q);
+      const querySnapshot = await getDocs(employeesQuery);
       const employeesList = querySnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
@@ -137,9 +159,20 @@ export default function EditOrderScreen({ route, navigation }) {
 
   const handleSubmit = async (values, { setSubmitting }) => {
     try {
+      // Additional security check
+      if (order.businessId !== userProfile.businessId) {
+        Alert.alert(
+          "Access Denied",
+          "You don't have permission to edit this order.",
+          [{ text: "OK", onPress: () => navigation.goBack() }]
+        );
+        return;
+      }
+
       const orderRef = doc(db, "orders", order.id);
       await updateDoc(orderRef, {
         ...values,
+        businessId: userProfile.businessId, // Ensure businessId is preserved
         updatedAt: serverTimestamp(),
       });
 

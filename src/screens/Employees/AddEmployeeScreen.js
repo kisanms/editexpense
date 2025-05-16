@@ -22,6 +22,7 @@ import {
 } from "react-native-responsive-screen";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../../config/firebase";
+import { useAuth } from "../../context/AuthContext";
 
 const validationSchema = Yup.object().shape({
   fullName: Yup.string().required("Full name is required"),
@@ -47,6 +48,7 @@ const getTheme = (colorScheme) => ({
 });
 
 export default function AddEmployeeScreen({ navigation }) {
+  const { userProfile } = useAuth();
   const [fadeAnim] = useState(new Animated.Value(0));
   const [scaleAnim] = useState(new Animated.Value(0.95));
   const colorScheme = useColorScheme();
@@ -79,14 +81,25 @@ export default function AddEmployeeScreen({ navigation }) {
 
   const handleSubmit = async (values, { setSubmitting, resetForm }) => {
     try {
+      if (!userProfile?.businessId) {
+        Alert.alert(
+          "Error",
+          "No business ID found. Please try again later.",
+          [{ text: "OK" }],
+          { cancelable: false }
+        );
+        return;
+      }
+
       const docRef = await addDoc(collection(db, "employees"), {
         ...values,
+        businessId: userProfile.businessId,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
         status: "active",
       });
 
-      console.log("Employee added with ID: ", docRef.id);
+      console.log("Document written with ID: ", docRef.id);
 
       Alert.alert(
         "Success",
@@ -103,7 +116,7 @@ export default function AddEmployeeScreen({ navigation }) {
         { cancelable: false }
       );
     } catch (error) {
-      console.error("Error adding employee: ", error);
+      console.error("Error adding document: ", error);
       Alert.alert(
         "Error",
         "Failed to add employee. Please try again.",

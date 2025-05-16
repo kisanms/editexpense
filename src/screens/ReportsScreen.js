@@ -24,9 +24,11 @@ import {
 } from "react-native-responsive-screen";
 import { LineChart } from "react-native-chart-kit";
 import { Dimensions } from "react-native";
+import { useAuth } from "../context/AuthContext";
 
 const ReportsScreen = ({ navigation }) => {
   const theme = useTheme();
+  const { userProfile } = useAuth();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [stats, setStats] = useState({
@@ -53,24 +55,37 @@ const ReportsScreen = ({ navigation }) => {
 
   const fetchData = async () => {
     try {
-      // Fetch orders
-      const ordersQuery = query(collection(db, "orders"));
+      if (!userProfile?.businessId) {
+        console.warn("No business ID found for user");
+        return;
+      }
+      // Fetch orders for current business
+      const ordersQuery = query(
+        collection(db, "orders"),
+        where("businessId", "==", userProfile.businessId)
+      );
       const ordersSnapshot = await getDocs(ordersQuery);
       const orders = ordersSnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       }));
 
-      // Fetch clients
-      const clientsQuery = query(collection(db, "clients"));
+      // Fetch clients for current business
+      const clientsQuery = query(
+        collection(db, "clients"),
+        where("businessId", "==", userProfile.businessId)
+      );
       const clientsSnapshot = await getDocs(clientsQuery);
       const clients = clientsSnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       }));
 
-      // Fetch employees
-      const employeesQuery = query(collection(db, "employees"));
+      // Fetch employees for current business
+      const employeesQuery = query(
+        collection(db, "employees"),
+        where("businessId", "==", userProfile.businessId)
+      );
       const employeesSnapshot = await getDocs(employeesQuery);
       const employees = employeesSnapshot.docs.map((doc) => ({
         id: doc.id,
@@ -155,8 +170,12 @@ const ReportsScreen = ({ navigation }) => {
   };
 
   useEffect(() => {
+    if (!userProfile?.businessId) {
+      console.warn("No business ID found for user");
+      return;
+    }
     fetchData();
-  }, []);
+  }, [userProfile?.businessId]);
 
   const onRefresh = () => {
     setRefreshing(true);

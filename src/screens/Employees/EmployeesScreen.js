@@ -26,8 +26,9 @@ import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from "react-native-responsive-screen";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "../../config/firebase";
+import { useAuth } from "../../context/AuthContext";
 
 const getTheme = (colorScheme) => ({
   colors: {
@@ -42,6 +43,7 @@ const getTheme = (colorScheme) => ({
 });
 
 export default function EmployeesScreen({ navigation }) {
+  const { userProfile } = useAuth();
   const [employees, setEmployees] = useState([]);
   const [filteredEmployees, setFilteredEmployees] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -53,17 +55,28 @@ export default function EmployeesScreen({ navigation }) {
   const theme = getTheme(colorScheme);
 
   useEffect(() => {
-    fetchEmployees();
+    if (userProfile?.businessId) {
+      fetchEmployees();
+    }
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 600,
       useNativeDriver: true,
     }).start();
-  }, []);
+  }, [userProfile?.businessId]);
 
   const fetchEmployees = async () => {
     try {
-      const querySnapshot = await getDocs(collection(db, "employees"));
+      if (!userProfile?.businessId) {
+        console.warn("No business ID found for user");
+        return;
+      }
+
+      const q = query(
+        collection(db, "employees"),
+        where("businessId", "==", userProfile.businessId)
+      );
+      const querySnapshot = await getDocs(q);
       const employeesList = querySnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),

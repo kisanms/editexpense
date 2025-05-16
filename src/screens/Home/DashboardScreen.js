@@ -21,7 +21,7 @@ import { FontAwesome5 } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation } from "@react-navigation/native";
 import { useAuth } from "../../context/AuthContext";
-import { collection, onSnapshot } from "firebase/firestore";
+import { collection, onSnapshot, query, where } from "firebase/firestore";
 import { db } from "../../config/firebase";
 
 const { width } = Dimensions.get("window");
@@ -29,7 +29,7 @@ const { width } = Dimensions.get("window");
 export default function DashboardScreen() {
   const colorScheme = useColorScheme();
   const navigation = useNavigation();
-  const { user } = useAuth();
+  const { user, userProfile, businessDetails } = useAuth();
   const [employees, setEmployees] = useState([]);
   const [clients, setClients] = useState([]);
   const [summaryData, setSummaryData] = useState([
@@ -62,9 +62,17 @@ export default function DashboardScreen() {
   const [orders, setOrders] = useState([]);
 
   useEffect(() => {
+    if (!userProfile?.businessId) {
+      console.warn("No business ID found for user");
+      return;
+    }
+
     // Listener for employees
     const employeesUnsubscribe = onSnapshot(
-      collection(db, "employees"),
+      query(
+        collection(db, "employees"),
+        where("businessId", "==", userProfile.businessId)
+      ),
       (snapshot) => {
         const employeesList = snapshot.docs.map((doc) => ({
           id: doc.id,
@@ -79,7 +87,10 @@ export default function DashboardScreen() {
 
     // Listener for clients
     const clientsUnsubscribe = onSnapshot(
-      collection(db, "clients"),
+      query(
+        collection(db, "clients"),
+        where("businessId", "==", userProfile.businessId)
+      ),
       (clientsSnapshot) => {
         const clientsList = clientsSnapshot.docs.map((doc) => ({
           id: doc.id,
@@ -94,7 +105,10 @@ export default function DashboardScreen() {
 
     // Listener for orders
     const ordersUnsubscribe = onSnapshot(
-      collection(db, "orders"),
+      query(
+        collection(db, "orders"),
+        where("businessId", "==", userProfile.businessId)
+      ),
       (snapshot) => {
         let ordersList = snapshot.docs.map((doc) => ({
           id: doc.id,
@@ -114,67 +128,45 @@ export default function DashboardScreen() {
 
         setOrders(ordersList);
 
-        // Fetch clients and calculate summary data
-        const clientsUnsubscribe = onSnapshot(
-          collection(db, "clients"),
-          (clientsSnapshot) => {
-            const clientsList = clientsSnapshot.docs.map((doc) => ({
-              id: doc.id,
-              ...doc.data(),
-            }));
+        // Calculate totals using the filtered clients list
+        const totalProjects = ordersList.length;
+        const totalClientBudget = clients.reduce((sum, client) => {
+          return sum + (Number(client.budget) || 0);
+        }, 0);
 
-            // Calculate totals
-            const totalProjects = ordersList.length;
+        const totalOrderAmount = ordersList.reduce((sum, order) => {
+          return sum + (Number(order.amount) || 0);
+        }, 0);
 
-            const totalClientBudget = clientsList.reduce((sum, client) => {
-              return sum + (Number(client.budget) || 0);
-            }, 0);
+        const totalProfit = totalClientBudget - totalOrderAmount;
 
-            const totalOrderAmount = ordersList.reduce((sum, order) => {
-              return sum + (Number(order.amount) || 0);
-            }, 0);
-
-            const totalProfit = totalClientBudget - totalOrderAmount;
-
-            // Update summaryData
-            setSummaryData([
-              {
-                icon: "briefcase",
-                label: "Total Projects",
-                value: totalProjects.toString(),
-                iconColor: "#0047CC",
-              },
-              {
-                icon: "dollar-sign",
-                label: "Total Profit",
-                value: `$${totalProfit.toLocaleString()}`,
-                iconColor: "#4CAF50",
-              },
-              {
-                icon: "arrow-up",
-                label: "Income",
-                value: `$${totalClientBudget.toLocaleString()}`,
-                iconColor: "#2196F3",
-              },
-              {
-                icon: "arrow-down",
-                label: "Expenses",
-                value: `$${totalOrderAmount.toLocaleString()}`,
-                iconColor: "#F44336",
-              },
-            ]);
+        // Update summaryData
+        setSummaryData([
+          {
+            icon: "briefcase",
+            label: "Total Projects",
+            value: totalProjects.toString(),
+            iconColor: "#0047CC",
           },
-          (error) => {
-            console.error("Error fetching clients: ", error);
-            Alert.alert(
-              "Error",
-              "Failed to load clients data. Please try again."
-            );
-          }
-        );
-
-        // Cleanup clients listener when orders change
-        return () => clientsUnsubscribe();
+          {
+            icon: "dollar-sign",
+            label: "Total Profit",
+            value: `$${totalProfit.toLocaleString()}`,
+            iconColor: "#4CAF50",
+          },
+          {
+            icon: "arrow-up",
+            label: "Income",
+            value: `$${totalClientBudget.toLocaleString()}`,
+            iconColor: "#2196F3",
+          },
+          {
+            icon: "arrow-down",
+            label: "Expenses",
+            value: `$${totalOrderAmount.toLocaleString()}`,
+            iconColor: "#F44336",
+          },
+        ]);
       },
       (error) => {
         console.error("Error fetching orders: ", error);
@@ -188,7 +180,7 @@ export default function DashboardScreen() {
       employeesUnsubscribe();
       clientsUnsubscribe();
     };
-  }, []);
+  }, [userProfile?.businessId]);
 
   const getIconColor = (status) => {
     switch (status?.toLowerCase()) {

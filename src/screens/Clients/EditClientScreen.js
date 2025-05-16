@@ -33,6 +33,7 @@ import {
 import { doc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../../config/firebase";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import { useAuth } from "../../context/AuthContext";
 
 const paymentTerms = [
   "Full Payment",
@@ -71,6 +72,7 @@ const getTheme = (colorScheme) => ({
 
 export default function EditClientScreen({ route, navigation }) {
   const { client } = route.params;
+  const { userProfile } = useAuth();
   const [fadeAnim] = useState(new Animated.Value(0));
   const [scaleAnim] = useState(new Animated.Value(0.95));
   const [showTagModal, setShowTagModal] = useState(false);
@@ -81,6 +83,17 @@ export default function EditClientScreen({ route, navigation }) {
   const theme = getTheme(colorScheme);
 
   useEffect(() => {
+    // Check if client belongs to user's business
+    if (client.businessId !== userProfile?.businessId) {
+      Alert.alert(
+        "Access Denied",
+        "You don't have permission to edit this client.",
+        [{ text: "OK", onPress: () => navigation.goBack() }],
+        { cancelable: false }
+      );
+      return;
+    }
+
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -94,7 +107,7 @@ export default function EditClientScreen({ route, navigation }) {
         useNativeDriver: true,
       }),
     ]).start();
-  }, []);
+  }, [client.businessId, userProfile?.businessId]);
 
   const initialValues = {
     fullName: client.fullName || "",
@@ -113,8 +126,20 @@ export default function EditClientScreen({ route, navigation }) {
 
   const handleSubmit = async (values, { setSubmitting, setErrors }) => {
     try {
+      // Additional security check
+      if (client.businessId !== userProfile?.businessId) {
+        Alert.alert(
+          "Access Denied",
+          "You don't have permission to edit this client.",
+          [{ text: "OK" }],
+          { cancelable: false }
+        );
+        return;
+      }
+
       const updatedValues = {
         ...values,
+        businessId: userProfile.businessId, // Ensure businessId is preserved
         budget: values.budget ? parseFloat(values.budget) : null,
         projectDeadline: values.projectDeadline
           ? values.projectDeadline.toISOString()

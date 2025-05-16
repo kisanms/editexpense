@@ -30,6 +30,7 @@ import {
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "../../config/firebase";
 import { useFocusEffect } from "@react-navigation/native";
+import { useAuth } from "../../context/AuthContext";
 
 const getTheme = (colorScheme) => ({
   colors: {
@@ -44,6 +45,7 @@ const getTheme = (colorScheme) => ({
 });
 
 export default function ClientsScreen({ navigation }) {
+  const { userProfile } = useAuth();
   const [clients, setClients] = useState([]);
   const [filteredClients, setFilteredClients] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -64,9 +66,15 @@ export default function ClientsScreen({ navigation }) {
 
   const fetchClients = async () => {
     try {
+      if (!userProfile?.businessId) {
+        console.warn("No business ID found for user");
+        return;
+      }
+
       setRefreshing(true);
       const q = query(
         collection(db, "clients"),
+        where("businessId", "==", userProfile.businessId),
         where("status", "==", "active")
       );
       const querySnapshot = await getDocs(q);
@@ -85,8 +93,10 @@ export default function ClientsScreen({ navigation }) {
 
   useFocusEffect(
     useCallback(() => {
-      fetchClients();
-    }, [])
+      if (userProfile?.businessId) {
+        fetchClients();
+      }
+    }, [userProfile?.businessId])
   );
 
   const onRefresh = useCallback(() => {

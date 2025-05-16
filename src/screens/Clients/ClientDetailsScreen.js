@@ -29,6 +29,7 @@ import {
 import { doc, getDoc, deleteDoc } from "firebase/firestore";
 import { db } from "../../config/firebase";
 import { useFocusEffect } from "@react-navigation/native";
+import { useAuth } from "../../context/AuthContext";
 
 const getTheme = (colorScheme) => ({
   colors: {
@@ -44,6 +45,7 @@ const getTheme = (colorScheme) => ({
 
 export default function ClientDetailsScreen({ route, navigation }) {
   const { client: initialClient } = route.params;
+  const { userProfile } = useAuth();
   const [client, setClient] = useState(initialClient);
   const [fadeAnim] = useState(new Animated.Value(0));
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -53,20 +55,53 @@ export default function ClientDetailsScreen({ route, navigation }) {
   const theme = getTheme(colorScheme);
 
   useEffect(() => {
+    // Check if client belongs to user's business
+    if (initialClient.businessId !== userProfile?.businessId) {
+      Alert.alert(
+        "Access Denied",
+        "You don't have permission to view this client.",
+        [{ text: "OK", onPress: () => navigation.goBack() }],
+        { cancelable: false }
+      );
+      return;
+    }
+
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 600,
       useNativeDriver: true,
     }).start();
-  }, []);
+  }, [initialClient.businessId, userProfile?.businessId]);
 
   const fetchClientData = async () => {
     try {
+      // Additional security check
+      if (client.businessId !== userProfile?.businessId) {
+        Alert.alert(
+          "Access Denied",
+          "You don't have permission to view this client.",
+          [{ text: "OK", onPress: () => navigation.goBack() }],
+          { cancelable: false }
+        );
+        return;
+      }
+
       setRefreshing(true);
       const clientRef = doc(db, "clients", client.id);
       const clientSnap = await getDoc(clientRef);
       if (clientSnap.exists()) {
-        setClient({ id: clientSnap.id, ...clientSnap.data() });
+        const clientData = clientSnap.data();
+        // Verify businessId matches
+        if (clientData.businessId !== userProfile?.businessId) {
+          Alert.alert(
+            "Access Denied",
+            "You don't have permission to view this client.",
+            [{ text: "OK", onPress: () => navigation.goBack() }],
+            { cancelable: false }
+          );
+          return;
+        }
+        setClient({ id: clientSnap.id, ...clientData });
       } else {
         Alert.alert("Error", "Client not found.");
         navigation.goBack();
@@ -101,6 +136,17 @@ export default function ClientDetailsScreen({ route, navigation }) {
 
   const handleDelete = async () => {
     try {
+      // Additional security check
+      if (client.businessId !== userProfile?.businessId) {
+        Alert.alert(
+          "Access Denied",
+          "You don't have permission to delete this client.",
+          [{ text: "OK" }],
+          { cancelable: false }
+        );
+        return;
+      }
+
       setIsDeleting(true);
       const clientRef = doc(db, "clients", client.id);
       await deleteDoc(clientRef);

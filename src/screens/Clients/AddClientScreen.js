@@ -33,6 +33,7 @@ import {
 } from "react-native-responsive-screen";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../../config/firebase";
+import { useAuth } from "../../context/AuthContext";
 
 const commonTags = [
   "Residential",
@@ -82,6 +83,7 @@ const getTheme = (colorScheme) => ({
 });
 
 export default function AddClientScreen({ navigation }) {
+  const { userProfile } = useAuth();
   const [showTagsModal, setShowTagsModal] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -121,8 +123,19 @@ export default function AddClientScreen({ navigation }) {
 
   const handleSubmit = async (values, { setSubmitting, resetForm }) => {
     try {
+      if (!userProfile?.businessId) {
+        Alert.alert(
+          "Error",
+          "No business ID found. Please try again later.",
+          [{ text: "OK" }],
+          { cancelable: false }
+        );
+        return;
+      }
+
       const docRef = await addDoc(collection(db, "clients"), {
         ...values,
+        businessId: userProfile.businessId,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
         status: "active",

@@ -22,6 +22,7 @@ import {
 } from "react-native-responsive-screen";
 import { doc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../../config/firebase";
+import { useAuth } from "../../context/AuthContext";
 
 const validationSchema = Yup.object().shape({
   fullName: Yup.string().required("Full name is required"),
@@ -48,12 +49,24 @@ const getTheme = (colorScheme) => ({
 
 export default function EditEmployeeScreen({ route, navigation }) {
   const { employee } = route.params;
+  const { userProfile } = useAuth();
   const [fadeAnim] = useState(new Animated.Value(0));
   const [scaleAnim] = useState(new Animated.Value(0.95));
   const colorScheme = useColorScheme();
   const theme = getTheme(colorScheme);
 
   useEffect(() => {
+    // Check if employee belongs to user's business
+    if (employee.businessId !== userProfile?.businessId) {
+      Alert.alert(
+        "Access Denied",
+        "You don't have permission to edit this employee.",
+        [{ text: "OK", onPress: () => navigation.goBack() }],
+        { cancelable: false }
+      );
+      return;
+    }
+
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -67,7 +80,7 @@ export default function EditEmployeeScreen({ route, navigation }) {
         useNativeDriver: true,
       }),
     ]).start();
-  }, []);
+  }, [employee.businessId, userProfile?.businessId]);
 
   const initialValues = {
     fullName: employee.fullName,
@@ -80,9 +93,21 @@ export default function EditEmployeeScreen({ route, navigation }) {
 
   const handleSubmit = async (values, { setSubmitting }) => {
     try {
+      // Additional security check
+      if (employee.businessId !== userProfile?.businessId) {
+        Alert.alert(
+          "Access Denied",
+          "You don't have permission to edit this employee.",
+          [{ text: "OK" }],
+          { cancelable: false }
+        );
+        return;
+      }
+
       const employeeRef = doc(db, "employees", employee.id);
       await updateDoc(employeeRef, {
         ...values,
+        businessId: userProfile.businessId, // Ensure businessId is preserved
         updatedAt: serverTimestamp(),
       });
 

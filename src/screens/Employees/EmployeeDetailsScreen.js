@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Animated,
   useColorScheme,
+  Alert,
 } from "react-native";
 import {
   Text,
@@ -27,6 +28,7 @@ import {
 } from "react-native-responsive-screen";
 import { doc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../../config/firebase";
+import { useAuth } from "../../context/AuthContext";
 
 const getTheme = (colorScheme) => ({
   colors: {
@@ -42,6 +44,7 @@ const getTheme = (colorScheme) => ({
 
 export default function EmployeeDetailsScreen({ route, navigation }) {
   const { employee } = route.params;
+  const { userProfile } = useAuth();
   const [fadeAnim] = useState(new Animated.Value(0));
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -50,35 +53,74 @@ export default function EmployeeDetailsScreen({ route, navigation }) {
   const theme = getTheme(colorScheme);
 
   useEffect(() => {
+    // Check if employee belongs to user's business
+    if (employee.businessId !== userProfile?.businessId) {
+      Alert.alert(
+        "Access Denied",
+        "You don't have permission to view this employee.",
+        [{ text: "OK", onPress: () => navigation.goBack() }],
+        { cancelable: false }
+      );
+      return;
+    }
+
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 600,
       useNativeDriver: true,
     }).start();
-  }, []);
+  }, [employee.businessId, userProfile?.businessId]);
 
   const handleStatusChange = async (status) => {
     try {
+      // Additional security check
+      if (employee.businessId !== userProfile?.businessId) {
+        Alert.alert(
+          "Access Denied",
+          "You don't have permission to modify this employee.",
+          [{ text: "OK" }],
+          { cancelable: false }
+        );
+        return;
+      }
+
       const employeeRef = doc(db, "employees", employee.id);
       await updateDoc(employeeRef, {
         status,
+        businessId: userProfile.businessId, // Ensure businessId is preserved
         updatedAt: serverTimestamp(),
       });
       navigation.setParams({ employee: { ...employee, status } });
       setMenuVisible(false);
     } catch (error) {
       console.error("Error updating status: ", error);
+      Alert.alert(
+        "Error",
+        "Failed to update employee status. Please try again."
+      );
     }
   };
 
   const handleDelete = async () => {
     try {
+      // Additional security check
+      if (employee.businessId !== userProfile?.businessId) {
+        Alert.alert(
+          "Access Denied",
+          "You don't have permission to delete this employee.",
+          [{ text: "OK" }],
+          { cancelable: false }
+        );
+        return;
+      }
+
       setIsDeleting(true);
       const employeeRef = doc(db, "employees", employee.id);
       await deleteDoc(employeeRef);
       navigation.goBack();
     } catch (error) {
       console.error("Error deleting employee: ", error);
+      Alert.alert("Error", "Failed to delete employee. Please try again.");
     } finally {
       setIsDeleting(false);
       setShowDeleteModal(false);
