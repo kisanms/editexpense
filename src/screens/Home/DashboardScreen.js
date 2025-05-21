@@ -219,7 +219,7 @@ export default function DashboardScreen() {
               },
             ]}
           >
-            <Ionicons name="person" size={24} color={statusColor} />
+            <Ionicons name="person" size={wp("4.5%")} color={statusColor} />
           </View>
           <View style={styles.orderDetails}>
             <Text
@@ -291,16 +291,41 @@ export default function DashboardScreen() {
       >
         {/* Header with Profile Button */}
         <LinearGradient
-          colors={["#1E3A8A", "#3B82F6"]}
+          colors={
+            colorScheme === "dark"
+              ? ["#1A1A1A", "#1A1A1A"]
+              : ["#2563EB", "#2563EB"]
+          }
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={styles.headerGradient}
+          style={[
+            styles.headerGradient,
+            { backgroundColor: colorScheme === "dark" ? "#1A1A1A" : "#2563EB" }
+          ]}
         >
           <View style={styles.header}>
-            <Text style={styles.title}>Rcm</Text>
-            <TouchableOpacity onPress={() => navigation.navigate("Profile")}>
+            <View style={styles.headerTextContainer}>
+              <Text style={styles.title}>Rcm</Text>
+              <Text style={styles.welcomeText}>
+                Welcome
+                {businessDetails?.name ? `, ${businessDetails.name}` : ""}
+              </Text>
+              <Text style={styles.subtitle}>
+                Manage your finances with ease
+              </Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => navigation.navigate("Profile")}
+              style={styles.profileButtonWrapper}
+              activeOpacity={0.7}
+            >
               <View style={styles.profileButton}>
-                <Ionicons name="person" size={20} color="#fff" />
+                <Ionicons
+                  name="person-circle-sharp"
+                  size={64}
+                  color="#FFFFFF"
+                  style={{ marginLeft: wp(1) }}
+                />
               </View>
             </TouchableOpacity>
           </View>
@@ -325,7 +350,7 @@ export default function DashboardScreen() {
             >
               <FontAwesome5
                 name={item.icon}
-                size={wp(6)}
+                size={wp(5)}
                 color={item.iconColor}
               />
               <Text
@@ -391,25 +416,39 @@ const styles = StyleSheet.create({
   headerGradient: {
     paddingHorizontal: wp("5%"),
     paddingVertical: hp("2%"),
-    borderBottomLeftRadius: wp("8%"),
-    borderBottomRightRadius: wp("8%"),
-    marginBottom: hp("2%"),
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
+  headerTextContainer: {
+    flex: 1,
+  },
   title: {
-    fontSize: hp("3%"),
+    fontSize: wp("5%"),
     fontWeight: "bold",
     color: "#FFFFFF",
+    letterSpacing: 0.5,
+  },
+  welcomeText: {
+    fontSize: wp("4%"),
+    fontWeight: "500",
+    color: "#FFFFFF",
+    opacity: 0.9,
+    marginTop: hp("0.5%"),
+  },
+  subtitle: {
+    fontSize: wp("3.5%"),
+    color: "#FFFFFF",
+    opacity: 0.7,
+    marginTop: hp("0.3%"),
+  },
+  profileButtonWrapper: {
+    marginLeft: wp("2%"),
   },
   profileButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.2)",
+    padding: 0,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -421,88 +460,101 @@ const styles = StyleSheet.create({
     paddingVertical: hp("2%"),
   },
   card: {
-    width: wp("42%"),
+    width: wp("44%"),
     padding: wp("4%"),
-    borderRadius: wp("5%"),
     marginBottom: hp("2%"),
     alignItems: "flex-start",
-    elevation: 5,
+    borderRadius: 12,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 4,
   },
   cardLabel: {
-    fontSize: wp("3%"),
+    fontSize: wp("3.5%"),
     marginTop: hp("1%"),
     fontWeight: "600",
+    opacity: 0.8,
   },
   cardValue: {
-    fontSize: wp("5%"),
+    fontSize: wp("4.2%"),
     fontWeight: "bold",
-    marginTop: hp("0.5%"),
+    marginTop: hp("0.8%"),
   },
   section: {
-    padding: hp(2),
+    padding: wp("5%"),
+    marginTop: hp("1%"),
   },
   sectionTitle: {
-    fontSize: hp("2.5%"),
+    fontSize: wp("5%"),
     fontWeight: "bold",
-    marginBottom: hp("1%"),
+    marginBottom: hp("2%"),
+    letterSpacing: 0.5,
   },
   ordersList: {
-    maxHeight: hp(40),
+    maxHeight: hp(45),
   },
   orderItem: {
-    borderRadius: 20,
-    marginBottom: hp(2),
-    padding: 15,
-    elevation: 5,
+    padding: wp("3.5%"),
+    marginBottom: hp("2%"),
+    borderRadius: 12,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 4,
   },
   orderHeader: {
     flexDirection: "row",
     alignItems: "center",
+    marginBottom: hp("1.2%"),
   },
   avatar: {
-    width: 45,
-    height: 45,
-    borderRadius: 23,
+    width: wp("10%"),
+    height: wp("10%"),
     justifyContent: "center",
     alignItems: "center",
+    borderRadius: wp("5%"),
   },
   orderDetails: {
     flex: 1,
-    marginLeft: 12,
+    marginLeft: wp("2.8%"),
   },
   orderName: {
-    fontSize: 16,
+    fontSize: wp("3.5%"),
     fontWeight: "bold",
+    marginBottom: hp("0.6%"),
   },
   orderMeta: {
-    fontSize: 14,
-    marginTop: 2,
+    fontSize: wp("3.2%"),
+    opacity: 0.8,
   },
   orderAmount: {
-    fontSize: 18,
+    fontSize: wp("3.5%"),
     fontWeight: "bold",
   },
   orderFooter: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 10,
-    paddingTop: 10,
-    borderTopWidth: 1,
+    marginTop: hp("1.5%"),
+    paddingTop: hp("1.5%"),
+    borderTopWidth: 0.5,
   },
   orderAssigned: {
-    fontSize: 14,
+    fontSize: wp("3.2%"),
+    opacity: 0.9,
   },
   orderClient: {
-    fontSize: 14,
-    marginTop: 2,
+    fontSize: wp("3.2%"),
+    marginTop: hp("0.5%"),
+    opacity: 0.9,
   },
   emptyText: {
     fontSize: hp(2),
