@@ -150,6 +150,7 @@ const styles = StyleSheet.create({
   },
   ordersList: {
     flexGrow: 0,
+    marginBottom: hp("-3%"),
   },
   orderItem: {
     width: wp("85%"), // Fixed width for horizontal cards

@@ -23,6 +23,7 @@ import { useAuth } from "../../context/AuthContext";
 import { collection, onSnapshot, query, where } from "firebase/firestore";
 import { db } from "../../config/firebase";
 import RecentOrders from "../../component/RecentOrders"; // Import the new component
+import RecentClients from "../../component/RecentClients"; // Import the new component
 
 const { width } = Dimensions.get("window");
 
@@ -286,6 +287,12 @@ export default function DashboardScreen() {
           employees={employees}
           clients={clients}
           colorScheme={colorScheme}
+        />
+        {/* Recent Clients Component */}
+        <RecentClients
+          clients={clients}
+          colorScheme={colorScheme}
+          navigation={navigation}
         />
       </ScrollView>
     </SafeAreaView>
