@@ -153,7 +153,7 @@ const styles = StyleSheet.create({
     marginBottom: hp("-3%"),
   },
   orderItem: {
-    width: wp("85%"), // Fixed width for horizontal cards
+    width: wp("90%"), // Fixed width for horizontal cards
     padding: wp("3.5%"),
     borderRadius: 12,
     shadowColor: "#000",

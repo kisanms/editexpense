@@ -192,7 +192,7 @@ const styles = StyleSheet.create({
     flexGrow: 0,
   },
   clientItem: {
-    width: wp("85%"),
+    width: wp("90%"),
     padding: wp("3.5%"),
     borderRadius: 12,
     shadowColor: "#000",
