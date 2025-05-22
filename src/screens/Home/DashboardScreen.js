@@ -8,7 +8,6 @@ import {
   Dimensions,
   Alert,
   StatusBar,
-  FlatList,
   useColorScheme,
 } from "react-native";
 import {
@@ -23,6 +22,7 @@ import { useNavigation } from "@react-navigation/native";
 import { useAuth } from "../../context/AuthContext";
 import { collection, onSnapshot, query, where } from "firebase/firestore";
 import { db } from "../../config/firebase";
+import RecentOrders from "../../component/RecentOrders"; // Import the new component
 
 const { width } = Dimensions.get("window");
 
@@ -181,99 +181,6 @@ export default function DashboardScreen() {
     ]);
   }, [orders, clients]);
 
-  const getIconColor = (status) => {
-    switch (status?.toLowerCase()) {
-      case "in-progress":
-        return "#0047CC";
-      case "completed":
-        return "#4CAF50";
-      case "cancelled":
-        return "#F44336";
-      default:
-        return "#0047CC";
-    }
-  };
-
-  const renderOrderCard = ({ item: order }) => {
-    const employee = employees.find((emp) => emp.id === order.employeeId);
-    const employeeName = employee ? employee.fullName : "N/A";
-
-    const client = clients.find((cli) => cli.id === order.clientId);
-    const clientName = client ? client.fullName : "N/A";
-
-    const statusColor = getIconColor(order.status);
-
-    return (
-      <View
-        style={[
-          styles.orderItem,
-          { backgroundColor: colorScheme === "dark" ? "#2A2A2A" : "#fff" },
-        ]}
-      >
-        <View style={styles.orderHeader}>
-          <View
-            style={[
-              styles.avatar,
-              {
-                backgroundColor: colorScheme === "dark" ? "#3A3A3A" : "#F3F4F6",
-              },
-            ]}
-          >
-            <Ionicons name="person" size={wp("4.5%")} color={statusColor} />
-          </View>
-          <View style={styles.orderDetails}>
-            <Text
-              style={[
-                styles.orderName,
-                { color: colorScheme === "dark" ? "#fff" : "#000" },
-              ]}
-            >
-              {order.name || order.title}
-            </Text>
-            <Text style={[styles.orderMeta, { color: statusColor }]}>
-              {order.status} · Due:{" "}
-              {order.due ||
-                (order.deadline?.toDate
-                  ? order.deadline.toDate().toLocaleDateString()
-                  : "N/A")}
-            </Text>
-          </View>
-          <Text
-            style={[
-              styles.orderAmount,
-              { color: colorScheme === "dark" ? "#fff" : "#000" },
-            ]}
-          >
-            ${Number(order.amount).toLocaleString()}
-          </Text>
-        </View>
-        <View
-          style={[
-            styles.orderFooter,
-            { borderTopColor: colorScheme === "dark" ? "#444" : "#E5E7EB" },
-          ]}
-        >
-          <Text
-            style={[
-              styles.orderAssigned,
-              { color: colorScheme === "dark" ? "#A0A0A0" : "#6B7280" },
-            ]}
-          >
-            Assigned to: {employeeName}
-          </Text>
-          <Text
-            style={[
-              styles.orderClient,
-              { color: colorScheme === "dark" ? "#A0A0A0" : "#6B7280" },
-            ]}
-          >
-            Client: {clientName}
-          </Text>
-        </View>
-      </View>
-    );
-  };
-
   return (
     <SafeAreaView
       style={[
@@ -300,7 +207,7 @@ export default function DashboardScreen() {
           end={{ x: 1, y: 1 }}
           style={[
             styles.headerGradient,
-            { backgroundColor: colorScheme === "dark" ? "#1A1A1A" : "#2563EB" }
+            { backgroundColor: colorScheme === "dark" ? "#1A1A1A" : "#2563EB" },
           ]}
         >
           <View style={styles.header}>
@@ -373,37 +280,13 @@ export default function DashboardScreen() {
           ))}
         </View>
 
-        {/* Recent Orders */}
-        <View style={styles.section}>
-          <Text
-            style={[
-              styles.sectionTitle,
-              { color: colorScheme === "dark" ? "#3B82F6" : "#0047CC" },
-            ]}
-          >
-            Recent Orders
-          </Text>
-          {orders.length === 0 ? (
-            <Text
-              style={[
-                styles.emptyText,
-                { color: colorScheme === "dark" ? "#A0A0A0" : "#6B7280" },
-              ]}
-            >
-              No recent orders available.
-            </Text>
-          ) : (
-            <FlatList
-              data={orders.slice(0, 2)} // Limit to the first two orders
-              renderItem={renderOrderCard}
-              keyExtractor={(item) => item.id}
-              style={styles.ordersList}
-              showsVerticalScrollIndicator={false}
-              scrollEnabled={false}
-              ListFooterComponent={<View style={{ height: hp(2) }} />}
-            />
-          )}
-        </View>
+        {/* Recent Orders Component */}
+        <RecentOrders
+          orders={orders}
+          employees={employees}
+          clients={clients}
+          colorScheme={colorScheme}
+        />
       </ScrollView>
     </SafeAreaView>
   );
@@ -458,11 +341,12 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: wp("5%"),
     paddingVertical: hp("2%"),
+    marginBottom: hp("-3%"),
   },
   card: {
     width: wp("44%"),
     padding: wp("4%"),
-    marginBottom: hp("2%"),
+    marginBottom: hp("1%"),
     alignItems: "flex-start",
     borderRadius: 12,
     shadowColor: "#000",
@@ -484,81 +368,5 @@ const styles = StyleSheet.create({
     fontSize: wp("4.2%"),
     fontWeight: "bold",
     marginTop: hp("0.8%"),
-  },
-  section: {
-    padding: wp("5%"),
-    marginTop: hp("1%"),
-  },
-  sectionTitle: {
-    fontSize: wp("5%"),
-    fontWeight: "bold",
-    marginBottom: hp("2%"),
-    letterSpacing: 0.5,
-  },
-  ordersList: {
-    maxHeight: hp(45),
-  },
-  orderItem: {
-    padding: wp("3.5%"),
-    marginBottom: hp("2%"),
-    borderRadius: 12,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  orderHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: hp("1.2%"),
-  },
-  avatar: {
-    width: wp("10%"),
-    height: wp("10%"),
-    justifyContent: "center",
-    alignItems: "center",
-    borderRadius: wp("5%"),
-  },
-  orderDetails: {
-    flex: 1,
-    marginLeft: wp("2.8%"),
-  },
-  orderName: {
-    fontSize: wp("3.5%"),
-    fontWeight: "bold",
-    marginBottom: hp("0.6%"),
-  },
-  orderMeta: {
-    fontSize: wp("3.2%"),
-    opacity: 0.8,
-  },
-  orderAmount: {
-    fontSize: wp("3.5%"),
-    fontWeight: "bold",
-  },
-  orderFooter: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: hp("1.5%"),
-    paddingTop: hp("1.5%"),
-    borderTopWidth: 0.5,
-  },
-  orderAssigned: {
-    fontSize: wp("3.2%"),
-    opacity: 0.9,
-  },
-  orderClient: {
-    fontSize: wp("3.2%"),
-    marginTop: hp("0.5%"),
-    opacity: 0.9,
-  },
-  emptyText: {
-    fontSize: hp(2),
-    textAlign: "center",
-    marginVertical: hp(2),
   },
 });
