@@ -1,15 +1,18 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import {
   View,
   ActivityIndicator,
   StyleSheet,
   TouchableOpacity,
+  Animated,
+  useColorScheme,
 } from "react-native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { useAuth } from "../context/AuthContext";
 import { Text } from "react-native-paper";
 import { FontAwesome5 } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
@@ -37,10 +40,51 @@ import ProfileScreen from "../screens/Home/ProfileScreen";
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
-// Custom Tab Bar Component
-const CustomTabBar = ({ state, descriptors, navigation }) => {
+// Custom BottomTab Bar Component with Refined Design
+const CustomTabBar = React.memo(({ state, descriptors, navigation }) => {
+  const colorScheme = useColorScheme();
+  const tabWidth = wp("100%") / state.routes.length; // Dynamic width per tab
+  const animatedValues = useRef(
+    state.routes.map(() => ({
+      lift: new Animated.Value(0), // For pop-up effect
+      scale: new Animated.Value(1), // For icon container scaling
+      pressScale: new Animated.Value(1), // For press feedback
+    }))
+  ).current;
+
+  // Animate lift and scale for each tab when the active tab changes
+  useEffect(() => {
+    animatedValues.forEach((value, index) => {
+      const isFocused = state.index === index;
+      Animated.parallel([
+        Animated.spring(value.lift, {
+          toValue: isFocused ? -10 : 0, // Lift active tab
+          useNativeDriver: true,
+          tension: 60,
+          friction: 8,
+        }),
+        Animated.spring(value.scale, {
+          toValue: isFocused ? 1.1 : 1, // Scale icon container on active
+          useNativeDriver: true,
+          tension: 60,
+          friction: 8,
+        }),
+      ]).start();
+    });
+  }, [state.index, animatedValues]);
+
   return (
     <View style={styles.bottomNav}>
+      <LinearGradient
+        colors={
+          colorScheme === "dark"
+            ? ["#111827", "#1F2937"]
+            : ["#E0E7FF", "#F8FAFC"]
+        }
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={styles.gradient}
+      />
       {state.routes.map((route, index) => {
         const { options } = descriptors[route.key];
         const label = options.tabBarLabel || options.title || route.name;
@@ -56,11 +100,25 @@ const CustomTabBar = ({ state, descriptors, navigation }) => {
           if (!isFocused && !event.defaultPrevented) {
             navigation.navigate(route.name);
           }
+
+          // Press animation
+          Animated.sequence([
+            Animated.timing(animatedValues[index].pressScale, {
+              toValue: 0.95,
+              duration: 100,
+              useNativeDriver: true,
+            }),
+            Animated.timing(animatedValues[index].pressScale, {
+              toValue: 1,
+              duration: 100,
+              useNativeDriver: true,
+            }),
+          ]).start();
         };
 
         const getIcon = () => {
           switch (route.name) {
-            case "Dashboard":
+            case "Home":
               return "home";
             case "Clients":
               return "users";
@@ -78,23 +136,58 @@ const CustomTabBar = ({ state, descriptors, navigation }) => {
         return (
           <TouchableOpacity
             key={route.key}
-            style={[styles.navItem, isFocused && styles.navItemActive]}
+            style={[styles.navItem, { width: tabWidth }]}
             onPress={onPress}
           >
-            <FontAwesome5
-              name={getIcon()}
-              size={20}
-              color={isFocused ? "#0047CC" : "#666"}
-            />
-            <Text style={isFocused ? styles.navTextActive : styles.navText}>
-              {label}
-            </Text>
+            <Animated.View
+              style={{
+                transform: [
+                  { translateY: animatedValues[index].lift },
+                  { scale: animatedValues[index].pressScale },
+                ],
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Animated.View
+                style={[
+                  styles.iconContainer,
+                  isFocused && styles.iconContainerActive,
+                  isFocused &&
+                    (colorScheme === "dark"
+                      ? styles.iconContainerActiveDark
+                      : {}),
+                  { transform: [{ scale: animatedValues[index].scale }] },
+                ]}
+              >
+                <FontAwesome5
+                  name={getIcon()}
+                  size={24}
+                  color={isFocused ? "#FFFFFF" : "#666"}
+                />
+              </Animated.View>
+              <Text
+                style={[
+                  styles.navText,
+                  {
+                    color: isFocused
+                      ? colorScheme === "dark"
+                        ? "#3B82F6"
+                        : "#0047CC"
+                      : "#666",
+                    fontWeight: isFocused ? "600" : "400",
+                  },
+                ]}
+              >
+                {label}
+              </Text>
+            </Animated.View>
           </TouchableOpacity>
         );
       })}
     </View>
   );
-};
+});
 
 // Main Tab Navigator
 function MainTabs() {
@@ -133,10 +226,8 @@ const AppNavigator = () => {
       }}
     >
       {user ? (
-        // User is signed in - Show MainTabs
         <Stack.Screen name="MainTabs" component={MainTabs} />
       ) : (
-        // User is signed out - Show authentication screens
         <>
           <Stack.Screen name="Login" component={LoginScreen} />
           <Stack.Screen name="Register" component={RegisterScreen} />
@@ -179,10 +270,9 @@ const styles = StyleSheet.create({
   bottomNav: {
     flexDirection: "row",
     justifyContent: "space-around",
-    padding: 15,
-    backgroundColor: "#fff",
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
+    paddingVertical: 15,
+    borderTopLeftRadius: 25,
+    borderTopRightRadius: 25,
     position: "absolute",
     bottom: 0,
     left: 0,
@@ -193,25 +283,35 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 5,
   },
+  gradient: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderTopLeftRadius: 25,
+    borderTopRightRadius: 25,
+  },
   navItem: {
     alignItems: "center",
-  },
-  navItemActive: {
-    backgroundColor: "rgba(0, 71, 204, 0.1)",
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    borderRadius: 20,
+    justifyContent: "center",
   },
   navText: {
-    color: "#666666",
     fontSize: 12,
-    marginTop: 4,
+    marginTop: 6,
   },
-  navTextActive: {
-    color: "#0047CC",
-    fontSize: 12,
-    marginTop: 4,
-    fontWeight: "600",
+  iconContainer: {
+    width: 40,
+    height: 40,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  iconContainerActive: {
+    backgroundColor: "#0047CC",
+    borderRadius: 20,
+  },
+  iconContainerActiveDark: {
+    backgroundColor: "#3B82F6",
   },
 });
 
