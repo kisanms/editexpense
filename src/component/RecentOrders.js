@@ -140,7 +140,7 @@ const RecentOrders = ({ orders, employees, clients, colorScheme }) => {
 const styles = StyleSheet.create({
   section: {
     padding: wp("5%"),
-    marginTop: hp("0.2%"),
+    marginTop: hp("0.1%"),
   },
   sectionTitle: {
     fontSize: wp("5%"),
@@ -157,13 +157,13 @@ const styles = StyleSheet.create({
     padding: wp("3.5%"),
     borderRadius: 12,
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 4,
+    // shadowOffset: {
+    //   width: 0,
+    //   height: 2,
+    // },
+    // shadowOpacity: 0.1,
+    // shadowRadius: 4,
+    // elevation: 4,
   },
   orderHeader: {
     flexDirection: "row",
@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
   orderName: {
     fontSize: wp("3.5%"),
     fontWeight: "bold",
-    marginBottom: hp("0.6%"),
+    marginBottom: hp("0.5%"),
   },
   orderMeta: {
     fontSize: wp("3.2%"),
@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
   orderFooter: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: hp("1.5%"),
+    marginTop: hp("1%"),
     paddingTop: hp("1.5%"),
     borderTopWidth: 0.5,
   },

@@ -22,8 +22,8 @@ import { useNavigation } from "@react-navigation/native";
 import { useAuth } from "../../context/AuthContext";
 import { collection, onSnapshot, query, where } from "firebase/firestore";
 import { db } from "../../config/firebase";
-import RecentOrders from "../../component/RecentOrders"; // Import the new component
-import RecentClients from "../../component/RecentClients"; // Import the new component
+import RecentOrders from "../../component/RecentOrders";
+import RecentClients from "../../component/RecentClients";
 
 const { width } = Dimensions.get("window");
 
@@ -68,7 +68,6 @@ export default function DashboardScreen() {
       return;
     }
 
-    // Listener for employees
     const employeesUnsubscribe = onSnapshot(
       query(
         collection(db, "employees"),
@@ -86,7 +85,6 @@ export default function DashboardScreen() {
       }
     );
 
-    // Listener for clients
     const clientsUnsubscribe = onSnapshot(
       query(
         collection(db, "clients"),
@@ -104,7 +102,6 @@ export default function DashboardScreen() {
       }
     );
 
-    // Listener for orders
     const ordersUnsubscribe = onSnapshot(
       query(
         collection(db, "orders"),
@@ -116,7 +113,6 @@ export default function DashboardScreen() {
           ...doc.data(),
         }));
 
-        // Sort orders by createdAt in descending order
         ordersList.sort((a, b) => {
           const dateA = a.createdAt?.toDate
             ? a.createdAt.toDate()
@@ -124,7 +120,7 @@ export default function DashboardScreen() {
           const dateB = b.createdAt?.toDate
             ? b.createdAt.toDate()
             : new Date(0);
-          return dateB - dateA; // Descending order
+          return dateB - dateA;
         });
 
         setOrders(ordersList);
@@ -135,7 +131,6 @@ export default function DashboardScreen() {
       }
     );
 
-    // Cleanup listeners on component unmount
     return () => {
       ordersUnsubscribe();
       employeesUnsubscribe();
@@ -143,7 +138,6 @@ export default function DashboardScreen() {
     };
   }, [userProfile?.businessId]);
 
-  // Update summaryData whenever orders or clients change
   useEffect(() => {
     const totalProjects = orders.length;
     const totalClientBudget = clients.reduce((sum, client) => {
@@ -186,18 +180,17 @@ export default function DashboardScreen() {
     <SafeAreaView
       style={[
         styles.container,
-        { backgroundColor: colorScheme === "dark" ? "#1A1A1A" : "#FFFFFF" },
+        { backgroundColor: colorScheme === "dark" ? "#1A1A1A" : "#EFF6FF" }, // Changed to bluish tone
       ]}
     >
       <StatusBar
         barStyle={colorScheme === "dark" ? "light-content" : "dark-content"}
-        backgroundColor={colorScheme === "light" ? "white" : "black"}
+        backgroundColor={colorScheme === "dark" ? "#1A1A1A" : "#EFF6FF"} // Match new background
       />
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: hp(12) }}
       >
-        {/* Header with Profile Button */}
         <LinearGradient
           colors={
             colorScheme === "dark"
@@ -239,12 +232,8 @@ export default function DashboardScreen() {
           </View>
         </LinearGradient>
 
-        {/* Summary Cards */}
         <View
-          style={[
-            styles.summaryContainer,
-            { backgroundColor: colorScheme === "dark" ? "#1A1A1A" : "#fff" },
-          ]}
+          style={[styles.summaryContainer, { backgroundColor: "transparent" }]}
         >
           {summaryData.map((item, index) => (
             <View
@@ -253,6 +242,8 @@ export default function DashboardScreen() {
                 styles.card,
                 {
                   backgroundColor: colorScheme === "dark" ? "#2A2A2A" : "#fff",
+                  borderWidth: colorScheme === "dark" ? 0 : 1, // Add border in light mode
+                  borderColor: colorScheme === "dark" ? undefined : "#E5E7EB",
                 },
               ]}
             >
@@ -281,14 +272,12 @@ export default function DashboardScreen() {
           ))}
         </View>
 
-        {/* Recent Orders Component */}
         <RecentOrders
           orders={orders}
           employees={employees}
           clients={clients}
           colorScheme={colorScheme}
         />
-        {/* Recent Clients Component */}
         <RecentClients
           clients={clients}
           colorScheme={colorScheme}
@@ -355,13 +344,13 @@ const styles = StyleSheet.create({
     padding: wp("4%"),
     marginBottom: hp("1%"),
     alignItems: "flex-start",
-    borderRadius: 12,
+    borderRadius: 16, // Increased from 12
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 2,
     },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.05, // Reduced from 0.1
     shadowRadius: 4,
     elevation: 4,
   },

@@ -196,13 +196,13 @@ const styles = StyleSheet.create({
     padding: wp("3.5%"),
     borderRadius: 12,
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 4,
+    // shadowOffset: {
+    //   width: 0,
+    //   height: 4,
+    // },
+    // shadowOpacity: 0.5,
+    // shadowRadius: 4,
+    // elevation: 4,
   },
   clientHeader: {
     flexDirection: "row",
