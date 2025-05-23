@@ -1,5 +1,11 @@
 import React from "react";
-import { View, Text, StyleSheet, FlatList } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+} from "react-native";
 import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
@@ -19,7 +25,13 @@ const getIconColor = (status, colorScheme) => {
   }
 };
 
-const RecentOrders = ({ orders, employees, clients, colorScheme }) => {
+const RecentOrders = ({
+  orders,
+  employees,
+  clients,
+  colorScheme,
+  navigation,
+}) => {
   const renderOrderCard = ({ item: order }) => {
     const employee = employees.find((emp) => emp.id === order.employeeId);
     const employeeName = employee ? employee.fullName : "N/A";
@@ -30,73 +42,78 @@ const RecentOrders = ({ orders, employees, clients, colorScheme }) => {
     const statusColor = getIconColor(order.status, colorScheme);
 
     return (
-      <View
-        style={[
-          styles.orderItem,
-          { backgroundColor: colorScheme === "dark" ? "#2A2A2A" : "#fff" },
-        ]}
+      <TouchableOpacity
+        onPress={() => navigation.navigate("OrderDetails", { order })}
       >
-        <View style={styles.orderHeader}>
-          <View
-            style={[
-              styles.avatar,
-              {
-                backgroundColor: colorScheme === "dark" ? "#3A3A3A" : "#F3F4F6",
-              },
-            ]}
-          >
-            <Ionicons name="person" size={wp("4.5%")} color={statusColor} />
-          </View>
-          <View style={styles.orderDetails}>
+        <View
+          style={[
+            styles.orderItem,
+            { backgroundColor: colorScheme === "dark" ? "#2A2A2A" : "#fff" },
+          ]}
+        >
+          <View style={styles.orderHeader}>
+            <View
+              style={[
+                styles.avatar,
+                {
+                  backgroundColor:
+                    colorScheme === "dark" ? "#3A3A3A" : "#F3F4F6",
+                },
+              ]}
+            >
+              <Ionicons name="person" size={wp("4.5%")} color={statusColor} />
+            </View>
+            <View style={styles.orderDetails}>
+              <Text
+                style={[
+                  styles.orderName,
+                  { color: colorScheme === "dark" ? "#fff" : "#000" },
+                ]}
+              >
+                {order.name || order.title}
+              </Text>
+              <Text style={[styles.orderMeta, { color: statusColor }]}>
+                {order.status} · Due:{" "}
+                {order.due ||
+                  (order.deadline?.toDate
+                    ? order.deadline.toDate().toLocaleDateString()
+                    : "N/A")}
+              </Text>
+            </View>
             <Text
               style={[
-                styles.orderName,
+                styles.orderAmount,
                 { color: colorScheme === "dark" ? "#fff" : "#000" },
               ]}
             >
-              {order.name || order.title}
-            </Text>
-            <Text style={[styles.orderMeta, { color: statusColor }]}>
-              {order.status} · Due:{" "}
-              {order.due ||
-                (order.deadline?.toDate
-                  ? order.deadline.toDate().toLocaleDateString()
-                  : "N/A")}
+              ${Number(order.amount).toLocaleString()}
             </Text>
           </View>
-          <Text
+          <View
             style={[
-              styles.orderAmount,
-              { color: colorScheme === "dark" ? "#fff" : "#000" },
+              styles.orderFooter,
+              { borderTopColor: colorScheme === "dark" ? "#444" : "#E5E7EB" },
             ]}
           >
-            ${Number(order.amount).toLocaleString()}
-          </Text>
+            <Text
+              style={[
+                styles.orderAssigned,
+                { color: colorScheme === "dark" ? "#A0A0A0" : "#6B7280" },
+              ]}
+            >
+              Assigned to: {employeeName}
+            </Text>
+            <Text
+              style={[
+                styles.orderClient,
+                { color: colorScheme === "dark" ? "#A0A0A0" : "#6B7280" },
+              ]}
+            >
+              Client: {clientName}
+            </Text>
+          </View>
         </View>
-        <View
-          style={[
-            styles.orderFooter,
-            { borderTopColor: colorScheme === "dark" ? "#444" : "#E5E7EB" },
-          ]}
-        >
-          <Text
-            style={[
-              styles.orderAssigned,
-              { color: colorScheme === "dark" ? "#A0A0A0" : "#6B7280" },
-            ]}
-          >
-            Assigned to: {employeeName}
-          </Text>
-          <Text
-            style={[
-              styles.orderClient,
-              { color: colorScheme === "dark" ? "#A0A0A0" : "#6B7280" },
-            ]}
-          >
-            Client: {clientName}
-          </Text>
-        </View>
-      </View>
+      </TouchableOpacity>
     );
   };
 

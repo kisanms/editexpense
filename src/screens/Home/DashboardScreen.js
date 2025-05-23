@@ -277,6 +277,7 @@ export default function DashboardScreen() {
           employees={employees}
           clients={clients}
           colorScheme={colorScheme}
+          navigation={navigation} // Pass the navigation prop
         />
         <RecentClients
           clients={clients}
