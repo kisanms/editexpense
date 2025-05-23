@@ -1,11 +1,5 @@
 import React from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TouchableOpacity,
-} from "react-native";
+import { View, Text, StyleSheet, FlatList, Pressable } from "react-native";
 import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
@@ -41,7 +35,7 @@ const RecentClients = ({ clients, colorScheme, navigation }) => {
       : "N/A";
 
     return (
-      <TouchableOpacity
+      <Pressable
         onPress={() => navigation.navigate("ClientDetails", { client })}
         style={[
           styles.clientItem,
@@ -127,7 +121,7 @@ const RecentClients = ({ clients, colorScheme, navigation }) => {
             Req: {client.requirements || "N/A"}
           </Text>
         </View>
-      </TouchableOpacity>
+      </Pressable>
     );
   };
 

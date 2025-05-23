@@ -1,11 +1,5 @@
 import React from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TouchableOpacity,
-} from "react-native";
+import { View, Text, StyleSheet, FlatList, Pressable } from "react-native";
 import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
@@ -42,9 +36,7 @@ const RecentOrders = ({
     const statusColor = getIconColor(order.status, colorScheme);
 
     return (
-      <TouchableOpacity
-        onPress={() => navigation.navigate("OrderDetails", { order })}
-      >
+      <Pressable onPress={() => navigation.navigate("OrderDetails", { order })}>
         <View
           style={[
             styles.orderItem,
@@ -113,7 +105,7 @@ const RecentOrders = ({
             </Text>
           </View>
         </View>
-      </TouchableOpacity>
+      </Pressable>
     );
   };
 
