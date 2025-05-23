@@ -33,8 +33,6 @@ import {
   updateDoc,
   deleteDoc,
   serverTimestamp,
-  query,
-  where,
 } from "firebase/firestore";
 import { db } from "../../config/firebase";
 import { useAuth } from "../../context/AuthContext";
@@ -87,26 +85,33 @@ export default function OrderDetailsScreen({ route, navigation }) {
 
     const fetchDetails = async () => {
       try {
-        // Only fetch client and employee if they belong to the same business
-        const clientQuery = query(
-          doc(db, "clients", order.clientId),
-          where("businessId", "==", userProfile.businessId)
-        );
-        const employeeQuery = query(
-          doc(db, "employees", order.employeeId),
-          where("businessId", "==", userProfile.businessId)
-        );
+        // Fetch client and employee documents
+        const clientRef = doc(db, "clients", order.clientId);
+        const employeeRef = doc(db, "employees", order.employeeId);
 
         const [clientDoc, employeeDoc] = await Promise.all([
-          getDoc(clientQuery),
-          getDoc(employeeQuery),
+          getDoc(clientRef),
+          getDoc(employeeRef),
         ]);
 
+        // Verify businessId for client
         if (clientDoc.exists()) {
-          setClient({ id: clientDoc.id, ...clientDoc.data() });
+          const clientData = clientDoc.data();
+          if (clientData.businessId === userProfile.businessId) {
+            setClient({ id: clientDoc.id, ...clientData });
+          } else {
+            console.warn("Client does not belong to this business");
+          }
         }
+
+        // Verify businessId for employee
         if (employeeDoc.exists()) {
-          setEmployee({ id: employeeDoc.id, ...employeeDoc.data() });
+          const employeeData = employeeDoc.data();
+          if (employeeData.businessId === userProfile.businessId) {
+            setEmployee({ id: employeeDoc.id, ...employeeData });
+          } else {
+            console.warn("Employee does not belong to this business");
+          }
         }
       } catch (error) {
         console.error("Error fetching details: ", error);
@@ -245,14 +250,7 @@ export default function OrderDetailsScreen({ route, navigation }) {
         </View>
       </LinearGradient>
 
-      <Animated.View
-        style={[
-          styles.content,
-          {
-            opacity: fadeAnim,
-          },
-        ]}
-      >
+      <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <Card
             style={[styles.card, { backgroundColor: theme.colors.surface }]}
@@ -324,7 +322,7 @@ export default function OrderDetailsScreen({ route, navigation }) {
                   />
                   <Text style={[styles.infoText, { color: theme.colors.text }]}>
                     Created:{" "}
-                    {order.createdAt?.toDate().toLocaleDateString() || "N/A"}
+                    {order.createdAt?.toDate?.().toLocaleDateString() || "N/A"}
                   </Text>
                 </View>
                 <View style={styles.infoRow}>
@@ -344,7 +342,7 @@ export default function OrderDetailsScreen({ route, navigation }) {
                     color={theme.colors.placeholder}
                   />
                   <Text style={[styles.infoText, { color: theme.colors.text }]}>
-                    Description: {order.description}
+                    Description: {order.description || "N/A"}
                   </Text>
                 </View>
               </View>
@@ -377,7 +375,7 @@ export default function OrderDetailsScreen({ route, navigation }) {
                       <Text
                         style={[styles.infoText, { color: theme.colors.text }]}
                       >
-                        {client.fullName}
+                        {client.fullName || "N/A"}
                       </Text>
                     </View>
                     <View style={styles.infoRow}>
@@ -389,7 +387,7 @@ export default function OrderDetailsScreen({ route, navigation }) {
                       <Text
                         style={[styles.infoText, { color: theme.colors.text }]}
                       >
-                        {client.phone}
+                        {client.phone || "N/A"}
                       </Text>
                     </View>
                   </TouchableOpacity>
@@ -430,7 +428,7 @@ export default function OrderDetailsScreen({ route, navigation }) {
                       <Text
                         style={[styles.infoText, { color: theme.colors.text }]}
                       >
-                        {employee.fullName}
+                        {employee.fullName || "N/A"}
                       </Text>
                     </View>
                     <View style={styles.infoRow}>
@@ -442,7 +440,7 @@ export default function OrderDetailsScreen({ route, navigation }) {
                       <Text
                         style={[styles.infoText, { color: theme.colors.text }]}
                       >
-                        {employee.skills}
+                        {employee.skills || "N/A"}
                       </Text>
                     </View>
                   </TouchableOpacity>
