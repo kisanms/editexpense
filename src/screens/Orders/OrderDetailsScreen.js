@@ -56,6 +56,7 @@ export default function OrderDetailsScreen({ route, navigation }) {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [client, setClient] = useState(null);
+  const [project, setProject] = useState(null);
   const [employee, setEmployee] = useState(null);
   const [menuVisible, setMenuVisible] = useState(false);
   const colorScheme = useColorScheme();
@@ -67,7 +68,6 @@ export default function OrderDetailsScreen({ route, navigation }) {
       return;
     }
 
-    // Security check - verify order belongs to user's business
     if (order.businessId !== userProfile.businessId) {
       Alert.alert(
         "Access Denied",
@@ -85,16 +85,18 @@ export default function OrderDetailsScreen({ route, navigation }) {
 
     const fetchDetails = async () => {
       try {
-        // Fetch client and employee documents
         const clientRef = doc(db, "clients", order.clientId);
         const employeeRef = doc(db, "employees", order.employeeId);
+        const projectRef = order.projectId
+          ? doc(db, `clients/${order.clientId}/projects`, order.projectId)
+          : null;
 
-        const [clientDoc, employeeDoc] = await Promise.all([
+        const [clientDoc, employeeDoc, projectDoc] = await Promise.all([
           getDoc(clientRef),
           getDoc(employeeRef),
+          projectRef ? getDoc(projectRef) : Promise.resolve(null),
         ]);
 
-        // Verify businessId for client
         if (clientDoc.exists()) {
           const clientData = clientDoc.data();
           if (clientData.businessId === userProfile.businessId) {
@@ -104,7 +106,6 @@ export default function OrderDetailsScreen({ route, navigation }) {
           }
         }
 
-        // Verify businessId for employee
         if (employeeDoc.exists()) {
           const employeeData = employeeDoc.data();
           if (employeeData.businessId === userProfile.businessId) {
@@ -113,8 +114,23 @@ export default function OrderDetailsScreen({ route, navigation }) {
             console.warn("Employee does not belong to this business");
           }
         }
+
+        if (projectDoc?.exists()) {
+          const projectData = projectDoc.data();
+          if (projectData.businessId === userProfile.businessId) {
+            setProject({ id: projectDoc.id, ...projectData });
+          } else {
+            console.warn("Project does not belong to this business");
+          }
+        }
       } catch (error) {
         console.error("Error fetching details: ", error);
+        Alert.alert(
+          "Error",
+          "Failed to load order details. Please try again.",
+          [{ text: "OK" }],
+          { cancelable: false }
+        );
       }
     };
 
@@ -123,7 +139,6 @@ export default function OrderDetailsScreen({ route, navigation }) {
 
   const handleStatusChange = async (status) => {
     try {
-      // Additional security check
       if (order.businessId !== userProfile.businessId) {
         Alert.alert(
           "Access Denied",
@@ -142,12 +157,17 @@ export default function OrderDetailsScreen({ route, navigation }) {
       setMenuVisible(false);
     } catch (error) {
       console.error("Error updating status: ", error);
+      Alert.alert(
+        "Error",
+        "Failed to update status. Please try again.",
+        [{ text: "OK" }],
+        { cancelable: false }
+      );
     }
   };
 
   const handleDelete = async () => {
     try {
-      // Additional security check
       if (order.businessId !== userProfile.businessId) {
         Alert.alert(
           "Access Denied",
@@ -332,7 +352,7 @@ export default function OrderDetailsScreen({ route, navigation }) {
                     color={theme.colors.placeholder}
                   />
                   <Text style={[styles.infoText, { color: theme.colors.text }]}>
-                    Amount: ${order.amount}
+                    Amount: ${Number(order.amount || 0).toLocaleString()}
                   </Text>
                 </View>
                 <View style={styles.infoRow}>
@@ -345,6 +365,91 @@ export default function OrderDetailsScreen({ route, navigation }) {
                     Description: {order.description || "N/A"}
                   </Text>
                 </View>
+                <View style={styles.infoRow}>
+                  <FontAwesome5
+                    name="calendar-check"
+                    size={wp(4)}
+                    color={theme.colors.placeholder}
+                  />
+                  <Text style={[styles.infoText, { color: theme.colors.text }]}>
+                    Deadline:{" "}
+                    {order.deadline?.toDate?.().toLocaleDateString() || "N/A"}
+                  </Text>
+                </View>
+              </View>
+
+              <Divider
+                style={[
+                  styles.divider,
+                  { backgroundColor: theme.colors.placeholder },
+                ]}
+              />
+
+              <View style={styles.section}>
+                <Text
+                  style={[styles.sectionTitle, { color: theme.colors.text }]}
+                >
+                  Project Information
+                </Text>
+                {project ? (
+                  <TouchableOpacity
+                    onPress={() =>
+                      navigation.navigate("ProjectDetails", {
+                        project,
+                        clientId: order.clientId,
+                      })
+                    }
+                  >
+                    <View style={styles.infoRow}>
+                      <FontAwesome5
+                        name="folder"
+                        size={wp(4)}
+                        color={theme.colors.placeholder}
+                      />
+                      <Text
+                        style={[styles.infoText, { color: theme.colors.text }]}
+                      >
+                        {project.projectName || "N/A"}
+                      </Text>
+                    </View>
+                    <View style={styles.infoRow}>
+                      <FontAwesome5
+                        name="dollar-sign"
+                        size={wp(4)}
+                        color={theme.colors.placeholder}
+                      />
+                      <Text
+                        style={[styles.infoText, { color: theme.colors.text }]}
+                      >
+                        Budget: ${Number(project.budget || 0).toLocaleString()}
+                      </Text>
+                    </View>
+                    <View style={styles.infoRow}>
+                      <FontAwesome5
+                        name="calendar"
+                        size={wp(4)}
+                        color={theme.colors.placeholder}
+                      />
+                      <Text
+                        style={[styles.infoText, { color: theme.colors.text }]}
+                      >
+                        Deadline:{" "}
+                        {project.deadline?.toDate?.().toLocaleDateString() ||
+                          "N/A"}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                ) : order.projectId ? (
+                  <Text
+                    style={[styles.loadingText, { color: theme.colors.text }]}
+                  >
+                    Loading project details...
+                  </Text>
+                ) : (
+                  <Text style={[styles.infoText, { color: theme.colors.text }]}>
+                    No project assigned
+                  </Text>
+                )}
               </View>
 
               <Divider
@@ -388,6 +493,18 @@ export default function OrderDetailsScreen({ route, navigation }) {
                         style={[styles.infoText, { color: theme.colors.text }]}
                       >
                         {client.phone || "N/A"}
+                      </Text>
+                    </View>
+                    <View style={styles.infoRow}>
+                      <FontAwesome5
+                        name="envelope"
+                        size={wp(4)}
+                        color={theme.colors.placeholder}
+                      />
+                      <Text
+                        style={[styles.infoText, { color: theme.colors.text }]}
+                      >
+                        {client.email || "N/A"}
                       </Text>
                     </View>
                   </TouchableOpacity>
@@ -441,6 +558,18 @@ export default function OrderDetailsScreen({ route, navigation }) {
                         style={[styles.infoText, { color: theme.colors.text }]}
                       >
                         {employee.skills || "N/A"}
+                      </Text>
+                    </View>
+                    <View style={styles.infoRow}>
+                      <FontAwesome5
+                        name="brief_Drivercase"
+                        size={wp(4)}
+                        color={theme.colors.placeholder}
+                      />
+                      <Text
+                        style={[styles.infoText, { color: theme.colors.text }]}
+                      >
+                        Experience: {employee.experience || "N/A"} years
                       </Text>
                     </View>
                   </TouchableOpacity>
@@ -575,6 +704,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
   },
+  backButton: {
+    padding: wp(2.5),
+    borderRadius: wp(2),
+  },
   headerTitle: {
     fontSize: wp(6),
     fontWeight: "700",
@@ -583,33 +716,44 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: "center",
   },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
   content: {
     flex: 1,
   },
   scrollContent: {
     padding: wp(4),
-    paddingBottom: hp(10),
+    paddingBottom: hp(3),
   },
   card: {
-    elevation: 2,
-    borderRadius: wp(3),
+    borderRadius: wp(4),
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    marginBottom: hp(2),
   },
   cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: hp(2),
+    marginBottom: hp(1.5),
   },
   orderTitle: {
-    fontSize: wp(5.5),
+    fontSize: wp(5),
     fontWeight: "700",
+    flex: 1,
   },
   statusChip: {
-    height: hp(4),
+    borderWidth: 1,
   },
   statusText: {
     fontSize: wp(3.5),
-    fontWeight: "600",
+    fontWeight: "500",
+    textTransform: "capitalize",
   },
   progressContainer: {
     marginVertical: hp(2),
@@ -621,10 +765,11 @@ const styles = StyleSheet.create({
   progressLabels: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: hp(1),
+    marginTop: hp(0.5),
   },
   progressLabel: {
     fontSize: wp(3.5),
+    fontWeight: "500",
   },
   divider: {
     marginVertical: hp(2),
@@ -635,37 +780,41 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: wp(4.5),
     fontWeight: "600",
-    marginBottom: hp(1),
+    marginBottom: hp(1.5),
   },
   infoRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: hp(1),
+    marginVertical: hp(0.8),
   },
   infoText: {
     fontSize: wp(4),
-    marginLeft: wp(2),
+    marginLeft: wp(3),
+    flex: 1,
   },
   loadingText: {
     fontSize: wp(4),
     fontStyle: "italic",
+    marginVertical: hp(1),
   },
   buttonContainer: {
-    marginTop: hp(4),
     flexDirection: "row",
     justifyContent: "space-between",
+    marginTop: hp(2),
   },
   statusButton: {
     flex: 1,
     marginRight: wp(2),
+    borderRadius: wp(3),
   },
   deleteButton: {
     flex: 1,
-    marginLeft: wp(2),
+    borderWidth: 1,
+    borderRadius: wp(3),
   },
   buttonLabel: {
     fontSize: wp(4),
-    fontWeight: "600",
+    fontWeight: "500",
   },
   modalContent: {
     padding: wp(5),
@@ -692,5 +841,6 @@ const styles = StyleSheet.create({
   },
   modalButton: {
     marginLeft: wp(2),
+    borderRadius: wp(3),
   },
 });

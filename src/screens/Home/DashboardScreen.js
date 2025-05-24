@@ -34,6 +34,7 @@ export default function DashboardScreen() {
   const [employees, setEmployees] = useState([]);
   const [clients, setClients] = useState([]);
   const [orders, setOrders] = useState([]);
+  const [projects, setProjects] = useState([]);
   const [summaryData, setSummaryData] = useState([
     {
       icon: "briefcase",
@@ -131,22 +132,59 @@ export default function DashboardScreen() {
       }
     );
 
+    // Fetch all projects from clients/{clientId}/projects
+    const projectsUnsubscribe = () => {
+      const unsubscribes = [];
+      clients.forEach((client) => {
+        const projectQuery = query(
+          collection(db, `clients/${client.id}/projects`),
+          where("businessId", "==", userProfile.businessId)
+        );
+        const unsubscribe = onSnapshot(
+          projectQuery,
+          (snapshot) => {
+            const projectsList = snapshot.docs.map((doc) => ({
+              id: doc.id,
+              clientId: client.id,
+              ...doc.data(),
+            }));
+            setProjects((prev) => {
+              const otherProjects = prev.filter(
+                (p) => p.clientId !== client.id
+              );
+              return [...otherProjects, ...projectsList];
+            });
+          },
+          (error) => {
+            console.error(
+              `Error fetching projects for client ${client.id}: `,
+              error
+            );
+          }
+        );
+        unsubscribes.push(unsubscribe);
+      });
+      return () => unsubscribes.forEach((unsub) => unsub());
+    };
+
+    const unsubscribeProjects = projectsUnsubscribe();
     return () => {
       ordersUnsubscribe();
       employeesUnsubscribe();
       clientsUnsubscribe();
+      unsubscribeProjects();
     };
-  }, [userProfile?.businessId]);
+  }, [userProfile?.businessId, clients]);
 
   useEffect(() => {
-    const totalProjects = orders.length;
-    const totalClientBudget = clients.reduce((sum, client) => {
-      return sum + (Number(client.budget) || 0);
+    const totalProjects = projects.length;
+    const totalProjectBudget = projects.reduce((sum, project) => {
+      return sum + (Number(project.budget) || 0);
     }, 0);
     const totalOrderAmount = orders.reduce((sum, order) => {
       return sum + (Number(order.amount) || 0);
     }, 0);
-    const totalProfit = totalClientBudget - totalOrderAmount;
+    const totalProfit = totalProjectBudget - totalOrderAmount;
 
     setSummaryData([
       {
@@ -164,7 +202,7 @@ export default function DashboardScreen() {
       {
         icon: "arrow-up",
         label: "Income",
-        value: `$${totalClientBudget.toLocaleString()}`,
+        value: `$${totalProjectBudget.toLocaleString()}`,
         iconColor: "#2196F3",
       },
       {
@@ -174,18 +212,18 @@ export default function DashboardScreen() {
         iconColor: "#F44336",
       },
     ]);
-  }, [orders, clients]);
+  }, [orders, projects]);
 
   return (
     <SafeAreaView
       style={[
         styles.container,
-        { backgroundColor: colorScheme === "dark" ? "#1A1A1A" : "#EFF6FF" }, // Changed to bluish tone
+        { backgroundColor: colorScheme === "dark" ? "#1A1A1A" : "#EFF6FF" },
       ]}
     >
       <StatusBar
         barStyle={colorScheme === "dark" ? "light-content" : "dark-content"}
-        backgroundColor={colorScheme === "dark" ? "#1A1A1A" : "#EFF6FF"} // Match new background
+        backgroundColor={colorScheme === "dark" ? "#1A1A1A" : "#EFF6FF"}
       />
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -242,7 +280,7 @@ export default function DashboardScreen() {
                 styles.card,
                 {
                   backgroundColor: colorScheme === "dark" ? "#2A2A2A" : "#fff",
-                  borderWidth: colorScheme === "dark" ? 0 : 1, // Add border in light mode
+                  borderWidth: colorScheme === "dark" ? 0 : 1,
                   borderColor: colorScheme === "dark" ? undefined : "#E5E7EB",
                 },
               ]}
@@ -277,10 +315,11 @@ export default function DashboardScreen() {
           employees={employees}
           clients={clients}
           colorScheme={colorScheme}
-          navigation={navigation} // Pass the navigation prop
+          navigation={navigation}
         />
         <RecentClients
           clients={clients}
+          projects={projects}
           colorScheme={colorScheme}
           navigation={navigation}
         />
@@ -345,13 +384,13 @@ const styles = StyleSheet.create({
     padding: wp("4%"),
     marginBottom: hp("1%"),
     alignItems: "flex-start",
-    borderRadius: 16, // Increased from 12
+    borderRadius: 16,
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 2,
     },
-    shadowOpacity: 0.05, // Reduced from 0.1
+    shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 4,
   },

@@ -7,7 +7,7 @@ import {
   Animated,
   Alert,
   RefreshControl,
-  useColorScheme,
+  FlatList,
 } from "react-native";
 import {
   Text,
@@ -26,10 +26,19 @@ import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from "react-native-responsive-screen";
-import { doc, getDoc, deleteDoc } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  deleteDoc,
+  collection,
+  query,
+  where,
+  onSnapshot,
+} from "firebase/firestore";
 import { db } from "../../config/firebase";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { useAuth } from "../../context/AuthContext";
+import { useColorScheme } from "react-native";
 
 const getTheme = (colorScheme) => ({
   colors: {
@@ -43,20 +52,25 @@ const getTheme = (colorScheme) => ({
   roundness: wp(2),
 });
 
-export default function ClientDetailsScreen({ route, navigation }) {
+const ClientDetailsScreen = ({ route }) => {
   const { client: initialClient } = route.params;
   const { userProfile } = useAuth();
+  const navigation = useNavigation();
   const [client, setClient] = useState(initialClient);
   const [fadeAnim] = useState(new Animated.Value(0));
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [projects, setProjects] = useState([]);
   const colorScheme = useColorScheme();
   const theme = getTheme(colorScheme);
 
   useEffect(() => {
-    // Check if client belongs to user's business
-    if (initialClient.businessId !== userProfile?.businessId) {
+    // Security check for businessId
+    if (
+      !userProfile?.businessId ||
+      initialClient.businessId !== userProfile.businessId
+    ) {
       Alert.alert(
         "Access Denied",
         "You don't have permission to view this client.",
@@ -66,17 +80,47 @@ export default function ClientDetailsScreen({ route, navigation }) {
       return;
     }
 
+    // Start fade animation
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 600,
       useNativeDriver: true,
     }).start();
-  }, [initialClient.businessId, userProfile?.businessId]);
+
+    // Fetch projects in real-time
+    const projectsQuery = query(
+      collection(db, `clients/${initialClient.id}/projects`),
+      where("businessId", "==", userProfile.businessId)
+    );
+    const unsubscribeProjects = onSnapshot(
+      projectsQuery,
+      (snapshot) => {
+        const projectsData = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setProjects(projectsData);
+      },
+      (error) => {
+        console.error("Error fetching projects: ", error);
+        Alert.alert("Error", "Failed to fetch projects.");
+      }
+    );
+
+    return () => unsubscribeProjects();
+  }, [
+    initialClient.id,
+    initialClient.businessId,
+    userProfile?.businessId,
+    navigation,
+  ]);
 
   const fetchClientData = async () => {
     try {
-      // Additional security check
-      if (client.businessId !== userProfile?.businessId) {
+      if (
+        !userProfile?.businessId ||
+        client.businessId !== userProfile.businessId
+      ) {
         Alert.alert(
           "Access Denied",
           "You don't have permission to view this client.",
@@ -91,8 +135,7 @@ export default function ClientDetailsScreen({ route, navigation }) {
       const clientSnap = await getDoc(clientRef);
       if (clientSnap.exists()) {
         const clientData = clientSnap.data();
-        // Verify businessId matches
-        if (clientData.businessId !== userProfile?.businessId) {
+        if (clientData.businessId !== userProfile.businessId) {
           Alert.alert(
             "Access Denied",
             "You don't have permission to view this client.",
@@ -136,7 +179,6 @@ export default function ClientDetailsScreen({ route, navigation }) {
 
   const handleDelete = async () => {
     try {
-      // Additional security check
       if (client.businessId !== userProfile?.businessId) {
         Alert.alert(
           "Access Denied",
@@ -169,6 +211,98 @@ export default function ClientDetailsScreen({ route, navigation }) {
     navigation.navigate("EditClient", { client });
   };
 
+  const handleAddProject = () => {
+    navigation.navigate("AddProjectScreen", { clientId: client.id });
+  };
+
+  const handleEditProject = (project) => {
+    navigation.navigate("EditProjectScreen", {
+      project: { ...project, clientId: client.id },
+    });
+  };
+
+  const renderProject = ({ item }) => (
+    <Card
+      style={[styles.projectCard, { backgroundColor: theme.colors.surface }]}
+    >
+      <Card.Content>
+        <View style={styles.projectHeader}>
+          <Text style={[styles.projectTitle, { color: theme.colors.text }]}>
+            {item.projectName}
+          </Text>
+          <TouchableOpacity onPress={() => handleEditProject(item)}>
+            <FontAwesome5
+              name="pencil-alt"
+              size={wp(4.5)}
+              color={theme.colors.primary}
+            />
+          </TouchableOpacity>
+        </View>
+        <View style={styles.infoRow}>
+          <FontAwesome5
+            name="dollar-sign"
+            size={wp(4)}
+            color={theme.colors.primary}
+            style={styles.icon}
+          />
+          <View style={styles.infoContent}>
+            <Text
+              style={[styles.infoLabel, { color: theme.colors.placeholder }]}
+            >
+              Budget
+            </Text>
+            <Text style={[styles.infoText, { color: theme.colors.text }]}>
+              ${Number(item.budget).toLocaleString()}
+            </Text>
+          </View>
+        </View>
+        <View style={styles.infoRow}>
+          <FontAwesome5
+            name="clock"
+            size={wp(4)}
+            color={theme.colors.primary}
+            style={styles.icon}
+          />
+          <View style={styles.infoContent}>
+            <Text
+              style={[styles.infoLabel, { color: theme.colors.placeholder }]}
+            >
+              Deadline
+            </Text>
+            <Text style={[styles.infoText, { color: theme.colors.text }]}>
+              {item.deadline?.toDate
+                ? item.deadline.toDate().toLocaleDateString()
+                : new Date(item.deadline).toLocaleDateString()}
+            </Text>
+          </View>
+        </View>
+        {item.requirements && (
+          <View style={styles.infoRow}>
+            <FontAwesome5
+              name="list-ul"
+              size={wp(4)}
+              color={theme.colors.primary}
+              style={styles.icon}
+            />
+            <View style={styles.infoContent}>
+              <Text
+                style={[styles.infoLabel, { color: theme.colors.placeholder }]}
+              >
+                Requirements
+              </Text>
+              <Text
+                style={[styles.infoText, { color: theme.colors.text }]}
+                numberOfLines={2}
+              >
+                {item.requirements}
+              </Text>
+            </View>
+          </View>
+        )}
+      </Card.Content>
+    </Card>
+  );
+
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: theme.colors.background }]}
@@ -195,14 +329,7 @@ export default function ClientDetailsScreen({ route, navigation }) {
         </View>
       </LinearGradient>
 
-      <Animated.View
-        style={[
-          styles.content,
-          {
-            opacity: fadeAnim,
-          },
-        ]}
-      >
+      <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
@@ -492,7 +619,7 @@ export default function ClientDetailsScreen({ route, navigation }) {
                       <Text
                         style={[styles.infoText, { color: theme.colors.text }]}
                       >
-                        {client.createdAt.toDate?.()
+                        {client.createdAt?.toDate
                           ? client.createdAt.toDate().toLocaleDateString()
                           : "N/A"}
                       </Text>
@@ -544,7 +671,7 @@ export default function ClientDetailsScreen({ route, navigation }) {
                       <Text
                         style={[styles.infoText, { color: theme.colors.text }]}
                       >
-                        {client.projectDeadline.toDate?.()
+                        {client.projectDeadline?.toDate
                           ? client.projectDeadline.toDate().toLocaleDateString()
                           : new Date(
                               client.projectDeadline
@@ -577,6 +704,64 @@ export default function ClientDetailsScreen({ route, navigation }) {
                       </Text>
                     </View>
                   </View>
+                )}
+              </View>
+            </Card.Content>
+          </Card>
+
+          {/* Projects Section */}
+          <Card
+            style={[styles.card, { backgroundColor: theme.colors.surface }]}
+          >
+            <Card.Content>
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <Text
+                    style={[
+                      styles.sectionTitle,
+                      { color: theme.colors.primary },
+                    ]}
+                  >
+                    Projects
+                  </Text>
+                  <Button
+                    mode="contained"
+                    onPress={handleAddProject}
+                    style={[
+                      styles.addProjectButton,
+                      { backgroundColor: theme.colors.primary },
+                    ]}
+                    labelStyle={styles.buttonLabel}
+                    icon="plus"
+                    theme={theme}
+                  >
+                    Add Project
+                  </Button>
+                </View>
+                {projects.length === 0 ? (
+                  <Text
+                    style={[
+                      styles.noProjectsText,
+                      { color: theme.colors.placeholder },
+                    ]}
+                  >
+                    No projects available
+                  </Text>
+                ) : (
+                  <FlatList
+                    data={projects}
+                    renderItem={renderProject}
+                    keyExtractor={(item) => item.id}
+                    scrollEnabled={false}
+                    ItemSeparatorComponent={() => (
+                      <Divider
+                        style={[
+                          styles.divider,
+                          { backgroundColor: theme.colors.placeholder },
+                        ]}
+                      />
+                    )}
+                  />
                 )}
               </View>
             </Card.Content>
@@ -653,7 +838,7 @@ export default function ClientDetailsScreen({ route, navigation }) {
       </Portal>
     </SafeAreaView>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -734,12 +919,41 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: hp(2),
   },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: hp(2),
+  },
   sectionTitle: {
     fontSize: wp(4.5),
     fontWeight: "600",
-    marginBottom: hp(2),
     borderLeftWidth: 3,
     paddingLeft: wp(2),
+  },
+  addProjectButton: {
+    borderRadius: wp(3),
+    height: hp(4.5),
+  },
+  noProjectsText: {
+    fontSize: wp(4),
+    textAlign: "center",
+    marginVertical: hp(2),
+  },
+  projectCard: {
+    elevation: 2,
+    borderRadius: wp(3),
+    marginVertical: hp(1),
+  },
+  projectHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: hp(1),
+  },
+  projectTitle: {
+    fontSize: wp(4.5),
+    fontWeight: "600",
   },
   infoRow: {
     flexDirection: "row",
@@ -832,3 +1046,5 @@ const styles = StyleSheet.create({
     minWidth: wp(20),
   },
 });
+
+export default ClientDetailsScreen;

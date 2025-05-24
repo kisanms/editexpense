@@ -25,9 +25,6 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { FontAwesome5 } from "@expo/vector-icons";
-import DateTimePicker from "@react-native-community/datetimepicker";
-import { Formik } from "formik";
-import * as Yup from "yup";
 import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
@@ -35,10 +32,12 @@ import {
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../../config/firebase";
 import { useAuth } from "../../context/AuthContext";
+import { Formik } from "formik";
+import * as Yup from "yup";
 
 const commonTags = [
   "Video Editing",
-  "Webiste Development",
+  "Website Development",
   "Graphic Design",
   "Mobile App",
   "Urgent",
@@ -60,20 +59,8 @@ const validationSchema = Yup.object().shape({
     .required("Email is required"),
   phone: Yup.string().required("Phone number is required"),
   address: Yup.string(),
-  requirements: Yup.string(),
   tags: Yup.array(),
   paymentTerms: Yup.string(),
-  project: Yup.object()
-    .shape({
-      projectName: Yup.string().required("Project name is required"),
-      budget: Yup.number()
-        .typeError("Budget must be a number")
-        .positive("Budget must be a positive number")
-        .min(1, "Budget must be at least $1")
-        .required("Project budget is required"),
-      deadline: Yup.date().nullable(),
-    })
-    .nullable(),
 });
 
 const getTheme = (colorScheme) => ({
@@ -92,8 +79,6 @@ export default function AddClientScreen({ navigation }) {
   const { userProfile } = useAuth();
   const [showTagsModal, setShowTagsModal] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
-
-  const [showDatePicker, setShowDatePicker] = useState(false);
   const [newTag, setNewTag] = useState("");
   const [fadeAnim] = useState(new Animated.Value(0));
   const [scaleAnim] = useState(new Animated.Value(0.95));
@@ -121,14 +106,8 @@ export default function AddClientScreen({ navigation }) {
     email: "",
     phone: "",
     address: "",
-    requirements: "",
     tags: [],
     paymentTerms: "",
-    project: {
-      projectName: "",
-      budget: "",
-      deadline: null,
-    },
   };
 
   const handleSubmit = async (values, { setSubmitting, resetForm }) => {
@@ -143,7 +122,6 @@ export default function AddClientScreen({ navigation }) {
         email: values.email,
         phone: values.phone,
         address: values.address,
-        requirements: values.requirements,
         tags: values.tags,
         paymentTerms: values.paymentTerms,
         businessId: userProfile.businessId,
@@ -152,23 +130,9 @@ export default function AddClientScreen({ navigation }) {
         status: "active",
       };
 
-      const clientRef = await addDoc(collection(db, "clients"), clientData);
+      await addDoc(collection(db, "clients"), clientData);
 
-      if (values.project.projectName) {
-        await addDoc(collection(db, `clients/${clientRef.id}/projects`), {
-          projectName: values.project.projectName,
-          budget: parseFloat(values.project.budget),
-
-          deadline: values.project.deadline
-            ? new Date(values.project.deadline).toISOString()
-            : null,
-          clientId: clientRef.id,
-          businessId: userProfile.businessId,
-          createdAt: serverTimestamp(),
-        });
-      }
-
-      Alert.alert("Success", "Client and project added successfully!", [
+      Alert.alert("Success", "Client added successfully!", [
         {
           text: "OK",
           onPress: () => {
@@ -199,7 +163,6 @@ export default function AddClientScreen({ navigation }) {
     );
   };
 
-  // Helper function to get dynamic sectionCard border styles
   const getSectionCardBorderStyles = () => ({
     borderWidth: colorScheme === "dark" ? 0 : 1,
     borderColor: colorScheme === "dark" ? undefined : "#E5E7EB",
@@ -413,195 +376,6 @@ export default function AddClientScreen({ navigation }) {
                       placeholderTextColor={theme.colors.placeholder}
                       disabled={isSubmitting}
                     />
-                  </LinearGradient>
-                </Surface>
-
-                {/* Client Preferences */}
-                <Text
-                  style={[styles.sectionTitle, { color: theme.colors.primary }]}
-                >
-                  Client Preferences
-                </Text>
-                <Surface
-                  style={[styles.sectionCard, getSectionCardBorderStyles()]}
-                >
-                  <LinearGradient
-                    colors={
-                      colorScheme === "dark"
-                        ? ["#2A2A2A", "#2A2A2A80"]
-                        : ["#FFFFFF", "#FFFFFF"]
-                    }
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.cardGradient}
-                  >
-                    <Text
-                      style={[styles.inputLabel, { color: theme.colors.text }]}
-                    >
-                      Specific Requirements
-                    </Text>
-                    <TextInput
-                      value={values.requirements}
-                      onChangeText={handleChange("requirements")}
-                      onBlur={handleBlur("requirements")}
-                      style={[
-                        styles.input,
-                        { backgroundColor: theme.colors.surface },
-                      ]}
-                      numberOfLines={4}
-                      left={
-                        <TextInput.Icon
-                          icon="text-box"
-                          color={theme.colors.primary}
-                        />
-                      }
-                      theme={theme}
-                      placeholder="Enter requirements"
-                      textColor={theme.colors.text}
-                      placeholderTextColor={theme.colors.placeholder}
-                      disabled={isSubmitting}
-                    />
-                  </LinearGradient>
-                </Surface>
-
-                {/* Initial Project */}
-                <Text
-                  style={[styles.sectionTitle, { color: theme.colors.primary }]}
-                >
-                  Initial Project
-                </Text>
-                <Surface
-                  style={[styles.sectionCard, getSectionCardBorderStyles()]}
-                >
-                  <LinearGradient
-                    colors={
-                      colorScheme === "dark"
-                        ? ["#2A2A2A", "#2A2A2A80"]
-                        : ["#FFFFFF", "#FFFFFF"]
-                    }
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.cardGradient}
-                  >
-                    <Text
-                      style={[styles.inputLabel, { color: theme.colors.text }]}
-                    >
-                      Project Name *
-                    </Text>
-                    <TextInput
-                      value={values.project.projectName}
-                      onChangeText={handleChange("project.projectName")}
-                      onBlur={handleBlur("project.projectName")}
-                      style={[
-                        styles.input,
-                        { backgroundColor: theme.colors.surface },
-                      ]}
-                      error={
-                        touched.project?.projectName &&
-                        errors.project?.projectName
-                      }
-                      left={
-                        <TextInput.Icon
-                          icon="briefcase"
-                          color={theme.colors.primary}
-                        />
-                      }
-                      theme={theme}
-                      placeholder="Enter project name"
-                      textColor={theme.colors.text}
-                      placeholderTextColor={theme.colors.placeholder}
-                      disabled={isSubmitting}
-                    />
-                    {touched.project?.projectName &&
-                      errors.project?.projectName && (
-                        <HelperText
-                          type="error"
-                          visible={
-                            touched.project?.projectName &&
-                            errors.project?.projectName
-                          }
-                          style={{ color: theme.colors.error }}
-                        >
-                          {errors.project?.projectName}
-                        </HelperText>
-                      )}
-
-                    <Text
-                      style={[styles.inputLabel, { color: theme.colors.text }]}
-                    >
-                      Budget *
-                    </Text>
-                    <TextInput
-                      value={values.project.budget}
-                      onChangeText={handleChange("project.budget")}
-                      onBlur={handleBlur("project.budget")}
-                      style={[
-                        styles.input,
-                        { backgroundColor: theme.colors.surface },
-                      ]}
-                      keyboardType="numeric"
-                      error={touched.project?.budget && errors.project?.budget}
-                      left={
-                        <TextInput.Icon
-                          icon="currency-usd"
-                          color={theme.colors.primary}
-                        />
-                      }
-                      theme={theme}
-                      placeholder="Enter project budget"
-                      textColor={theme.colors.text}
-                      placeholderTextColor={theme.colors.placeholder}
-                      disabled={isSubmitting}
-                    />
-                    {touched.project?.budget && errors.project?.budget && (
-                      <HelperText
-                        type="error"
-                        visible={
-                          touched.project?.budget && errors.project?.budget
-                        }
-                        style={{ color: theme.colors.error }}
-                      >
-                        {errors.project?.budget}
-                      </HelperText>
-                    )}
-
-                    <Text
-                      style={[styles.inputLabel, { color: theme.colors.text }]}
-                    >
-                      Deadline
-                    </Text>
-                    <TouchableOpacity onPress={() => setShowDatePicker(true)}>
-                      <TextInput
-                        value={
-                          values.project.deadline
-                            ? new Date(
-                                values.project.deadline
-                              ).toLocaleDateString()
-                            : ""
-                        }
-                        style={[
-                          styles.input,
-                          { backgroundColor: theme.colors.surface },
-                        ]}
-                        editable={false}
-                        left={
-                          <TextInput.Icon
-                            icon="calendar"
-                            color={theme.colors.primary}
-                          />
-                        }
-                        right={
-                          <TextInput.Icon
-                            icon="chevron-down"
-                            color={theme.colors.primary}
-                          />
-                        }
-                        theme={theme}
-                        placeholder="Select deadline"
-                        textColor={theme.colors.text}
-                        placeholderTextColor={theme.colors.placeholder}
-                      />
-                    </TouchableOpacity>
                   </LinearGradient>
                 </Surface>
 
@@ -850,23 +624,6 @@ export default function AddClientScreen({ navigation }) {
                   ))}
                 </Modal>
               </Portal>
-
-              {/* Date Picker */}
-              {showDatePicker && (
-                <DateTimePicker
-                  value={values.project.deadline || new Date()}
-                  mode="date"
-                  display="default"
-                  onChange={(event, selectedDate) => {
-                    setShowDatePicker(false);
-                    if (selectedDate) {
-                      setFieldValue("project.deadline", selectedDate);
-                    }
-                  }}
-                  minimumDate={new Date()}
-                  themeVariant={colorScheme}
-                />
-              )}
             </Animated.View>
           )}
         </Formik>

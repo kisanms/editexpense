@@ -17,22 +17,14 @@ const getStatusColor = (status, colorScheme) => {
   }
 };
 
-const RecentClients = ({ clients, colorScheme, navigation }) => {
+const RecentClients = ({ clients, projects, colorScheme, navigation }) => {
   const renderClientCard = ({ item: client }) => {
     const statusColor = getStatusColor(client.status, colorScheme);
-
-    // Format projectDeadline
-    const formattedDeadline = client.projectDeadline
-      ? (() => {
-          try {
-            return client.projectDeadline.toDate
-              ? client.projectDeadline.toDate().toLocaleDateString()
-              : new Date(client.projectDeadline).toLocaleDateString();
-          } catch {
-            return "N/A";
-          }
-        })()
-      : "N/A";
+    const clientProjects = projects.filter((p) => p.clientId === client.id);
+    const projectCount = clientProjects.length;
+    const totalBudget = clientProjects.reduce((sum, project) => {
+      return sum + (Number(project.budget) || 0);
+    }, 0);
 
     return (
       <Pressable
@@ -83,12 +75,12 @@ const RecentClients = ({ clients, colorScheme, navigation }) => {
               </Text>
               <Text
                 style={[
-                  styles.clientProjectDeadline,
+                  styles.clientProjectCount,
                   { color: colorScheme === "dark" ? "#A0A0A0" : "#6B7280" },
                 ]}
                 numberOfLines={1}
               >
-                {formattedDeadline}
+                {projectCount} Project{projectCount !== 1 ? "s" : ""}
               </Text>
             </View>
           </View>
@@ -106,19 +98,7 @@ const RecentClients = ({ clients, colorScheme, navigation }) => {
             ]}
             numberOfLines={1}
           >
-            Budget: $
-            {isNaN(client.budget)
-              ? "N/A"
-              : Number(client.budget).toLocaleString()}
-          </Text>
-          <Text
-            style={[
-              styles.clientRequirements,
-              { color: colorScheme === "dark" ? "#A0A0A0" : "#6B7280" },
-            ]}
-            numberOfLines={1}
-          >
-            Req: {client.requirements || "N/A"}
+            Total Budget: ${totalBudget.toLocaleString()}
           </Text>
         </View>
       </Pressable>
@@ -229,7 +209,7 @@ const styles = StyleSheet.create({
     opacity: 0.8,
     flex: 1,
   },
-  clientProjectDeadline: {
+  clientProjectCount: {
     fontSize: wp("3.2%"),
     opacity: 0.9,
     flex: 1,
@@ -246,12 +226,6 @@ const styles = StyleSheet.create({
     fontSize: wp("3.2%"),
     opacity: 0.9,
     flex: 1,
-  },
-  clientRequirements: {
-    fontSize: wp("3.2%"),
-    opacity: 0.9,
-    flex: 1,
-    textAlign: "right",
   },
   emptyText: {
     fontSize: hp(2),
