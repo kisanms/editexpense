@@ -20,6 +20,7 @@ import {
   Modal,
   List,
   Divider,
+  Surface,
 } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
@@ -36,14 +37,13 @@ import { db } from "../../config/firebase";
 import { useAuth } from "../../context/AuthContext";
 
 const commonTags = [
-  "Residential",
-  "Commercial",
-  "Investment",
+  "Video Editing",
+  "Webiste Development",
+  "Graphic Design",
+  "Mobile App",
   "Urgent",
-  "VIP",
-  "First-time Buyer",
-  "Cash Buyer",
-  "Mortgage Required",
+  "Photo Editing",
+  "Social Media",
 ];
 
 const paymentTerms = [
@@ -60,32 +60,39 @@ const validationSchema = Yup.object().shape({
     .required("Email is required"),
   phone: Yup.string().required("Phone number is required"),
   address: Yup.string(),
-  budget: Yup.number()
-    .typeError("Budget must be a number")
-    .positive("Budget must be a positive number")
-    .min(1, "Budget must be at least $1"),
   requirements: Yup.string(),
   tags: Yup.array(),
   paymentTerms: Yup.string(),
-  projectDeadline: Yup.date(),
+  project: Yup.object()
+    .shape({
+      projectName: Yup.string().required("Project name is required"),
+      budget: Yup.number()
+        .typeError("Budget must be a number")
+        .positive("Budget must be a positive number")
+        .min(1, "Budget must be at least $1")
+        .required("Project budget is required"),
+      deadline: Yup.date().nullable(),
+    })
+    .nullable(),
 });
 
 const getTheme = (colorScheme) => ({
   colors: {
     primary: colorScheme === "dark" ? "#60A5FA" : "#1E3A8A",
     error: colorScheme === "dark" ? "#F87171" : "#B91C1C",
-    background: colorScheme === "dark" ? "#1F2937" : "#F3F4F6",
+    background: colorScheme === "dark" ? "#1A1A1A" : "#EFF6FF",
     text: colorScheme === "dark" ? "#F3F4F6" : "#1F2937",
     placeholder: colorScheme === "dark" ? "#9CA3AF" : "#6B7280",
-    surface: colorScheme === "dark" ? "#374151" : "#FFFFFF",
+    surface: colorScheme === "dark" ? "#2A2A2A" : "#FFFFFF",
   },
-  roundness: wp(2),
+  roundness: wp(3),
 });
 
 export default function AddClientScreen({ navigation }) {
   const { userProfile } = useAuth();
   const [showTagsModal, setShowTagsModal] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
+
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [newTag, setNewTag] = useState("");
   const [fadeAnim] = useState(new Animated.Value(0));
@@ -114,57 +121,65 @@ export default function AddClientScreen({ navigation }) {
     email: "",
     phone: "",
     address: "",
-    budget: "",
     requirements: "",
     tags: [],
     paymentTerms: "",
-    projectDeadline: new Date(),
+    project: {
+      projectName: "",
+      budget: "",
+      deadline: null,
+    },
   };
 
   const handleSubmit = async (values, { setSubmitting, resetForm }) => {
     try {
       if (!userProfile?.businessId) {
-        Alert.alert(
-          "Error",
-          "No business ID found. Please try again later.",
-          [{ text: "OK" }],
-          { cancelable: false }
-        );
+        Alert.alert("Error", "No business ID found. Please try again later.");
         return;
       }
 
-      const docRef = await addDoc(collection(db, "clients"), {
-        ...values,
+      const clientData = {
+        fullName: values.fullName,
+        email: values.email,
+        phone: values.phone,
+        address: values.address,
+        requirements: values.requirements,
+        tags: values.tags,
+        paymentTerms: values.paymentTerms,
         businessId: userProfile.businessId,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
         status: "active",
-      });
+      };
 
-      console.log("Document written with ID: ", docRef.id);
+      const clientRef = await addDoc(collection(db, "clients"), clientData);
 
-      Alert.alert(
-        "Success",
-        "Client added successfully!",
-        [
-          {
-            text: "OK",
-            onPress: () => {
-              resetForm();
-              navigation.goBack();
-            },
+      if (values.project.projectName) {
+        await addDoc(collection(db, `clients/${clientRef.id}/projects`), {
+          projectName: values.project.projectName,
+          budget: parseFloat(values.project.budget),
+
+          deadline: values.project.deadline
+            ? new Date(values.project.deadline).toISOString()
+            : null,
+          clientId: clientRef.id,
+          businessId: userProfile.businessId,
+          createdAt: serverTimestamp(),
+        });
+      }
+
+      Alert.alert("Success", "Client and project added successfully!", [
+        {
+          text: "OK",
+          onPress: () => {
+            resetForm();
+            navigation.goBack();
           },
-        ],
-        { cancelable: false }
-      );
+        },
+      ]);
     } catch (error) {
-      console.error("Error adding document: ", error);
-      Alert.alert(
-        "Error",
-        "Failed to add client. Please try again.",
-        [{ text: "OK" }],
-        { cancelable: false }
-      );
+      console.error("Error adding client: ", error);
+      Alert.alert("Error", "Failed to add client. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -184,6 +199,12 @@ export default function AddClientScreen({ navigation }) {
     );
   };
 
+  // Helper function to get dynamic sectionCard border styles
+  const getSectionCardBorderStyles = () => ({
+    borderWidth: colorScheme === "dark" ? 0 : 1,
+    borderColor: colorScheme === "dark" ? undefined : "#E5E7EB",
+  });
+
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: theme.colors.background }]}
@@ -191,8 +212,8 @@ export default function AddClientScreen({ navigation }) {
       <LinearGradient
         colors={
           colorScheme === "dark"
-            ? ["#111827", "#1E40AF"]
-            : ["#1E3A8A", "#3B82F6"]
+            ? ["#1A1A1A", "#1A1A1A"]
+            : ["#0047CC", "#0047CC"]
         }
         style={styles.header}
         start={{ x: 0, y: 0 }}
@@ -203,7 +224,7 @@ export default function AddClientScreen({ navigation }) {
             onPress={() => navigation.goBack()}
             style={styles.backButton}
           >
-            <FontAwesome5 name="arrow-left" size={wp(5)} color="#fff" />
+            <FontAwesome5 name="arrow-left" size={wp(5)} color="#FFFFFF" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Add New Client</Text>
           <View style={{ width: wp(5) }} />
@@ -233,395 +254,487 @@ export default function AddClientScreen({ navigation }) {
             <Animated.View
               style={[
                 styles.formContainer,
-                {
-                  opacity: fadeAnim,
-                  transform: [{ scale: scaleAnim }],
-                },
+                { opacity: fadeAnim, transform: [{ scale: scaleAnim }] },
               ]}
             >
               <ScrollView style={styles.scrollView}>
-                {/* Section: Contact Information */}
+                {/* Contact Information */}
                 <Text
                   style={[styles.sectionTitle, { color: theme.colors.primary }]}
                 >
                   Contact Information
                 </Text>
-                <View
-                  style={[
-                    styles.sectionCard,
-                    { backgroundColor: theme.colors.surface },
-                  ]}
+                <Surface
+                  style={[styles.sectionCard, getSectionCardBorderStyles()]}
                 >
-                  <Text
-                    style={[styles.inputLabel, { color: theme.colors.text }]}
-                  >
-                    Full Name *
-                  </Text>
-                  <TextInput
-                    value={values.fullName}
-                    onChangeText={handleChange("fullName")}
-                    onBlur={handleBlur("fullName")}
-                    mode="outlined"
-                    style={[
-                      styles.input,
-                      { backgroundColor: theme.colors.surface },
-                    ]}
-                    error={touched.fullName && errors.fullName}
-                    left={
-                      <TextInput.Icon
-                        icon="account"
-                        color={theme.colors.primary}
-                      />
+                  <LinearGradient
+                    colors={
+                      colorScheme === "dark"
+                        ? ["#2A2A2A", "#2A2A2A80"]
+                        : ["#FFFFFF", "#FFFFFF"]
                     }
-                    theme={theme}
-                    placeholder="please enter your full name"
-                    textColor={theme.colors.text}
-                    placeholderTextColor={theme.colors.placeholder}
-                    disabled={isSubmitting}
-                  />
-                  {touched.fullName && errors.fullName && (
-                    <HelperText
-                      type="error"
-                      visible={touched.fullName && errors.fullName}
-                      style={{ color: theme.colors.error }}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.cardGradient}
+                  >
+                    <Text
+                      style={[styles.inputLabel, { color: theme.colors.text }]}
                     >
-                      {errors.fullName}
-                    </HelperText>
-                  )}
+                      Full Name *
+                    </Text>
+                    <TextInput
+                      value={values.fullName}
+                      onChangeText={handleChange("fullName")}
+                      onBlur={handleBlur("fullName")}
+                      style={[
+                        styles.input,
+                        { backgroundColor: theme.colors.surface },
+                      ]}
+                      error={touched.fullName && errors.fullName}
+                      left={
+                        <TextInput.Icon
+                          icon="account"
+                          color={theme.colors.primary}
+                        />
+                      }
+                      theme={theme}
+                      placeholder="Enter full name"
+                      textColor={theme.colors.text}
+                      placeholderTextColor={theme.colors.placeholder}
+                      disabled={isSubmitting}
+                    />
+                    {touched.fullName && errors.fullName && (
+                      <HelperText
+                        type="error"
+                        visible={touched.fullName && errors.fullName}
+                        style={{ color: theme.colors.error }}
+                      >
+                        {errors.fullName}
+                      </HelperText>
+                    )}
 
-                  <Text
-                    style={[styles.inputLabel, { color: theme.colors.text }]}
-                  >
-                    Email *
-                  </Text>
-                  <TextInput
-                    value={values.email}
-                    onChangeText={handleChange("email")}
-                    onBlur={handleBlur("email")}
-                    mode="outlined"
-                    style={[
-                      styles.input,
-                      { backgroundColor: theme.colors.surface },
-                    ]}
-                    keyboardType="email-address"
-                    error={touched.email && errors.email}
-                    left={
-                      <TextInput.Icon
-                        icon="email"
-                        color={theme.colors.primary}
-                      />
-                    }
-                    theme={theme}
-                    placeholder="please enter your email"
-                    textColor={theme.colors.text}
-                    placeholderTextColor={theme.colors.placeholder}
-                    disabled={isSubmitting}
-                  />
-                  {touched.email && errors.email && (
-                    <HelperText
-                      type="error"
-                      visible={touched.email && errors.email}
-                      style={{ color: theme.colors.error }}
+                    <Text
+                      style={[styles.inputLabel, { color: theme.colors.text }]}
                     >
-                      {errors.email}
-                    </HelperText>
-                  )}
+                      Email *
+                    </Text>
+                    <TextInput
+                      value={values.email}
+                      onChangeText={handleChange("email")}
+                      onBlur={handleBlur("email")}
+                      style={[
+                        styles.input,
+                        { backgroundColor: theme.colors.surface },
+                      ]}
+                      keyboardType="email-address"
+                      error={touched.email && errors.email}
+                      left={
+                        <TextInput.Icon
+                          icon="email"
+                          color={theme.colors.primary}
+                        />
+                      }
+                      theme={theme}
+                      placeholder="Enter email"
+                      textColor={theme.colors.text}
+                      placeholderTextColor={theme.colors.placeholder}
+                      disabled={isSubmitting}
+                    />
+                    {touched.email && errors.email && (
+                      <HelperText
+                        type="error"
+                        visible={touched.email && errors.email}
+                        style={{ color: theme.colors.error }}
+                      >
+                        {errors.email}
+                      </HelperText>
+                    )}
 
-                  <Text
-                    style={[styles.inputLabel, { color: theme.colors.text }]}
-                  >
-                    Phone *
-                  </Text>
-                  <TextInput
-                    value={values.phone}
-                    onChangeText={handleChange("phone")}
-                    onBlur={handleBlur("phone")}
-                    mode="outlined"
-                    style={[
-                      styles.input,
-                      { backgroundColor: theme.colors.surface },
-                    ]}
-                    keyboardType="phone-pad"
-                    error={touched.phone && errors.phone}
-                    left={
-                      <TextInput.Icon
-                        icon="phone"
-                        color={theme.colors.primary}
-                      />
-                    }
-                    theme={theme}
-                    placeholder="please enter your phone number"
-                    textColor={theme.colors.text}
-                    placeholderTextColor={theme.colors.placeholder}
-                    disabled={isSubmitting}
-                  />
-                  {touched.phone && errors.phone && (
-                    <HelperText
-                      type="error"
-                      visible={touched.phone && errors.phone}
-                      style={{ color: theme.colors.error }}
+                    <Text
+                      style={[styles.inputLabel, { color: theme.colors.text }]}
                     >
-                      {errors.phone}
-                    </HelperText>
-                  )}
+                      Phone *
+                    </Text>
+                    <TextInput
+                      value={values.phone}
+                      onChangeText={handleChange("phone")}
+                      onBlur={handleBlur("phone")}
+                      style={[
+                        styles.input,
+                        { backgroundColor: theme.colors.surface },
+                      ]}
+                      keyboardType="phone-pad"
+                      error={touched.phone && errors.phone}
+                      left={
+                        <TextInput.Icon
+                          icon="phone"
+                          color={theme.colors.primary}
+                        />
+                      }
+                      theme={theme}
+                      placeholder="Enter phone number"
+                      textColor={theme.colors.text}
+                      placeholderTextColor={theme.colors.placeholder}
+                      disabled={isSubmitting}
+                    />
+                    {touched.phone && errors.phone && (
+                      <HelperText
+                        type="error"
+                        visible={touched.phone && errors.phone}
+                        style={{ color: theme.colors.error }}
+                      >
+                        {errors.phone}
+                      </HelperText>
+                    )}
 
-                  <Text
-                    style={[styles.inputLabel, { color: theme.colors.text }]}
-                  >
-                    Address
-                  </Text>
-                  <TextInput
-                    value={values.address}
-                    onChangeText={handleChange("address")}
-                    onBlur={handleBlur("address")}
-                    mode="outlined"
-                    style={[
-                      styles.input,
-                      { backgroundColor: theme.colors.surface },
-                    ]}
-                    numberOfLines={3}
-                    left={
-                      <TextInput.Icon
-                        icon="map-marker"
-                        color={theme.colors.primary}
-                      />
-                    }
-                    theme={theme}
-                    placeholder="please enter your address"
-                    textColor={theme.colors.text}
-                    placeholderTextColor={theme.colors.placeholder}
-                    disabled={isSubmitting}
-                  />
-                </View>
+                    <Text
+                      style={[styles.inputLabel, { color: theme.colors.text }]}
+                    >
+                      Address
+                    </Text>
+                    <TextInput
+                      value={values.address}
+                      onChangeText={handleChange("address")}
+                      onBlur={handleBlur("address")}
+                      style={[
+                        styles.input,
+                        { backgroundColor: theme.colors.surface },
+                      ]}
+                      numberOfLines={3}
+                      left={
+                        <TextInput.Icon
+                          icon="map-marker"
+                          color={theme.colors.primary}
+                        />
+                      }
+                      theme={theme}
+                      placeholder="Enter address"
+                      textColor={theme.colors.text}
+                      placeholderTextColor={theme.colors.placeholder}
+                      disabled={isSubmitting}
+                    />
+                  </LinearGradient>
+                </Surface>
 
-                {/* Section: Client Preferences */}
+                {/* Client Preferences */}
                 <Text
                   style={[styles.sectionTitle, { color: theme.colors.primary }]}
                 >
                   Client Preferences
                 </Text>
-                <View
-                  style={[
-                    styles.sectionCard,
-                    { backgroundColor: theme.colors.surface },
-                  ]}
+                <Surface
+                  style={[styles.sectionCard, getSectionCardBorderStyles()]}
                 >
-                  <Text
-                    style={[styles.inputLabel, { color: theme.colors.text }]}
-                  >
-                    Budget
-                  </Text>
-                  <TextInput
-                    value={values.budget}
-                    onChangeText={handleChange("budget")}
-                    onBlur={handleBlur("budget")}
-                    mode="outlined"
-                    style={[
-                      styles.input,
-                      { backgroundColor: theme.colors.surface },
-                    ]}
-                    keyboardType="numeric"
-                    error={touched.budget && errors.budget}
-                    left={
-                      <TextInput.Icon
-                        icon="currency-usd"
-                        color={theme.colors.primary}
-                      />
+                  <LinearGradient
+                    colors={
+                      colorScheme === "dark"
+                        ? ["#2A2A2A", "#2A2A2A80"]
+                        : ["#FFFFFF", "#FFFFFF"]
                     }
-                    theme={theme}
-                    placeholder="e.g., 250000"
-                    textColor={theme.colors.text}
-                    placeholderTextColor={theme.colors.placeholder}
-                    disabled={isSubmitting}
-                  />
-                  {touched.budget && errors.budget && (
-                    <HelperText
-                      type="error"
-                      visible={touched.budget && errors.budget}
-                      style={{ color: theme.colors.error }}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.cardGradient}
+                  >
+                    <Text
+                      style={[styles.inputLabel, { color: theme.colors.text }]}
                     >
-                      {errors.budget}
-                    </HelperText>
-                  )}
+                      Specific Requirements
+                    </Text>
+                    <TextInput
+                      value={values.requirements}
+                      onChangeText={handleChange("requirements")}
+                      onBlur={handleBlur("requirements")}
+                      style={[
+                        styles.input,
+                        { backgroundColor: theme.colors.surface },
+                      ]}
+                      numberOfLines={4}
+                      left={
+                        <TextInput.Icon
+                          icon="text-box"
+                          color={theme.colors.primary}
+                        />
+                      }
+                      theme={theme}
+                      placeholder="Enter requirements"
+                      textColor={theme.colors.text}
+                      placeholderTextColor={theme.colors.placeholder}
+                      disabled={isSubmitting}
+                    />
+                  </LinearGradient>
+                </Surface>
 
-                  <Text
-                    style={[styles.inputLabel, { color: theme.colors.text }]}
-                  >
-                    Specific Requirements
-                  </Text>
-                  <TextInput
-                    value={values.requirements}
-                    onChangeText={handleChange("requirements")}
-                    onBlur={handleBlur("requirements")}
-                    mode="outlined"
-                    style={[
-                      styles.input,
-                      { backgroundColor: theme.colors.surface },
-                    ]}
-                    numberOfLines={4}
-                    left={
-                      <TextInput.Icon
-                        icon="text-box"
-                        color={theme.colors.primary}
-                      />
+                {/* Initial Project */}
+                <Text
+                  style={[styles.sectionTitle, { color: theme.colors.primary }]}
+                >
+                  Initial Project
+                </Text>
+                <Surface
+                  style={[styles.sectionCard, getSectionCardBorderStyles()]}
+                >
+                  <LinearGradient
+                    colors={
+                      colorScheme === "dark"
+                        ? ["#2A2A2A", "#2A2A2A80"]
+                        : ["#FFFFFF", "#FFFFFF"]
                     }
-                    theme={theme}
-                    placeholder="please provide your requirements"
-                    textColor={theme.colors.text}
-                    placeholderTextColor={theme.colors.placeholder}
-                    disabled={isSubmitting}
-                  />
-                </View>
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.cardGradient}
+                  >
+                    <Text
+                      style={[styles.inputLabel, { color: theme.colors.text }]}
+                    >
+                      Project Name *
+                    </Text>
+                    <TextInput
+                      value={values.project.projectName}
+                      onChangeText={handleChange("project.projectName")}
+                      onBlur={handleBlur("project.projectName")}
+                      style={[
+                        styles.input,
+                        { backgroundColor: theme.colors.surface },
+                      ]}
+                      error={
+                        touched.project?.projectName &&
+                        errors.project?.projectName
+                      }
+                      left={
+                        <TextInput.Icon
+                          icon="briefcase"
+                          color={theme.colors.primary}
+                        />
+                      }
+                      theme={theme}
+                      placeholder="Enter project name"
+                      textColor={theme.colors.text}
+                      placeholderTextColor={theme.colors.placeholder}
+                      disabled={isSubmitting}
+                    />
+                    {touched.project?.projectName &&
+                      errors.project?.projectName && (
+                        <HelperText
+                          type="error"
+                          visible={
+                            touched.project?.projectName &&
+                            errors.project?.projectName
+                          }
+                          style={{ color: theme.colors.error }}
+                        >
+                          {errors.project?.projectName}
+                        </HelperText>
+                      )}
 
-                {/* Section: Categorization */}
+                    <Text
+                      style={[styles.inputLabel, { color: theme.colors.text }]}
+                    >
+                      Budget *
+                    </Text>
+                    <TextInput
+                      value={values.project.budget}
+                      onChangeText={handleChange("project.budget")}
+                      onBlur={handleBlur("project.budget")}
+                      style={[
+                        styles.input,
+                        { backgroundColor: theme.colors.surface },
+                      ]}
+                      keyboardType="numeric"
+                      error={touched.project?.budget && errors.project?.budget}
+                      left={
+                        <TextInput.Icon
+                          icon="currency-usd"
+                          color={theme.colors.primary}
+                        />
+                      }
+                      theme={theme}
+                      placeholder="Enter project budget"
+                      textColor={theme.colors.text}
+                      placeholderTextColor={theme.colors.placeholder}
+                      disabled={isSubmitting}
+                    />
+                    {touched.project?.budget && errors.project?.budget && (
+                      <HelperText
+                        type="error"
+                        visible={
+                          touched.project?.budget && errors.project?.budget
+                        }
+                        style={{ color: theme.colors.error }}
+                      >
+                        {errors.project?.budget}
+                      </HelperText>
+                    )}
+
+                    <Text
+                      style={[styles.inputLabel, { color: theme.colors.text }]}
+                    >
+                      Deadline
+                    </Text>
+                    <TouchableOpacity onPress={() => setShowDatePicker(true)}>
+                      <TextInput
+                        value={
+                          values.project.deadline
+                            ? new Date(
+                                values.project.deadline
+                              ).toLocaleDateString()
+                            : ""
+                        }
+                        style={[
+                          styles.input,
+                          { backgroundColor: theme.colors.surface },
+                        ]}
+                        editable={false}
+                        left={
+                          <TextInput.Icon
+                            icon="calendar"
+                            color={theme.colors.primary}
+                          />
+                        }
+                        right={
+                          <TextInput.Icon
+                            icon="chevron-down"
+                            color={theme.colors.primary}
+                          />
+                        }
+                        theme={theme}
+                        placeholder="Select deadline"
+                        textColor={theme.colors.text}
+                        placeholderTextColor={theme.colors.placeholder}
+                      />
+                    </TouchableOpacity>
+                  </LinearGradient>
+                </Surface>
+
+                {/* Categorization */}
                 <Text
                   style={[styles.sectionTitle, { color: theme.colors.primary }]}
                 >
                   Categorization
                 </Text>
-                <View
-                  style={[
-                    styles.sectionCard,
-                    { backgroundColor: theme.colors.surface },
-                  ]}
+                <Surface
+                  style={[styles.sectionCard, getSectionCardBorderStyles()]}
                 >
-                  <Text
-                    style={[styles.inputLabel, { color: theme.colors.text }]}
+                  <LinearGradient
+                    colors={
+                      colorScheme === "dark"
+                        ? ["#2A2A2A", "#2A2A2A80"]
+                        : ["#FFFFFF", "#FFFFFF"]
+                    }
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.cardGradient}
                   >
-                    Tags
-                  </Text>
-                  <View style={styles.tagsContainer}>
-                    {values.tags.map((tag, index) => (
-                      <Chip
-                        key={index}
-                        onClose={() => removeTag(tag, setFieldValue, values)}
+                    <Text
+                      style={[styles.inputLabel, { color: theme.colors.text }]}
+                    >
+                      Tags
+                    </Text>
+                    <View style={styles.tagsContainer}>
+                      {values.tags.map((tag, index) => (
+                        <Chip
+                          key={index}
+                          onClose={() => removeTag(tag, setFieldValue, values)}
+                          style={[
+                            styles.chip,
+                            {
+                              backgroundColor: theme.colors.surface,
+                              borderColor:
+                                colorScheme === "dark" ? "#6B7280" : "#E5E7EB",
+                            },
+                          ]}
+                          textStyle={[
+                            styles.chipText,
+                            { color: theme.colors.text },
+                          ]}
+                          icon="tag"
+                        >
+                          {tag}
+                        </Chip>
+                      ))}
+                      <TouchableOpacity
                         style={[
-                          styles.chip,
+                          styles.addTagButton,
                           {
-                            backgroundColor:
-                              colorScheme === "dark" ? "#4B5563" : "#E0F2FE",
+                            backgroundColor: theme.colors.background,
                             borderColor:
-                              colorScheme === "dark" ? "#6B7280" : "#BFDBFE",
+                              colorScheme === "dark" ? "#6B7280" : "#E5E7EB",
                           },
                         ]}
-                        textStyle={[
-                          styles.chipText,
-                          { color: theme.colors.text },
-                        ]}
-                        icon="tag"
+                        onPress={() => setShowTagsModal(true)}
                       >
-                        {tag}
-                      </Chip>
-                    ))}
-                    <TouchableOpacity
-                      style={[
-                        styles.addTagButton,
-                        {
-                          backgroundColor:
-                            colorScheme === "dark" ? "#4B5563" : "#E0F2FE",
-                          borderColor:
-                            colorScheme === "dark" ? "#6B7280" : "#BFDBFE",
-                        },
-                      ]}
-                      onPress={() => setShowTagsModal(true)}
-                    >
-                      <FontAwesome5
-                        name="plus"
-                        size={wp(4)}
-                        color={theme.colors.primary}
-                      />
-                    </TouchableOpacity>
-                  </View>
-                </View>
+                        <FontAwesome5
+                          name="plus"
+                          size={wp(4)}
+                          color={theme.colors.primary}
+                        />
+                      </TouchableOpacity>
+                    </View>
+                  </LinearGradient>
+                </Surface>
 
-                {/* Section: Financial Details */}
+                {/* Financial Details */}
                 <Text
                   style={[styles.sectionTitle, { color: theme.colors.primary }]}
                 >
                   Financial Details
                 </Text>
-                <View
-                  style={[
-                    styles.sectionCard,
-                    { backgroundColor: theme.colors.surface },
-                  ]}
+                <Surface
+                  style={[styles.sectionCard, getSectionCardBorderStyles()]}
                 >
-                  <Text
-                    style={[styles.inputLabel, { color: theme.colors.text }]}
+                  <LinearGradient
+                    colors={
+                      colorScheme === "dark"
+                        ? ["#2A2A2A", "#2A2A2A80"]
+                        : ["#FFFFFF", "#FFFFFF"]
+                    }
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.cardGradient}
                   >
-                    Payment Terms
-                  </Text>
-                  <TouchableOpacity onPress={() => setShowTermsModal(true)}>
-                    <TextInput
-                      value={values.paymentTerms}
-                      mode="outlined"
-                      style={[
-                        styles.input,
-                        { backgroundColor: theme.colors.surface },
-                      ]}
-                      editable={false}
-                      left={
-                        <TextInput.Icon
-                          icon="credit-card"
-                          color={theme.colors.primary}
-                        />
-                      }
-                      right={
-                        <TextInput.Icon
-                          icon="chevron-down"
-                          color={theme.colors.primary}
-                        />
-                      }
-                      theme={theme}
-                      placeholder="Select payment terms"
-                      textColor={theme.colors.text}
-                      placeholderTextColor={theme.colors.placeholder}
-                    />
-                  </TouchableOpacity>
-
-                  <Text
-                    style={[styles.inputLabel, { color: theme.colors.text }]}
-                  >
-                    Project Deadline
-                  </Text>
-                  <TouchableOpacity onPress={() => setShowDatePicker(true)}>
-                    <TextInput
-                      value={values.projectDeadline.toLocaleDateString()}
-                      mode="outlined"
-                      style={[
-                        styles.input,
-                        { backgroundColor: theme.colors.surface },
-                      ]}
-                      editable={false}
-                      left={
-                        <TextInput.Icon
-                          icon="calendar"
-                          color={theme.colors.primary}
-                        />
-                      }
-                      right={
-                        <TextInput.Icon
-                          icon="chevron-down"
-                          color={theme.colors.primary}
-                        />
-                      }
-                      theme={theme}
-                      placeholder="Select deadline"
-                      textColor={theme.colors.text}
-                      placeholderTextColor={theme.colors.placeholder}
-                    />
-                  </TouchableOpacity>
-                </View>
+                    <Text
+                      style={[styles.inputLabel, { color: theme.colors.text }]}
+                    >
+                      Payment Terms
+                    </Text>
+                    <TouchableOpacity onPress={() => setShowTermsModal(true)}>
+                      <TextInput
+                        value={values.paymentTerms}
+                        style={[
+                          styles.input,
+                          { backgroundColor: theme.colors.surface },
+                        ]}
+                        editable={false}
+                        left={
+                          <TextInput.Icon
+                            icon="credit-card"
+                            color={theme.colors.primary}
+                          />
+                        }
+                        right={
+                          <TextInput.Icon
+                            icon="chevron-down"
+                            color={theme.colors.primary}
+                          />
+                        }
+                        theme={theme}
+                        placeholder="Select payment terms"
+                        textColor={theme.colors.text}
+                        placeholderTextColor={theme.colors.placeholder}
+                      />
+                    </TouchableOpacity>
+                  </LinearGradient>
+                </Surface>
 
                 <Button
                   mode="contained"
                   onPress={handleSubmit}
-                  style={styles.submitButton}
+                  style={[styles.submitButton, { backgroundColor: "#0047CC" }]}
                   contentStyle={styles.buttonContent}
                   loading={isSubmitting}
                   disabled={isSubmitting}
                   theme={theme}
                   icon="check"
+                  labelStyle={styles.buttonLabel}
                 >
                   Add Client
                 </Button>
@@ -643,10 +756,8 @@ export default function AddClientScreen({ navigation }) {
                     Select or Add Tags
                   </Text>
                   <TextInput
-                    label="Custom Tag"
                     value={newTag}
                     onChangeText={setNewTag}
-                    mode="outlined"
                     style={[
                       styles.input,
                       { backgroundColor: theme.colors.surface },
@@ -662,6 +773,7 @@ export default function AddClientScreen({ navigation }) {
                       />
                     }
                     theme={theme}
+                    placeholder="Enter custom tag"
                     textColor={theme.colors.text}
                     placeholderTextColor={theme.colors.placeholder}
                   />
@@ -673,10 +785,9 @@ export default function AddClientScreen({ navigation }) {
                         style={[
                           styles.commonTag,
                           {
-                            backgroundColor:
-                              colorScheme === "dark" ? "#4B5563" : "#E0F2FE",
+                            backgroundColor: theme.colors.surface,
                             borderColor:
-                              colorScheme === "dark" ? "#6B7280" : "#BFDBFE",
+                              colorScheme === "dark" ? "#6B7280" : "#E5E7EB",
                           },
                         ]}
                         textStyle={[
@@ -692,8 +803,12 @@ export default function AddClientScreen({ navigation }) {
                   <Button
                     mode="contained"
                     onPress={() => setShowTagsModal(false)}
-                    style={styles.modalButton}
+                    style={[
+                      styles.modalButton,
+                      { backgroundColor: theme.colors.primary },
+                    ]}
                     theme={theme}
+                    labelStyle={styles.buttonLabel}
                   >
                     Done
                   </Button>
@@ -729,12 +844,7 @@ export default function AddClientScreen({ navigation }) {
                         }}
                       />
                       {index < paymentTerms.length - 1 && (
-                        <Divider
-                          style={[
-                            styles.modalDivider,
-                            { backgroundColor: theme.colors.placeholder },
-                          ]}
-                        />
+                        <Divider style={styles.modalDivider} />
                       )}
                     </React.Fragment>
                   ))}
@@ -744,13 +854,13 @@ export default function AddClientScreen({ navigation }) {
               {/* Date Picker */}
               {showDatePicker && (
                 <DateTimePicker
-                  value={values.projectDeadline}
+                  value={values.project.deadline || new Date()}
                   mode="date"
                   display="default"
                   onChange={(event, selectedDate) => {
                     setShowDatePicker(false);
                     if (selectedDate) {
-                      setFieldValue("projectDeadline", selectedDate);
+                      setFieldValue("project.deadline", selectedDate);
                     }
                   }}
                   minimumDate={new Date()}
@@ -771,7 +881,7 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingVertical: hp(3),
-    paddingHorizontal: wp(4),
+    paddingHorizontal: wp(5),
     borderBottomLeftRadius: wp(6),
     borderBottomRightRadius: wp(6),
     elevation: 6,
@@ -784,17 +894,19 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    width: "100%",
   },
   backButton: {
-    padding: wp(2.5),
+    padding: wp(2),
     borderRadius: wp(2),
+    justifyContent: "center",
+    alignItems: "center",
   },
   headerTitle: {
     fontSize: wp(6),
     fontWeight: "700",
     color: "#FFFFFF",
     letterSpacing: 0.5,
-    textAlign: "center",
   },
   keyboardAvoid: {
     flex: 1,
@@ -803,28 +915,28 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollView: {
-    padding: wp(5),
+    paddingHorizontal: wp(5),
+    paddingBottom: hp(10),
   },
   sectionTitle: {
-    fontSize: wp(5.5),
-    fontWeight: "700",
+    fontSize: wp(4.5),
+    fontWeight: "600",
     marginVertical: hp(2),
     letterSpacing: 0.3,
   },
   sectionCard: {
-    borderRadius: wp(4),
-    padding: wp(4),
     marginBottom: hp(2),
-    elevation: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 3,
+    borderRadius: 20,
+  },
+  cardGradient: {
+    borderRadius: 16,
+    padding: wp(4),
   },
   input: {
     marginBottom: hp(1.5),
-    borderRadius: wp(2),
-    height: hp(8),
+    borderRadius: wp(3),
+    height: hp(6),
+    backgroundColor: "#FFFFFF",
   },
   inputLabel: {
     fontSize: wp(4),
@@ -837,9 +949,9 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     alignItems: "center",
     marginBottom: hp(1),
+    gap: wp(2),
   },
   chip: {
-    marginRight: wp(2),
     marginBottom: hp(1),
     borderWidth: 1,
     borderRadius: wp(5),
@@ -855,41 +967,36 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1,
-    elevation: 2,
   },
   submitButton: {
     marginVertical: hp(3),
     borderRadius: wp(3),
-    elevation: 5,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
   },
   buttonContent: {
-    height: hp(7),
+    height: hp(6),
     flexDirection: "row",
     alignItems: "center",
+  },
+  buttonLabel: {
+    fontSize: wp(4),
+    color: "#FFFFFF",
   },
   modalContent: {
     padding: wp(5),
     margin: wp(5),
     borderRadius: wp(4),
-    elevation: 6,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
   },
   modalTitle: {
     fontSize: wp(5.5),
     fontWeight: "700",
-    marginBottom: hp(2.5),
+    marginBottom: hp(2),
   },
   modalItem: {
     fontSize: wp(4),
   },
-  modalDivider: {},
+  modalDivider: {
+    backgroundColor: "#6B7280",
+  },
   modalButton: {
     marginTop: hp(2),
     borderRadius: wp(3),
@@ -898,15 +1005,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     marginVertical: hp(2),
+    gap: wp(2),
   },
   commonTag: {
-    marginRight: wp(2),
     marginBottom: hp(1),
     borderWidth: 1,
     borderRadius: wp(5),
-  },
-  errorText: {
-    fontSize: wp(3.5),
-    marginBottom: hp(1),
   },
 });
