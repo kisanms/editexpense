@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -14,7 +14,7 @@ import { Formik } from "formik";
 import * as Yup from "yup";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { db } from "../../config/firebase";
-import { TextInput, Button } from "react-native-paper";
+import { TextInput, Button, ActivityIndicator } from "react-native-paper";
 import { useAuth } from "../../context/AuthContext";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
@@ -60,6 +60,7 @@ const AddProjectScreen = () => {
   const colorScheme = useColorScheme();
   const theme = getTheme(colorScheme);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     StatusBar.setBarStyle(
@@ -75,24 +76,32 @@ const AddProjectScreen = () => {
     return null;
   }
 
-  const handleAddProject = async (values, { resetForm }) => {
-    try {
-      await addDoc(collection(db, `clients/${clientId}/projects`), {
-        projectName: values.projectName,
-        budget: Number(values.budget),
-        deadline: values.deadline,
-        requirements: values.requirements || "",
-        clientId,
-        businessId: userProfile.businessId,
-        createdAt: serverTimestamp(),
-      });
-      Alert.alert("Success", "Project added successfully");
-      resetForm();
-      navigation.goBack();
-    } catch (error) {
-      Alert.alert("Error", "Failed to add project: " + error.message);
-    }
-  };
+  const handleAddProject = useCallback(
+    async (values, { resetForm }) => {
+      if (isSubmitting) return; // Prevent multiple submissions
+
+      setIsSubmitting(true);
+      try {
+        await addDoc(collection(db, `clients/${clientId}/projects`), {
+          projectName: values.projectName,
+          budget: Number(values.budget),
+          deadline: values.deadline,
+          requirements: values.requirements || "",
+          clientId,
+          businessId: userProfile.businessId,
+          createdAt: serverTimestamp(),
+        });
+        Alert.alert("Success", "Project added successfully");
+        resetForm();
+        navigation.goBack();
+      } catch (error) {
+        Alert.alert("Error", "Failed to add project: " + error.message);
+      } finally {
+        setIsSubmitting(false);
+      }
+    },
+    [clientId, userProfile.businessId, navigation, isSubmitting]
+  );
 
   const formatDate = (date) => {
     if (!date) return "";
@@ -166,6 +175,7 @@ const AddProjectScreen = () => {
                     color={theme.colors.primary}
                   />
                 }
+                disabled={isSubmitting}
               />
               {touched.projectName && errors.projectName && (
                 <Text style={[styles.error, { color: theme.colors.error }]}>
@@ -191,6 +201,7 @@ const AddProjectScreen = () => {
                     color={theme.colors.primary}
                   />
                 }
+                disabled={isSubmitting}
               />
               {touched.budget && errors.budget && (
                 <Text style={[styles.error, { color: theme.colors.error }]}>
@@ -219,6 +230,7 @@ const AddProjectScreen = () => {
                 <TouchableOpacity
                   onPress={() => setShowDatePicker(true)}
                   style={styles.datePickerButton}
+                  disabled={isSubmitting}
                 >
                   <FontAwesome5
                     name="calendar-alt"
@@ -269,6 +281,7 @@ const AddProjectScreen = () => {
                     color={theme.colors.primary}
                   />
                 }
+                disabled={isSubmitting}
               />
               {touched.requirements && errors.requirements && (
                 <Text style={[styles.error, { color: theme.colors.error }]}>
@@ -282,9 +295,11 @@ const AddProjectScreen = () => {
                 style={[styles.button, { backgroundColor: "#0047CC" }]}
                 labelStyle={styles.buttonLabel}
                 theme={theme}
-                icon="plus"
+                icon={isSubmitting ? null : "plus"}
+                loading={isSubmitting}
+                disabled={isSubmitting}
               >
-                Add Project
+                {isSubmitting ? "Adding Project..." : "Add Project"}
               </Button>
             </View>
           )}
