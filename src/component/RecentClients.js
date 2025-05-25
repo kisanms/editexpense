@@ -105,22 +105,36 @@ const RecentClients = ({ clients, projects, colorScheme, navigation }) => {
     );
   };
 
-  // Filter and sort clients (active only, sorted by fullName)
   const recentClients = clients
     .filter((client) => client.status === "active")
     .sort((a, b) => a.fullName.localeCompare(b.fullName))
-    .slice(0, 2); // Limit to 2 clients
+    .slice(0, 2);
 
   return (
     <View style={styles.section}>
-      <Text
-        style={[
-          styles.sectionTitle,
-          { color: colorScheme === "dark" ? "#3B82F6" : "#0047CC" },
-        ]}
-      >
-        Recent Clients
-      </Text>
+      <View style={styles.header}>
+        <Text
+          style={[
+            styles.sectionTitle,
+            { color: colorScheme === "dark" ? "#3B82F6" : "#0047CC" },
+          ]}
+        >
+          Recent Clients
+        </Text>
+        <Pressable
+          onPress={() => navigation.navigate("Clients")}
+          style={styles.viewAll}
+        >
+          <Text
+            style={[
+              styles.viewAllText,
+              { color: colorScheme === "dark" ? "#3B82F6" : "#0047CC" },
+            ]}
+          >
+            View All
+          </Text>
+        </Pressable>
+      </View>
       {recentClients.length === 0 ? (
         <Text
           style={[
@@ -142,7 +156,7 @@ const RecentClients = ({ clients, projects, colorScheme, navigation }) => {
           initialNumToRender={2}
           windowSize={3}
           ListFooterComponent={<View style={{ width: wp("3%") }} />}
-          snapToInterval={wp("83%")} // Card width (80%) + separator (3%)
+          snapToInterval={wp("83%")}
           snapToAlignment="start"
           decelerationRate="fast"
         />
@@ -156,11 +170,23 @@ const styles = StyleSheet.create({
     padding: wp("5%"),
     marginTop: hp("0.2%"),
   },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: hp(1),
+  },
   sectionTitle: {
     fontSize: wp("5%"),
     fontWeight: "bold",
-    marginBottom: hp("2%"),
     letterSpacing: 0.5,
+  },
+  viewAll: {
+    padding: wp("2%"),
+  },
+  viewAllText: {
+    fontSize: wp("4%"),
+    fontWeight: "500",
   },
   clientsList: {
     flexGrow: 0,
@@ -170,6 +196,10 @@ const styles = StyleSheet.create({
     padding: wp("3.5%"),
     borderRadius: 12,
     shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 4,
   },
   clientHeader: {
     flexDirection: "row",
@@ -228,9 +258,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   emptyText: {
-    fontSize: hp(2),
+    fontSize: hp("2%"),
     textAlign: "center",
-    marginVertical: hp(2),
+    marginVertical: hp("2%"),
   },
 });
 

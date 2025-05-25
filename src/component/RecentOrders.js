@@ -1,17 +1,10 @@
 import React, { useState, useEffect } from "react";
-import {
-  View,
-  FlatList,
-  StyleSheet,
-  TouchableOpacity,
-  useColorScheme,
-} from "react-native";
-import { Text, Card, Chip } from "react-native-paper";
-import { FontAwesome5 } from "@expo/vector-icons";
+import { View, Text, StyleSheet, FlatList, Pressable } from "react-native";
 import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from "react-native-responsive-screen";
+import { FontAwesome5 } from "@expo/vector-icons";
 import {
   collection,
   query,
@@ -24,6 +17,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../config/firebase";
 import { useAuth } from "../context/AuthContext";
+import { useColorScheme } from "react-native";
 
 const getTheme = (colorScheme) => ({
   colors: {
@@ -32,12 +26,24 @@ const getTheme = (colorScheme) => ({
     background: colorScheme === "dark" ? "#1F2937" : "#F3F4F6",
     text: colorScheme === "dark" ? "#F3F4F6" : "#1F2937",
     placeholder: colorScheme === "dark" ? "#9CA3AF" : "#6B7280",
-    surface: colorScheme === "dark" ? "#374151" : "#FFFFFF",
+    surface: colorScheme === "dark" ? "#2A2A2A" : "#FFFFFF",
   },
-  roundness: wp(2),
 });
 
-export default function RecentOrders({ navigation }) {
+const getStatusColor = (status, colorScheme) => {
+  switch (status?.toLowerCase()) {
+    case "in-progress":
+      return "#38B2AC";
+    case "completed":
+      return "#38B2AC";
+    case "cancelled":
+      return "#F87171";
+    default:
+      return colorScheme === "dark" ? "#A0A0A0" : "#6B7280";
+  }
+};
+
+const RecentOrders = ({ navigation }) => {
   const { userProfile } = useAuth();
   const [orders, setOrders] = useState([]);
   const [clients, setClients] = useState({});
@@ -65,7 +71,6 @@ export default function RecentOrders({ navigation }) {
         ...doc.data(),
       }));
 
-      // Fetch client, project, and employee details
       const clientIds = [...new Set(ordersList.map((order) => order.clientId))];
       const employeeIds = [
         ...new Set(ordersList.map((order) => order.employeeId)),
@@ -81,7 +86,6 @@ export default function RecentOrders({ navigation }) {
         ),
       ];
 
-      // Fetch clients
       const clientsData = {};
       await Promise.all(
         clientIds.map(async (clientId) => {
@@ -93,7 +97,6 @@ export default function RecentOrders({ navigation }) {
         })
       );
 
-      // Fetch projects
       const projectsData = {};
       await Promise.all(
         projectIds.map(async ({ clientId, projectId }) => {
@@ -108,7 +111,6 @@ export default function RecentOrders({ navigation }) {
         })
       );
 
-      // Fetch employees
       const employeesData = {};
       await Promise.all(
         employeeIds.map(async (employeeId) => {
@@ -132,214 +134,249 @@ export default function RecentOrders({ navigation }) {
     return () => unsubscribe();
   }, [userProfile?.businessId]);
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "in-progress":
-        return {
-          bg: colorScheme === "dark" ? "#3B82F620" : "#EFF6FF",
-          text: theme.colors.primary,
-          border: theme.colors.primary,
-        };
-      case "completed":
-        return {
-          bg: colorScheme === "dark" ? "#2DD4BF20" : "#E6FFFA",
-          text: "#38B2AC",
-          border: "#38B2AC",
-        };
-      case "cancelled":
-        return {
-          bg: colorScheme === "dark" ? "#F8717120" : "#FEE2E2",
-          text: theme.colors.error,
-          border: theme.colors.error,
-        };
-      default:
-        return {
-          bg: colorScheme === "dark" ? "#4B5563" : "#F3F4F6",
-          text: theme.colors.placeholder,
-          border: theme.colors.placeholder,
-        };
-    }
-  };
+  const renderOrderItem = ({ item }) => {
+    const statusColor = getStatusColor(item.status, colorScheme);
 
-  const renderOrderItem = ({ item }) => (
-    <TouchableOpacity
-      onPress={() => navigation.navigate("OrderDetails", { order: item })}
-    >
-      <Card
-        style={[styles.card, { backgroundColor: theme.colors.surface }]}
-        elevation={4}
+    return (
+      <Pressable
+        onPress={() => navigation.navigate("OrderDetails", { order: item })}
+        style={[styles.orderItem, { backgroundColor: theme.colors.surface }]}
       >
-        <Card.Content>
-          <View style={styles.cardHeader}>
-            <Text
-              style={[styles.orderTitle, { color: theme.colors.text }]}
-              numberOfLines={1}
-            >
-              {item.title}
-            </Text>
-            <Chip
-              mode="outlined"
-              style={[
-                styles.statusChip,
-                {
-                  backgroundColor: getStatusColor(item.status).bg,
-                  borderColor: getStatusColor(item.status).border,
-                },
-              ]}
-            >
+        <View style={styles.orderHeader}>
+          <View
+            style={[
+              styles.avatar,
+              {
+                backgroundColor: colorScheme === "dark" ? "#3A3A3A" : "#F3F4F6",
+              },
+            ]}
+          >
+            <FontAwesome5
+              name="file-invoice"
+              size={wp("4.5%")}
+              color={statusColor}
+            />
+          </View>
+          <View style={styles.orderDetails}>
+            <View style={styles.headerRow}>
               <Text
                 style={[
-                  styles.statusText,
-                  { color: getStatusColor(item.status).text },
+                  styles.orderName,
+                  { color: colorScheme === "dark" ? "#fff" : "#000" },
                 ]}
+                numberOfLines={1}
+              >
+                {item.title}
+              </Text>
+              <Text
+                style={[styles.orderStatus, { color: statusColor }]}
+                numberOfLines={1}
               >
                 {item.status}
               </Text>
-            </Chip>
-          </View>
-          <View style={styles.infoRow}>
-            <FontAwesome5
-              name="user"
-              size={wp(3.5)}
-              color={theme.colors.placeholder}
-            />
-            <Text
-              style={[styles.infoText, { color: theme.colors.text }]}
-              numberOfLines={1}
-            >
-              {clients[item.clientId]?.fullName || "Loading..."}
-            </Text>
-          </View>
-          {item.projectId && (
-            <View style={styles.infoRow}>
-              <FontAwesome5
-                name="folder"
-                size={wp(3.5)}
-                color={theme.colors.placeholder}
-              />
+            </View>
+            <View style={styles.headerRow}>
               <Text
-                style={[styles.infoText, { color: theme.colors.text }]}
+                style={[
+                  styles.orderMeta,
+                  { color: colorScheme === "dark" ? "#A0A0A0" : "#6B7280" },
+                ]}
                 numberOfLines={1}
               >
-                {projects[item.projectId]?.projectName || "Loading..."}
+                {clients[item.clientId]?.fullName || "Loading..."}
+              </Text>
+              <Text
+                style={[
+                  styles.orderMeta,
+                  { color: colorScheme === "dark" ? "#A0A0A0" : "#6B7280" },
+                  { textAlign: "right" },
+                ]}
+                numberOfLines={1}
+              >
+                {employees[item.employeeId]?.fullName || "Loading..."}
               </Text>
             </View>
-          )}
-          <View style={styles.infoRow}>
-            <FontAwesome5
-              name="dollar-sign"
-              size={wp(3.5)}
-              color={theme.colors.placeholder}
-            />
-            <Text style={[styles.infoText, { color: theme.colors.text }]}>
-              ${item.amount}
-            </Text>
           </View>
-        </Card.Content>
-      </Card>
-    </TouchableOpacity>
-  );
+        </View>
+        <View
+          style={[
+            styles.orderFooter,
+            { borderTopColor: colorScheme === "dark" ? "#444" : "#E5E7EB" },
+          ]}
+        >
+          <Text
+            style={[
+              styles.orderAmount,
+              { color: colorScheme === "dark" ? "#A0A0A0" : "#6B7280" },
+            ]}
+            numberOfLines={1}
+          >
+            {item.projectId
+              ? projects[item.projectId]?.projectName || "Loading..."
+              : "No Project"}
+          </Text>
+          <Text
+            style={[
+              styles.orderAmount,
+              { color: colorScheme === "dark" ? "#A0A0A0" : "#6B7280" },
+              { textAlign: "right" },
+            ]}
+            numberOfLines={1}
+          >
+            ${item.amount.toLocaleString()}
+          </Text>
+        </View>
+      </Pressable>
+    );
+  };
 
   return (
-    <View style={styles.container}>
+    <View style={styles.section}>
       <View style={styles.header}>
-        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
+        <Text
+          style={[
+            styles.sectionTitle,
+            { color: colorScheme === "dark" ? "#3B82F6" : "#0047CC" },
+          ]}
+        >
           Recent Orders
         </Text>
-        <TouchableOpacity
+        <Pressable
           onPress={() => navigation.navigate("Orders")}
           style={styles.viewAll}
         >
-          <Text style={[styles.viewAllText, { color: theme.colors.primary }]}>
+          <Text
+            style={[
+              styles.viewAllText,
+              { color: colorScheme === "dark" ? "#3B82F6" : "#0047CC" },
+            ]}
+          >
             View All
           </Text>
-        </TouchableOpacity>
+        </Pressable>
       </View>
       <FlatList
         data={orders}
         renderItem={renderOrderItem}
         keyExtractor={(item) => item.id}
-        horizontal
+        horizontal={true}
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.listContent}
+        style={styles.ordersList}
+        ItemSeparatorComponent={() => <View style={{ width: wp("3%") }} />}
+        initialNumToRender={2}
+        windowSize={3}
+        ListFooterComponent={<View style={{ width: wp("3%") }} />}
+        snapToInterval={wp("83%")}
+        snapToAlignment="start"
+        decelerationRate="fast"
         ListEmptyComponent={
-          <Text style={[styles.emptyText, { color: theme.colors.text }]}>
+          <Text
+            style={[
+              styles.emptyText,
+              { color: colorScheme === "dark" ? "#A0A0A0" : "#6B7280" },
+            ]}
+          >
             No recent orders found.
           </Text>
         }
       />
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  container: {
-    paddingVertical: hp(2),
-    paddingHorizontal: wp(4),
+  section: {
+    padding: wp("5%"),
+    marginTop: hp("0.2%"),
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: hp(2),
+    marginBottom: hp(1),
   },
   sectionTitle: {
-    fontSize: wp(5.5),
-    fontWeight: "700",
-    letterSpacing: 0.3,
+    fontSize: wp("5%"),
+    fontWeight: "bold",
+    letterSpacing: 0.5,
   },
   viewAll: {
-    padding: wp(2),
+    padding: wp("2%"),
   },
   viewAllText: {
-    fontSize: wp(4),
+    fontSize: wp("4%"),
     fontWeight: "500",
   },
-  listContent: {
-    paddingRight: wp(4),
+  ordersList: {
+    flexGrow: 0,
+    marginBottom: hp("-4%"),
   },
-  card: {
-    width: wp(70),
-    marginRight: wp(4),
-    borderRadius: wp(4),
-    elevation: 4,
+  orderItem: {
+    width: wp("80%"),
+    padding: wp("3.5%"),
+    borderRadius: 12,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 3,
+    elevation: 4,
   },
-  cardHeader: {
+  orderHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: hp("1.2%"),
+  },
+  avatar: {
+    width: wp("10%"),
+    height: wp("10%"),
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: wp("5%"),
+  },
+  orderDetails: {
+    flex: 1,
+    marginLeft: wp("2.8%"),
+    flexDirection: "column",
+  },
+  headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: hp(1),
+    marginBottom: hp("0.6%"),
   },
-  orderTitle: {
-    fontSize: wp(4.2),
-    fontWeight: "600",
+  orderName: {
+    fontSize: wp("3.5%"),
+    fontWeight: "bold",
     flex: 1,
   },
-  statusChip: {
-    borderWidth: 1,
-  },
-  statusText: {
-    fontSize: wp(3.2),
+  orderStatus: {
+    fontSize: wp("3.2%"),
     fontWeight: "500",
     textTransform: "capitalize",
+    flex: 1,
+    textAlign: "right",
   },
-  infoRow: {
+  orderMeta: {
+    fontSize: wp("3.2%"),
+    opacity: 0.9,
+    flex: 1,
+  },
+  orderFooter: {
     flexDirection: "row",
-    alignItems: "center",
-    marginVertical: hp(0.5),
+    justifyContent: "space-between",
+    marginTop: hp("1.5%"),
+    paddingTop: hp("1.5%"),
+    borderTopWidth: 0.5,
   },
-  infoText: {
-    fontSize: wp(3.5),
-    marginLeft: wp(2),
+  orderAmount: {
+    fontSize: wp("3.2%"),
+    opacity: 0.9,
     flex: 1,
   },
   emptyText: {
-    fontSize: wp(4),
+    fontSize: hp("2%"),
     textAlign: "center",
-    marginVertical: hp(5),
+    marginVertical: hp("2%"),
   },
 });
+
+export default React.memo(RecentOrders);

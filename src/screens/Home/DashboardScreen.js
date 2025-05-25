@@ -377,7 +377,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: wp("5%"),
     paddingVertical: hp("2%"),
-    marginBottom: hp("-3%"),
+    marginBottom: hp("-4%"),
   },
   card: {
     width: wp("44%"),
