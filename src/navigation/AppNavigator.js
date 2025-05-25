@@ -25,6 +25,7 @@ import DashboardScreen from "../screens/Home/DashboardScreen";
 import AddClientScreen from "../screens/Clients/AddClientScreen";
 import ClientsScreen from "../screens/Clients/ClientsScreen";
 import AddProjectScreen from "../screens/Clients/AddProjectScreen";
+import ProjectDetailsScreen from "../screens/Clients/ProjectDetailsScreen";
 import EditProjectScreen from "../screens/Clients/EditProjectScreen";
 import OrdersScreen from "../screens/Orders/OrdersScreen";
 import ReportsScreen from "../screens/ReportsScreen";
@@ -242,6 +243,10 @@ const AppNavigator = () => {
       <Stack.Screen name="EditClient" component={EditClientScreen} />
       <Stack.Screen name="AddProjectScreen" component={AddProjectScreen} />
       <Stack.Screen name="EditProjectScreen" component={EditProjectScreen} />
+      <Stack.Screen
+        name="ProjectDetailsScreen"
+        component={ProjectDetailsScreen}
+      />
 
       {/* Employee Screens */}
       <Stack.Screen name="EmployeeDetails" component={EmployeeDetailsScreen} />

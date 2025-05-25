@@ -8,6 +8,7 @@ import {
   Alert,
   RefreshControl,
   FlatList,
+  TouchableWithoutFeedback,
 } from "react-native";
 import {
   Text,
@@ -18,6 +19,7 @@ import {
   Portal,
   Modal,
   Avatar,
+  Surface,
 } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
@@ -40,16 +42,20 @@ import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { useAuth } from "../../context/AuthContext";
 import { useColorScheme } from "react-native";
 
+// Use the same getTheme function as ClientsScreen
 const getTheme = (colorScheme) => ({
   colors: {
     primary: colorScheme === "dark" ? "#60A5FA" : "#1E3A8A",
     error: colorScheme === "dark" ? "#F87171" : "#B91C1C",
-    background: colorScheme === "dark" ? "#1F2937" : "#F3F4F6",
+    background: colorScheme === "dark" ? "#1A1A1A" : "#EFF6FF",
     text: colorScheme === "dark" ? "#F3F4F6" : "#1F2937",
     placeholder: colorScheme === "dark" ? "#9CA3AF" : "#6B7280",
-    surface: colorScheme === "dark" ? "#374151" : "#FFFFFF",
+    surface: colorScheme === "dark" ? "#2A2A2A" : "#FFFFFF",
+    accent: "#34D399", // For green dot
+    emailIcon: "#E5B800", // Dark yellow for email icon
+    phoneIcon: "#39FF14", // Neon green for phone icon
   },
-  roundness: wp(2),
+  roundness: wp(3),
 });
 
 const ClientDetailsScreen = ({ route }) => {
@@ -66,7 +72,6 @@ const ClientDetailsScreen = ({ route }) => {
   const theme = getTheme(colorScheme);
 
   useEffect(() => {
-    // Security check for businessId
     if (
       !userProfile?.businessId ||
       initialClient.businessId !== userProfile.businessId
@@ -80,14 +85,12 @@ const ClientDetailsScreen = ({ route }) => {
       return;
     }
 
-    // Start fade animation
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 600,
       useNativeDriver: true,
     }).start();
 
-    // Fetch projects in real-time
     const projectsQuery = query(
       collection(db, `clients/${initialClient.id}/projects`),
       where("businessId", "==", userProfile.businessId)
@@ -95,8 +98,9 @@ const ClientDetailsScreen = ({ route }) => {
     const unsubscribeProjects = onSnapshot(
       projectsQuery,
       (snapshot) => {
-        const projectsData = snapshot.docs.map((doc) => ({
+        const projectsData = snapshot.docs.map((doc, index) => ({
           id: doc.id,
+          serialNo: index + 1, // Add serial number
           ...doc.data(),
         }));
         setProjects(projectsData);
@@ -215,93 +219,69 @@ const ClientDetailsScreen = ({ route }) => {
     navigation.navigate("AddProjectScreen", { clientId: client.id });
   };
 
-  const handleEditProject = (project) => {
-    navigation.navigate("EditProjectScreen", {
-      project: { ...project, clientId: client.id },
-    });
+  const renderProject = ({ item }) => {
+    if (!item.id || !client.id) {
+      console.error("Invalid project or client ID:", {
+        projectId: item.id,
+        clientId: client.id,
+      });
+      Alert.alert(
+        "Error",
+        "Invalid project data. Please refresh and try again."
+      );
+      return null;
+    }
+    const handlePress = () => {
+      console.log("Navigating to ProjectDetailsScreen with project:", {
+        id: item.id,
+        clientId: client.id,
+        projectName: item.projectName,
+      });
+      navigation.navigate("ProjectDetailsScreen", {
+        project: { ...item, clientId: client.id },
+      });
+    };
+    return (
+      <TouchableWithoutFeedback onPress={handlePress}>
+        <Card
+          style={[
+            styles.projectCard,
+            {
+              backgroundColor: theme.colors.surface,
+              borderWidth: colorScheme === "dark" ? 0 : 1,
+              borderColor: colorScheme === "dark" ? undefined : "#E5E7EB",
+            },
+          ]}
+        >
+          <LinearGradient
+            colors={
+              colorScheme === "dark"
+                ? ["#2A2A2A", "#2A2A2A80"]
+                : ["#FFFFFF", "#FFFFFF"]
+            }
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.projectCardGradient}
+          >
+            <Card.Content style={styles.projectCardContent}>
+              <Text
+                style={[styles.projectSerial, { color: theme.colors.text }]}
+              >
+                {item.serialNo}.
+              </Text>
+              <Text
+                style={[styles.projectName, { color: theme.colors.text }]}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
+                {item.projectName}
+              </Text>
+            </Card.Content>
+          </LinearGradient>
+        </Card>
+      </TouchableWithoutFeedback>
+    );
   };
-
-  const renderProject = ({ item }) => (
-    <Card
-      style={[styles.projectCard, { backgroundColor: theme.colors.surface }]}
-    >
-      <Card.Content>
-        <View style={styles.projectHeader}>
-          <Text style={[styles.projectTitle, { color: theme.colors.text }]}>
-            {item.projectName}
-          </Text>
-          <TouchableOpacity onPress={() => handleEditProject(item)}>
-            <FontAwesome5
-              name="pencil-alt"
-              size={wp(4.5)}
-              color={theme.colors.primary}
-            />
-          </TouchableOpacity>
-        </View>
-        <View style={styles.infoRow}>
-          <FontAwesome5
-            name="dollar-sign"
-            size={wp(4)}
-            color={theme.colors.primary}
-            style={styles.icon}
-          />
-          <View style={styles.infoContent}>
-            <Text
-              style={[styles.infoLabel, { color: theme.colors.placeholder }]}
-            >
-              Budget
-            </Text>
-            <Text style={[styles.infoText, { color: theme.colors.text }]}>
-              ${Number(item.budget).toLocaleString()}
-            </Text>
-          </View>
-        </View>
-        <View style={styles.infoRow}>
-          <FontAwesome5
-            name="clock"
-            size={wp(4)}
-            color={theme.colors.primary}
-            style={styles.icon}
-          />
-          <View style={styles.infoContent}>
-            <Text
-              style={[styles.infoLabel, { color: theme.colors.placeholder }]}
-            >
-              Deadline
-            </Text>
-            <Text style={[styles.infoText, { color: theme.colors.text }]}>
-              {item.deadline?.toDate
-                ? item.deadline.toDate().toLocaleDateString()
-                : new Date(item.deadline).toLocaleDateString()}
-            </Text>
-          </View>
-        </View>
-        {item.requirements && (
-          <View style={styles.infoRow}>
-            <FontAwesome5
-              name="list-ul"
-              size={wp(4)}
-              color={theme.colors.primary}
-              style={styles.icon}
-            />
-            <View style={styles.infoContent}>
-              <Text
-                style={[styles.infoLabel, { color: theme.colors.placeholder }]}
-              >
-                Requirements
-              </Text>
-              <Text
-                style={[styles.infoText, { color: theme.colors.text }]}
-                numberOfLines={2}
-              >
-                {item.requirements}
-              </Text>
-            </View>
-          </View>
-        )}
-      </Card.Content>
-    </Card>
-  );
 
   return (
     <SafeAreaView
@@ -310,8 +290,8 @@ const ClientDetailsScreen = ({ route }) => {
       <LinearGradient
         colors={
           colorScheme === "dark"
-            ? ["#111827", "#1E40AF"]
-            : ["#1E3A8A", "#3B82F6"]
+            ? ["#1A1A1A", "#1A1A1A"]
+            : ["#0047CC", "#0047CC"]
         }
         style={styles.header}
         start={{ x: 0, y: 0 }}
@@ -384,387 +364,511 @@ const ClientDetailsScreen = ({ route }) => {
           </View>
 
           <Card
-            style={[styles.card, { backgroundColor: theme.colors.surface }]}
+            style={[
+              styles.card,
+              {
+                backgroundColor: theme.colors.surface,
+                borderWidth: colorScheme === "dark" ? 0 : 1,
+                borderColor: colorScheme === "dark" ? undefined : "#E5E7EB",
+              },
+            ]}
           >
-            <Card.Content>
-              <View style={styles.section}>
-                <Text
-                  style={[styles.sectionTitle, { color: theme.colors.primary }]}
-                >
-                  Contact Information
-                </Text>
-                <View style={styles.infoRow}>
-                  <FontAwesome5
-                    name="envelope"
-                    size={wp(4.5)}
-                    color={theme.colors.primary}
-                    style={styles.icon}
-                  />
-                  <View style={styles.infoContent}>
-                    <Text
-                      style={[
-                        styles.infoLabel,
-                        { color: theme.colors.placeholder },
-                      ]}
-                    >
-                      Email
-                    </Text>
-                    <Text
-                      style={[styles.infoText, { color: theme.colors.text }]}
-                    >
-                      {client.email}
-                    </Text>
-                  </View>
-                </View>
-                <View style={styles.infoRow}>
-                  <FontAwesome5
-                    name="phone"
-                    size={wp(4.5)}
-                    color={theme.colors.primary}
-                    style={styles.icon}
-                  />
-                  <View style={styles.infoContent}>
-                    <Text
-                      style={[
-                        styles.infoLabel,
-                        { color: theme.colors.placeholder },
-                      ]}
-                    >
-                      Phone
-                    </Text>
-                    <Text
-                      style={[styles.infoText, { color: theme.colors.text }]}
-                    >
-                      {client.phone}
-                    </Text>
-                  </View>
-                </View>
-                {client.address && (
-                  <View style={styles.infoRow}>
-                    <FontAwesome5
-                      name="map-marker-alt"
-                      size={wp(4.5)}
-                      color={theme.colors.primary}
-                      style={styles.icon}
-                    />
-                    <View style={styles.infoContent}>
-                      <Text
-                        style={[
-                          styles.infoLabel,
-                          { color: theme.colors.placeholder },
-                        ]}
-                      >
-                        Address
-                      </Text>
-                      <Text
-                        style={[styles.infoText, { color: theme.colors.text }]}
-                      >
-                        {client.address}
-                      </Text>
-                    </View>
-                  </View>
-                )}
-              </View>
-
-              <Divider
-                style={[
-                  styles.divider,
-                  { backgroundColor: theme.colors.placeholder },
-                ]}
-              />
-
-              {(client.budget || client.requirements) && (
-                <>
-                  <View style={styles.section}>
-                    <Text
-                      style={[
-                        styles.sectionTitle,
-                        { color: theme.colors.primary },
-                      ]}
-                    >
-                      Preferences
-                    </Text>
-                    {client.budget && (
-                      <View style={styles.infoRow}>
-                        <FontAwesome5
-                          name="dollar-sign"
-                          size={wp(4.5)}
-                          color={theme.colors.primary}
-                          style={styles.icon}
-                        />
-                        <View style={styles.infoContent}>
-                          <Text
-                            style={[
-                              styles.infoLabel,
-                              { color: theme.colors.placeholder },
-                            ]}
-                          >
-                            Budget
-                          </Text>
-                          <Text
-                            style={[
-                              styles.infoText,
-                              { color: theme.colors.text },
-                            ]}
-                          >
-                            ${Number(client.budget).toLocaleString()}
-                          </Text>
-                        </View>
-                      </View>
-                    )}
-                    {client.requirements && (
-                      <View style={styles.infoRow}>
-                        <FontAwesome5
-                          name="list-ul"
-                          size={wp(4.5)}
-                          color={theme.colors.primary}
-                          style={styles.icon}
-                        />
-                        <View style={styles.infoContent}>
-                          <Text
-                            style={[
-                              styles.infoLabel,
-                              { color: theme.colors.placeholder },
-                            ]}
-                          >
-                            Requirements
-                          </Text>
-                          <Text
-                            style={[
-                              styles.infoText,
-                              { color: theme.colors.text },
-                            ]}
-                          >
-                            {client.requirements}
-                          </Text>
-                        </View>
-                      </View>
-                    )}
-                  </View>
-                  <Divider
-                    style={[
-                      styles.divider,
-                      { backgroundColor: theme.colors.placeholder },
-                    ]}
-                  />
-                </>
-              )}
-
-              {client.tags && client.tags.length > 0 && (
-                <>
-                  <View style={styles.section}>
-                    <Text
-                      style={[
-                        styles.sectionTitle,
-                        { color: theme.colors.primary },
-                      ]}
-                    >
-                      Tags
-                    </Text>
-                    <View style={styles.tagsContainer}>
-                      {client.tags.map((tag, index) => (
-                        <Chip
-                          key={index}
-                          style={[
-                            styles.tag,
-                            {
-                              backgroundColor:
-                                colorScheme === "dark" ? "#4B5563" : "#EBF5FF",
-                              borderColor:
-                                colorScheme === "dark" ? "#6B7280" : "#BFDBFE",
-                            },
-                          ]}
-                          textStyle={[
-                            styles.tagText,
-                            { color: theme.colors.text },
-                          ]}
-                        >
-                          {tag}
-                        </Chip>
-                      ))}
-                    </View>
-                  </View>
-                  <Divider
-                    style={[
-                      styles.divider,
-                      { backgroundColor: theme.colors.placeholder },
-                    ]}
-                  />
-                </>
-              )}
-
-              <View style={styles.section}>
-                <Text
-                  style={[styles.sectionTitle, { color: theme.colors.primary }]}
-                >
-                  Additional Information
-                </Text>
-                {client.createdAt && (
-                  <View style={styles.infoRow}>
-                    <FontAwesome5
-                      name="calendar"
-                      size={wp(4.5)}
-                      color={theme.colors.primary}
-                      style={styles.icon}
-                    />
-                    <View style={styles.infoContent}>
-                      <Text
-                        style={[
-                          styles.infoLabel,
-                          { color: theme.colors.placeholder },
-                        ]}
-                      >
-                        Joined
-                      </Text>
-                      <Text
-                        style={[styles.infoText, { color: theme.colors.text }]}
-                      >
-                        {client.createdAt?.toDate
-                          ? client.createdAt.toDate().toLocaleDateString()
-                          : "N/A"}
-                      </Text>
-                    </View>
-                  </View>
-                )}
-                {client.paymentTerms && (
-                  <View style={styles.infoRow}>
-                    <FontAwesome5
-                      name="credit-card"
-                      size={wp(4.5)}
-                      color={theme.colors.primary}
-                      style={styles.icon}
-                    />
-                    <View style={styles.infoContent}>
-                      <Text
-                        style={[
-                          styles.infoLabel,
-                          { color: theme.colors.placeholder },
-                        ]}
-                      >
-                        Payment Terms
-                      </Text>
-                      <Text
-                        style={[styles.infoText, { color: theme.colors.text }]}
-                      >
-                        {client.paymentTerms}
-                      </Text>
-                    </View>
-                  </View>
-                )}
-                {client.projectDeadline && (
-                  <View style={styles.infoRow}>
-                    <FontAwesome5
-                      name="clock"
-                      size={wp(4.5)}
-                      color={theme.colors.primary}
-                      style={styles.icon}
-                    />
-                    <View style={styles.infoContent}>
-                      <Text
-                        style={[
-                          styles.infoLabel,
-                          { color: theme.colors.placeholder },
-                        ]}
-                      >
-                        Project Deadline
-                      </Text>
-                      <Text
-                        style={[styles.infoText, { color: theme.colors.text }]}
-                      >
-                        {client.projectDeadline?.toDate
-                          ? client.projectDeadline.toDate().toLocaleDateString()
-                          : new Date(
-                              client.projectDeadline
-                            ).toLocaleDateString()}
-                      </Text>
-                    </View>
-                  </View>
-                )}
-                {client.notes && (
-                  <View style={styles.infoRow}>
-                    <FontAwesome5
-                      name="sticky-note"
-                      size={wp(4.5)}
-                      color={theme.colors.primary}
-                      style={styles.icon}
-                    />
-                    <View style={styles.infoContent}>
-                      <Text
-                        style={[
-                          styles.infoLabel,
-                          { color: theme.colors.placeholder },
-                        ]}
-                      >
-                        Notes
-                      </Text>
-                      <Text
-                        style={[styles.infoText, { color: theme.colors.text }]}
-                      >
-                        {client.notes}
-                      </Text>
-                    </View>
-                  </View>
-                )}
-              </View>
-            </Card.Content>
-          </Card>
-
-          {/* Projects Section */}
-          <Card
-            style={[styles.card, { backgroundColor: theme.colors.surface }]}
-          >
-            <Card.Content>
-              <View style={styles.section}>
-                <View style={styles.sectionHeader}>
+            <LinearGradient
+              colors={
+                colorScheme === "dark"
+                  ? ["#2A2A2A", "#2A2A2A80"]
+                  : ["#FFFFFF", "#FFFFFF"]
+              }
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.cardGradient}
+            >
+              <Card.Content>
+                <View style={styles.section}>
                   <Text
                     style={[
                       styles.sectionTitle,
                       { color: theme.colors.primary },
                     ]}
                   >
-                    Projects
+                    Contact Information
                   </Text>
-                  <Button
-                    mode="contained"
-                    onPress={handleAddProject}
-                    style={[
-                      styles.addProjectButton,
-                      { backgroundColor: theme.colors.primary },
-                    ]}
-                    labelStyle={styles.buttonLabel}
-                    icon="plus"
-                    theme={theme}
-                  >
-                    Add Project
-                  </Button>
+                  <View style={styles.infoRow}>
+                    <Surface
+                      style={[
+                        styles.iconSurface,
+                        { backgroundColor: theme.colors.background },
+                      ]}
+                    >
+                      <FontAwesome5
+                        name="envelope"
+                        size={wp(4)}
+                        color={theme.colors.emailIcon}
+                      />
+                    </Surface>
+                    <View style={styles.infoContent}>
+                      <Text
+                        style={[
+                          styles.infoLabel,
+                          { color: theme.colors.placeholder },
+                        ]}
+                      >
+                        Email
+                      </Text>
+                      <Text
+                        style={[styles.infoText, { color: theme.colors.text }]}
+                      >
+                        {client.email}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.infoRow}>
+                    <Surface
+                      style={[
+                        styles.iconSurface,
+                        { backgroundColor: theme.colors.background },
+                      ]}
+                    >
+                      <FontAwesome5
+                        name="phone"
+                        size={wp(4)}
+                        color={theme.colors.phoneIcon}
+                      />
+                    </Surface>
+                    <View style={styles.infoContent}>
+                      <Text
+                        style={[
+                          styles.infoLabel,
+                          { color: theme.colors.placeholder },
+                        ]}
+                      >
+                        Phone
+                      </Text>
+                      <Text
+                        style={[styles.infoText, { color: theme.colors.text }]}
+                      >
+                        {client.phone}
+                      </Text>
+                    </View>
+                  </View>
+                  {client.address && (
+                    <View style={styles.infoRow}>
+                      <Surface
+                        style={[
+                          styles.iconSurface,
+                          { backgroundColor: theme.colors.background },
+                        ]}
+                      >
+                        <FontAwesome5
+                          name="map-marker-alt"
+                          size={wp(4)}
+                          color={theme.colors.primary}
+                        />
+                      </Surface>
+                      <View style={styles.infoContent}>
+                        <Text
+                          style={[
+                            styles.infoLabel,
+                            { color: theme.colors.placeholder },
+                          ]}
+                        >
+                          Address
+                        </Text>
+                        <Text
+                          style={[
+                            styles.infoText,
+                            { color: theme.colors.text },
+                          ]}
+                        >
+                          {client.address}
+                        </Text>
+                      </View>
+                    </View>
+                  )}
                 </View>
-                {projects.length === 0 ? (
+
+                <Divider
+                  style={[
+                    styles.divider,
+                    { backgroundColor: theme.colors.placeholder },
+                  ]}
+                />
+
+                {(client.budget || client.requirements) && (
+                  <>
+                    <View style={styles.section}>
+                      <Text
+                        style={[
+                          styles.sectionTitle,
+                          { color: theme.colors.primary },
+                        ]}
+                      >
+                        Preferences
+                      </Text>
+                      {client.budget && (
+                        <View style={styles.infoRow}>
+                          <Surface
+                            style={[
+                              styles.iconSurface,
+                              { backgroundColor: theme.colors.background },
+                            ]}
+                          >
+                            <FontAwesome5
+                              name="dollar-sign"
+                              size={wp(4)}
+                              color={theme.colors.primary}
+                            />
+                          </Surface>
+                          <View style={styles.infoContent}>
+                            <Text
+                              style={[
+                                styles.infoLabel,
+                                { color: theme.colors.placeholder },
+                              ]}
+                            >
+                              Budget
+                            </Text>
+                            <Text
+                              style={[
+                                styles.infoText,
+                                { color: theme.colors.text },
+                              ]}
+                            >
+                              ${Number(client.budget).toLocaleString()}
+                            </Text>
+                          </View>
+                        </View>
+                      )}
+                      {client.requirements && (
+                        <View style={styles.infoRow}>
+                          <Surface
+                            style={[
+                              styles.iconSurface,
+                              { backgroundColor: theme.colors.background },
+                            ]}
+                          >
+                            <FontAwesome5
+                              name="list-ul"
+                              size={wp(4)}
+                              color={theme.colors.primary}
+                            />
+                          </Surface>
+                          <View style={styles.infoContent}>
+                            <Text
+                              style={[
+                                styles.infoLabel,
+                                { color: theme.colors.placeholder },
+                              ]}
+                            >
+                              Requirements
+                            </Text>
+                            <Text
+                              style={[
+                                styles.infoText,
+                                { color: theme.colors.text },
+                              ]}
+                            >
+                              {client.requirements}
+                            </Text>
+                          </View>
+                        </View>
+                      )}
+                    </View>
+                    <Divider
+                      style={[
+                        styles.divider,
+                        { backgroundColor: theme.colors.placeholder },
+                      ]}
+                    />
+                  </>
+                )}
+
+                {client.tags && client.tags.length > 0 && (
+                  <>
+                    <View style={styles.section}>
+                      <Text
+                        style={[
+                          styles.sectionTitle,
+                          { color: theme.colors.primary },
+                        ]}
+                      >
+                        Tags
+                      </Text>
+                      <View style={styles.tagsContainer}>
+                        {client.tags.map((tag, index) => (
+                          <Chip
+                            key={index}
+                            style={[
+                              styles.tag,
+                              {
+                                backgroundColor:
+                                  colorScheme === "dark"
+                                    ? "#4B5563"
+                                    : "#EBF5FF",
+                                borderColor:
+                                  colorScheme === "dark"
+                                    ? "#6B7280"
+                                    : "#BFDBFE",
+                              },
+                            ]}
+                            textStyle={[
+                              styles.tagText,
+                              { color: theme.colors.text },
+                            ]}
+                          >
+                            {tag}
+                          </Chip>
+                        ))}
+                      </View>
+                    </View>
+                    <Divider
+                      style={[
+                        styles.divider,
+                        { backgroundColor: theme.colors.placeholder },
+                      ]}
+                    />
+                  </>
+                )}
+
+                <View style={styles.section}>
                   <Text
                     style={[
-                      styles.noProjectsText,
-                      { color: theme.colors.placeholder },
+                      styles.sectionTitle,
+                      { color: theme.colors.primary },
                     ]}
                   >
-                    No projects available
+                    Additional Information
                   </Text>
-                ) : (
-                  <FlatList
-                    data={projects}
-                    renderItem={renderProject}
-                    keyExtractor={(item) => item.id}
-                    scrollEnabled={false}
-                    ItemSeparatorComponent={() => (
-                      <Divider
+                  {client.createdAt && (
+                    <View style={styles.infoRow}>
+                      <Surface
                         style={[
-                          styles.divider,
-                          { backgroundColor: theme.colors.placeholder },
+                          styles.iconSurface,
+                          { backgroundColor: theme.colors.background },
                         ]}
+                      >
+                        <FontAwesome5
+                          name="calendar"
+                          size={wp(4)}
+                          color={theme.colors.primary}
+                        />
+                      </Surface>
+                      <View style={styles.infoContent}>
+                        <Text
+                          style={[
+                            styles.infoLabel,
+                            { color: theme.colors.placeholder },
+                          ]}
+                        >
+                          Joined
+                        </Text>
+                        <Text
+                          style={[
+                            styles.infoText,
+                            { color: theme.colors.text },
+                          ]}
+                        >
+                          {client.createdAt?.toDate
+                            ? client.createdAt.toDate().toLocaleDateString()
+                            : "N/A"}
+                        </Text>
+                      </View>
+                    </View>
+                  )}
+                  {client.paymentTerms && (
+                    <View style={styles.infoRow}>
+                      <Surface
+                        style={[
+                          styles.iconSurface,
+                          { backgroundColor: theme.colors.background },
+                        ]}
+                      >
+                        <FontAwesome5
+                          name="credit-card"
+                          size={wp(4)}
+                          color={theme.colors.primary}
+                        />
+                      </Surface>
+                      <View style={styles.infoContent}>
+                        <Text
+                          style={[
+                            styles.infoLabel,
+                            { color: theme.colors.placeholder },
+                          ]}
+                        >
+                          Payment Terms
+                        </Text>
+                        <Text
+                          style={[
+                            styles.infoText,
+                            { color: theme.colors.text },
+                          ]}
+                        >
+                          {client.paymentTerms}
+                        </Text>
+                      </View>
+                    </View>
+                  )}
+                  {client.projectDeadline && (
+                    <View style={styles.infoRow}>
+                      <Surface
+                        style={[
+                          styles.iconSurface,
+                          { backgroundColor: theme.colors.background },
+                        ]}
+                      >
+                        <FontAwesome5
+                          name="clock"
+                          size={wp(4)}
+                          color={theme.colors.primary}
+                        />
+                      </Surface>
+                      <View style={styles.infoContent}>
+                        <Text
+                          style={[
+                            styles.infoLabel,
+                            { color: theme.colors.placeholder },
+                          ]}
+                        >
+                          Project Deadline
+                        </Text>
+                        <Text
+                          style={[
+                            styles.infoText,
+                            { color: theme.colors.text },
+                          ]}
+                        >
+                          {client.projectDeadline?.toDate
+                            ? client.projectDeadline
+                                .toDate()
+                                .toLocaleDateString()
+                            : new Date(
+                                client.projectDeadline
+                              ).toLocaleDateString()}
+                        </Text>
+                      </View>
+                    </View>
+                  )}
+                  {client.notes && (
+                    <View style={styles.infoRow}>
+                      <Surface
+                        style={[
+                          styles.iconSurface,
+                          { backgroundColor: theme.colors.background },
+                        ]}
+                      >
+                        <FontAwesome5
+                          name="sticky-note"
+                          size={wp(4)}
+                          color={theme.colors.primary}
+                        />
+                      </Surface>
+                      <View style={styles.infoContent}>
+                        <Text
+                          style={[
+                            styles.infoLabel,
+                            { color: theme.colors.placeholder },
+                          ]}
+                        >
+                          Notes
+                        </Text>
+                        <Text
+                          style={[
+                            styles.infoText,
+                            { color: theme.colors.text },
+                          ]}
+                        >
+                          {client.notes}
+                        </Text>
+                      </View>
+                    </View>
+                  )}
+                </View>
+              </Card.Content>
+            </LinearGradient>
+          </Card>
+
+          {/* Projects Section */}
+          <Card
+            style={[
+              styles.card,
+              {
+                backgroundColor: theme.colors.surface,
+                borderWidth: colorScheme === "dark" ? 0 : 1,
+                borderColor: colorScheme === "dark" ? undefined : "#E5E7EB",
+              },
+            ]}
+          >
+            <LinearGradient
+              colors={
+                colorScheme === "dark"
+                  ? ["#2A2A2A", "#2A2A2A80"]
+                  : ["#FFFFFF", "#FFFFFF"]
+              }
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.cardGradient}
+            >
+              <Card.Content>
+                <View style={styles.section}>
+                  <View style={styles.sectionHeader}>
+                    <Text
+                      style={[
+                        styles.sectionTitle,
+                        { color: theme.colors.primary },
+                      ]}
+                    >
+                      Projects
+                    </Text>
+                    <Button
+                      mode="contained"
+                      onPress={handleAddProject}
+                      style={[
+                        styles.addProjectButton,
+                        { backgroundColor: theme.colors.primary },
+                      ]}
+                      labelStyle={styles.buttonLabel}
+                      icon="plus"
+                      theme={theme}
+                    >
+                      Add Project
+                    </Button>
+                  </View>
+                  {projects.length === 0 ? (
+                    <View style={styles.emptyContainer}>
+                      <FontAwesome5
+                        name="project-diagram"
+                        size={wp(10)}
+                        color={theme.colors.placeholder}
                       />
-                    )}
-                  />
-                )}
-              </View>
-            </Card.Content>
+                      <Text
+                        style={[
+                          styles.noProjectsText,
+                          { color: theme.colors.placeholder },
+                        ]}
+                      >
+                        No projects found
+                      </Text>
+                    </View>
+                  ) : (
+                    <FlatList
+                      data={projects}
+                      renderItem={renderProject}
+                      keyExtractor={(item) => item.id}
+                      scrollEnabled={false}
+                      ItemSeparatorComponent={() => (
+                        <Divider
+                          style={[
+                            styles.divider,
+                            { backgroundColor: theme.colors.placeholder },
+                          ]}
+                        />
+                      )}
+                    />
+                  )}
+                </View>
+              </Card.Content>
+            </LinearGradient>
           </Card>
 
           <View style={styles.buttonContainer}>
@@ -846,9 +950,7 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingVertical: hp(3),
-    paddingHorizontal: wp(4),
-    borderBottomLeftRadius: wp(6),
-    borderBottomRightRadius: wp(6),
+    paddingHorizontal: wp(5),
     elevation: 6,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 3 },
@@ -862,14 +964,14 @@ const styles = StyleSheet.create({
   },
   backButton: {
     padding: wp(2),
-    borderRadius: wp(10),
+    borderRadius: wp(2),
     width: wp(10),
     height: wp(10),
     alignItems: "center",
     justifyContent: "center",
   },
   headerTitle: {
-    fontSize: wp(5.5),
+    fontSize: wp(6),
     fontWeight: "700",
     color: "#FFFFFF",
     letterSpacing: 0.5,
@@ -879,7 +981,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: wp(4),
+    paddingHorizontal: wp(5),
     paddingTop: hp(2),
     paddingBottom: hp(10),
   },
@@ -905,16 +1007,19 @@ const styles = StyleSheet.create({
   statusChip: {
     height: hp(4),
     paddingHorizontal: wp(2),
+    borderRadius: wp(2),
   },
   statusText: {
     fontSize: wp(3.5),
     fontWeight: "600",
   },
   card: {
-    elevation: 4,
-    borderRadius: wp(4),
     marginBottom: hp(2),
-    overflow: "hidden",
+    borderRadius: wp(4),
+  },
+  cardGradient: {
+    borderRadius: wp(4),
+    padding: wp(1),
   },
   section: {
     marginBottom: hp(2),
@@ -933,36 +1038,51 @@ const styles = StyleSheet.create({
   },
   addProjectButton: {
     borderRadius: wp(3),
-    height: hp(4.5),
+    height: hp(5),
+  },
+  emptyContainer: {
+    alignItems: "center",
+    paddingVertical: hp(5),
   },
   noProjectsText: {
     fontSize: wp(4),
     textAlign: "center",
-    marginVertical: hp(2),
+    marginTop: hp(1),
   },
   projectCard: {
-    elevation: 2,
-    borderRadius: wp(3),
     marginVertical: hp(1),
+    borderRadius: wp(3),
   },
-  projectHeader: {
+  projectCardGradient: {
+    borderRadius: wp(3),
+    padding: wp(1),
+  },
+  projectCardContent: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: hp(1),
+    paddingVertical: hp(1),
   },
-  projectTitle: {
-    fontSize: wp(4.5),
+  projectSerial: {
+    fontSize: wp(4),
     fontWeight: "600",
+    marginRight: wp(3),
+  },
+  projectName: {
+    fontSize: wp(4),
+    fontWeight: "600",
+    flex: 1,
   },
   infoRow: {
     flexDirection: "row",
     alignItems: "flex-start",
     marginBottom: hp(2),
   },
-  icon: {
-    marginTop: hp(0.5),
-    width: wp(6),
+  iconSurface: {
+    width: wp(8),
+    height: wp(8),
+    borderRadius: wp(4),
+    justifyContent: "center",
+    alignItems: "center",
   },
   infoContent: {
     marginLeft: wp(3),
@@ -988,6 +1108,7 @@ const styles = StyleSheet.create({
     marginRight: wp(2),
     marginBottom: hp(1),
     borderWidth: 1,
+    borderRadius: wp(2),
   },
   tagText: {
     fontSize: wp(3.5),
