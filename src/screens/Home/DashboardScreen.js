@@ -20,7 +20,14 @@ import { FontAwesome5 } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation } from "@react-navigation/native";
 import { useAuth } from "../../context/AuthContext";
-import { collection, onSnapshot, query, where } from "firebase/firestore";
+import {
+  collection,
+  onSnapshot,
+  query,
+  where,
+  orderBy,
+  limit,
+} from "firebase/firestore";
 import { db } from "../../config/firebase";
 import RecentOrders from "../../component/RecentOrders";
 import RecentClients from "../../component/RecentClients";
@@ -31,10 +38,10 @@ export default function DashboardScreen() {
   const colorScheme = useColorScheme();
   const navigation = useNavigation();
   const { user, userProfile, businessDetails } = useAuth();
-  const [employees, setEmployees] = useState([]);
-  const [clients, setClients] = useState([]);
+  const [employees, setEmployees] = useState({});
+  const [clients, setClients] = useState({});
   const [orders, setOrders] = useState([]);
-  const [projects, setProjects] = useState([]);
+  const [projects, setProjects] = useState({});
   const [summaryData, setSummaryData] = useState([
     {
       icon: "briefcase",
@@ -69,61 +76,55 @@ export default function DashboardScreen() {
       return;
     }
 
+    // Fetch employees
     const employeesUnsubscribe = onSnapshot(
       query(
         collection(db, "employees"),
         where("businessId", "==", userProfile.businessId)
       ),
       (snapshot) => {
-        const employeesList = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setEmployees(employeesList);
+        const employeesData = {};
+        snapshot.forEach((doc) => {
+          employeesData[doc.id] = { id: doc.id, ...doc.data() };
+        });
+        setEmployees(employeesData);
       },
       (error) => {
         console.error("Error fetching employees: ", error);
       }
     );
 
+    // Fetch clients
     const clientsUnsubscribe = onSnapshot(
       query(
         collection(db, "clients"),
         where("businessId", "==", userProfile.businessId)
       ),
-      (clientsSnapshot) => {
-        const clientsList = clientsSnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setClients(clientsList);
+      (snapshot) => {
+        const clientsData = {};
+        snapshot.forEach((doc) => {
+          clientsData[doc.id] = { id: doc.id, ...doc.data() };
+        });
+        setClients(clientsData);
       },
       (error) => {
         console.error("Error fetching clients: ", error);
       }
     );
 
+    // Fetch orders
     const ordersUnsubscribe = onSnapshot(
       query(
         collection(db, "orders"),
-        where("businessId", "==", userProfile.businessId)
+        where("businessId", "==", userProfile.businessId),
+        orderBy("createdAt", "desc"),
+        limit(10)
       ),
       (snapshot) => {
-        let ordersList = snapshot.docs.map((doc) => ({
+        const ordersList = snapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
         }));
-
-        ordersList.sort((a, b) => {
-          const dateA = a.createdAt?.toDate
-            ? a.createdAt.toDate()
-            : new Date(0);
-          const dateB = b.createdAt?.toDate
-            ? b.createdAt.toDate()
-            : new Date(0);
-          return dateB - dateA;
-        });
-
         setOrders(ordersList);
       },
       (error) => {
@@ -132,12 +133,12 @@ export default function DashboardScreen() {
       }
     );
 
-    // Fetch all projects from clients/{clientId}/projects
+    // Fetch projects
     const projectsUnsubscribe = () => {
       const unsubscribes = [];
-      clients.forEach((client) => {
+      Object.keys(clients).forEach((clientId) => {
         const projectQuery = query(
-          collection(db, `clients/${client.id}/projects`),
+          collection(db, `clients/${clientId}/projects`),
           where("businessId", "==", userProfile.businessId)
         );
         const unsubscribe = onSnapshot(
@@ -145,19 +146,19 @@ export default function DashboardScreen() {
           (snapshot) => {
             const projectsList = snapshot.docs.map((doc) => ({
               id: doc.id,
-              clientId: client.id,
+              clientId,
               ...doc.data(),
             }));
-            setProjects((prev) => {
-              const otherProjects = prev.filter(
-                (p) => p.clientId !== client.id
-              );
-              return [...otherProjects, ...projectsList];
-            });
+            setProjects((prev) => ({
+              ...prev,
+              ...Object.fromEntries(
+                projectsList.map((project) => [project.id, project])
+              ),
+            }));
           },
           (error) => {
             console.error(
-              `Error fetching projects for client ${client.id}: `,
+              `Error fetching projects for client ${clientId}: `,
               error
             );
           }
@@ -167,20 +168,31 @@ export default function DashboardScreen() {
       return () => unsubscribes.forEach((unsub) => unsub());
     };
 
-    const unsubscribeProjects = projectsUnsubscribe();
+    // Delay project fetching until clients are loaded
+    const timer = setTimeout(() => {
+      if (Object.keys(clients).length > 0) {
+        projectsUnsubscribe();
+      }
+    }, 500);
+
     return () => {
+      clearTimeout(timer);
       ordersUnsubscribe();
       employeesUnsubscribe();
       clientsUnsubscribe();
-      unsubscribeProjects();
+      projectsUnsubscribe();
     };
   }, [userProfile?.businessId, clients]);
 
+  // Update summary data
   useEffect(() => {
-    const totalProjects = projects.length;
-    const totalProjectBudget = projects.reduce((sum, project) => {
-      return sum + (Number(project.budget) || 0);
-    }, 0);
+    const totalProjects = Object.keys(projects).length;
+    const totalProjectBudget = Object.values(projects).reduce(
+      (sum, project) => {
+        return sum + (Number(project.budget) || 0);
+      },
+      0
+    );
     const totalOrderAmount = orders.reduce((sum, order) => {
       return sum + (Number(order.amount) || 0);
     }, 0);
@@ -311,15 +323,15 @@ export default function DashboardScreen() {
         </View>
 
         <RecentOrders
-          orders={orders}
-          employees={employees}
-          clients={clients}
-          colorScheme={colorScheme}
           navigation={navigation}
+          clients={clients}
+          employees={employees}
+          projects={projects}
+          colorScheme={colorScheme}
         />
         <RecentClients
-          clients={clients}
-          projects={projects}
+          clients={Object.values(clients)}
+          projects={Object.values(projects)}
           colorScheme={colorScheme}
           navigation={navigation}
         />

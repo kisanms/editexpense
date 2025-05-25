@@ -270,14 +270,16 @@ const RecentOrders = ({ navigation }) => {
         snapToAlignment="start"
         decelerationRate="fast"
         ListEmptyComponent={
-          <Text
-            style={[
-              styles.emptyText,
-              { color: colorScheme === "dark" ? "#A0A0A0" : "#6B7280" },
-            ]}
-          >
-            No recent orders found.
-          </Text>
+          <View style={styles.emptyContainer}>
+            <Text
+              style={[
+                styles.emptyText,
+                { color: colorScheme === "dark" ? "#A0A0A0" : "#6B7280" },
+              ]}
+            >
+              No recent orders available.
+            </Text>
+          </View>
         }
       />
     </View>
@@ -371,6 +373,12 @@ const styles = StyleSheet.create({
     fontSize: wp("3.2%"),
     opacity: 0.9,
     flex: 1,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    width: wp("80%"),
   },
   emptyText: {
     fontSize: hp("2%"),
