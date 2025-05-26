@@ -25,9 +25,9 @@ import {
   heightPercentageToDP as hp,
 } from "react-native-responsive-screen";
 import { doc, getDoc, deleteDoc } from "firebase/firestore";
-import { db } from "../../config/firebase";
+import { db } from "../../../config/firebase";
 import { useNavigation } from "@react-navigation/native";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../../context/AuthContext";
 import { useColorScheme } from "react-native";
 
 const getTheme = (colorScheme) => ({
