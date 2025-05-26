@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import {
   View,
   ScrollView,
@@ -37,11 +37,10 @@ import * as Yup from "yup";
 
 const commonTags = [
   "Video Editing",
-  "Website Development",
-  "Graphic Design",
-  "Mobile App",
-  "Urgent",
   "Photo Editing",
+  "Reels Creation",
+  "HDR Photography",
+  "Urgent",
   "Social Media",
 ];
 
@@ -75,31 +74,60 @@ const getTheme = (colorScheme) => ({
   roundness: wp(3),
 });
 
+const TagInput = React.memo(
+  ({ onAddTag, theme, placeholder, placeholderTextColor, textColor }) => {
+    const [inputValue, setInputValue] = useState("");
+    const tagInputRef = useRef(null);
+
+    const handleSubmit = useCallback(() => {
+      const trimmedValue = inputValue.trim();
+      if (trimmedValue) {
+        onAddTag(trimmedValue);
+        setInputValue("");
+      }
+    }, [inputValue, onAddTag]);
+
+    const handleChangeText = useCallback((text) => {
+      setInputValue(text);
+    }, []);
+
+    return (
+      <TextInput
+        ref={tagInputRef}
+        value={inputValue}
+        onChangeText={handleChangeText}
+        style={[styles.input, { backgroundColor: theme.colors.surface }]}
+        right={
+          inputValue.trim() ? (
+            <TextInput.Icon
+              icon="plus"
+              onPress={handleSubmit}
+              color={theme.colors.primary}
+            />
+          ) : null
+        }
+        theme={theme}
+        placeholder={placeholder}
+        textColor={textColor}
+        placeholderTextColor={placeholderTextColor}
+        returnKeyType="done"
+        onSubmitEditing={handleSubmit}
+        autoCorrect={false}
+        autoCapitalize="words"
+        multiline={false}
+      />
+    );
+  }
+);
+
 export default function AddClientScreen({ navigation }) {
   const { userProfile } = useAuth();
   const [showTagsModal, setShowTagsModal] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
-  const [newTag, setNewTag] = useState("");
-  const [fadeAnim] = useState(new Animated.Value(0));
-  const [scaleAnim] = useState(new Animated.Value(0.95));
+  const [fadeAnim] = useState(new Animated.Value(1));
+  const [scaleAnim] = useState(new Animated.Value(1));
   const colorScheme = useColorScheme();
   const theme = getTheme(colorScheme);
-
-  useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 600,
-        useNativeDriver: true,
-      }),
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        friction: 8,
-        tension: 40,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, []);
 
   const initialValues = {
     fullName: "",
@@ -149,19 +177,18 @@ export default function AddClientScreen({ navigation }) {
     }
   };
 
-  const addTag = (tag, setFieldValue, values) => {
+  const addTag = useCallback((tag, setFieldValue, values) => {
     if (tag && !values.tags.includes(tag)) {
       setFieldValue("tags", [...values.tags, tag]);
     }
-    setNewTag("");
-  };
+  }, []);
 
-  const removeTag = (tagToRemove, setFieldValue, values) => {
+  const removeTag = useCallback((tagToRemove, setFieldValue, values) => {
     setFieldValue(
       "tags",
       values.tags.filter((tag) => tag !== tagToRemove)
     );
-  };
+  }, []);
 
   const getSectionCardBorderStyles = () => ({
     borderWidth: colorScheme === "dark" ? 0 : 1,
@@ -529,27 +556,12 @@ export default function AddClientScreen({ navigation }) {
                   >
                     Select or Add Tags
                   </Text>
-                  <TextInput
-                    value={newTag}
-                    onChangeText={setNewTag}
-                    style={[
-                      styles.input,
-                      { backgroundColor: theme.colors.surface },
-                    ]}
-                    right={
-                      <TextInput.Icon
-                        icon="plus"
-                        onPress={() => {
-                          addTag(newTag, setFieldValue, values);
-                          setNewTag("");
-                        }}
-                        color={theme.colors.primary}
-                      />
-                    }
+                  <TagInput
+                    onAddTag={(tag) => addTag(tag, setFieldValue, values)}
                     theme={theme}
                     placeholder="Enter custom tag"
-                    textColor={theme.colors.text}
                     placeholderTextColor={theme.colors.placeholder}
+                    textColor={theme.colors.text}
                   />
                   <View style={styles.commonTagsContainer}>
                     {commonTags.map((tag) => (

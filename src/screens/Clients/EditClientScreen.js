@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   View,
   StyleSheet,
@@ -32,8 +32,16 @@ import {
 } from "react-native-responsive-screen";
 import { doc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../../config/firebase";
-import DateTimePicker from "@react-native-community/datetimepicker";
 import { useAuth } from "../../context/AuthContext";
+
+const commonTags = [
+  "Video Editing",
+  "Photo Editing",
+  "Reels Creation",
+  "HDR Photography",
+  "Urgent",
+  "Social Media",
+];
 
 const paymentTerms = [
   "Full Payment",
@@ -47,14 +55,7 @@ const validationSchema = Yup.object().shape({
   email: Yup.string().email("Invalid email").required("Email is required"),
   phone: Yup.string().required("Phone number is required"),
   address: Yup.string(),
-  budget: Yup.number()
-    .typeError("Budget must be a number")
-    .positive("Budget must be positive")
-    .nullable(),
-  requirements: Yup.string(),
   paymentTerms: Yup.string(),
-  projectDeadline: Yup.date().nullable(),
-  notes: Yup.string(),
   tags: Yup.array().of(Yup.string()),
 });
 
@@ -62,13 +63,62 @@ const getTheme = (colorScheme) => ({
   colors: {
     primary: colorScheme === "dark" ? "#60A5FA" : "#1E3A8A",
     error: colorScheme === "dark" ? "#F87171" : "#B91C1C",
-    background: colorScheme === "dark" ? "#1F2937" : "#FFFFFF",
+    background: colorScheme === "dark" ? "#1A1A1A" : "#EFF6FF",
     text: colorScheme === "dark" ? "#F3F4F6" : "#1F2937",
     placeholder: colorScheme === "dark" ? "#9CA3AF" : "#6B7280",
-    surface: colorScheme === "dark" ? "#374151" : "#FFFFFF",
+    surface: colorScheme === "dark" ? "#2A2A2A" : "#FFFFFF",
   },
-  roundness: wp(2),
+  roundness: wp(3),
 });
+
+const TagInput = React.memo(
+  ({ onAddTag, theme, placeholder, placeholderTextColor, textColor }) => {
+    const [inputValue, setInputValue] = useState("");
+    const tagInputRef = useRef(null);
+
+    const handleSubmit = useCallback(() => {
+      const trimmedValue = inputValue.trim();
+      if (trimmedValue) {
+        onAddTag(trimmedValue);
+        setInputValue("");
+      }
+    }, [inputValue, onAddTag]);
+
+    const handleChangeText = useCallback((text) => {
+      setInputValue(text);
+    }, []);
+
+    return (
+      <TextInput
+        ref={tagInputRef}
+        value={inputValue}
+        onChangeText={handleChangeText}
+        style={[styles.input, { backgroundColor: theme.colors.surface }]}
+        right={
+          inputValue.trim() ? (
+            <TextInput.Icon
+              icon="plus"
+              onPress={handleSubmit}
+              color={theme.colors.primary}
+            />
+          ) : null
+        }
+        theme={theme}
+        placeholder={placeholder}
+        textColor={textColor}
+        placeholderTextColor={placeholderTextColor}
+        returnKeyType="done"
+        onSubmitEditing={handleSubmit}
+        autoCorrect={false}
+        autoCapitalize="words"
+        multiline={false}
+        keyboardType={
+          Platform.OS === "android" ? "visible-password" : "default"
+        }
+      />
+    );
+  }
+);
 
 export default function EditClientScreen({ route, navigation }) {
   const { client } = route.params;
@@ -77,13 +127,10 @@ export default function EditClientScreen({ route, navigation }) {
   const [scaleAnim] = useState(new Animated.Value(0.95));
   const [showTagModal, setShowTagModal] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [newTag, setNewTag] = useState("");
   const colorScheme = useColorScheme();
   const theme = getTheme(colorScheme);
 
   useEffect(() => {
-    // Check if client belongs to user's business
     if (client.businessId !== userProfile?.businessId) {
       Alert.alert(
         "Access Denied",
@@ -97,7 +144,7 @@ export default function EditClientScreen({ route, navigation }) {
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 600,
+        duration: 400,
         useNativeDriver: true,
       }),
       Animated.spring(scaleAnim, {
@@ -107,26 +154,19 @@ export default function EditClientScreen({ route, navigation }) {
         useNativeDriver: true,
       }),
     ]).start();
-  }, [client.businessId, userProfile?.businessId]);
+  }, [client.businessId, userProfile?.businessId, fadeAnim, scaleAnim]);
 
   const initialValues = {
     fullName: client.fullName || "",
     email: client.email || "",
     phone: client.phone || "",
     address: client.address || "",
-    budget: client.budget ? String(client.budget) : "",
-    requirements: client.requirements || "",
     paymentTerms: client.paymentTerms || "",
-    projectDeadline: client.projectDeadline
-      ? new Date(client.projectDeadline)
-      : null,
-    notes: client.notes || "",
     tags: client.tags || [],
   };
 
-  const handleSubmit = async (values, { setSubmitting, setErrors }) => {
+  const handleSubmit = async (values, { setSubmitting }) => {
     try {
-      // Additional security check
       if (client.businessId !== userProfile?.businessId) {
         Alert.alert(
           "Access Denied",
@@ -139,11 +179,7 @@ export default function EditClientScreen({ route, navigation }) {
 
       const updatedValues = {
         ...values,
-        businessId: userProfile.businessId, // Ensure businessId is preserved
-        budget: values.budget ? parseFloat(values.budget) : null,
-        projectDeadline: values.projectDeadline
-          ? values.projectDeadline.toISOString()
-          : null,
+        businessId: userProfile.businessId,
         updatedAt: serverTimestamp(),
       };
 
@@ -153,12 +189,7 @@ export default function EditClientScreen({ route, navigation }) {
       Alert.alert(
         "Success",
         "Client updated successfully!",
-        [
-          {
-            text: "OK",
-            onPress: () => navigation.goBack(),
-          },
-        ],
+        [{ text: "OK", onPress: () => navigation.goBack() }],
         { cancelable: false }
       );
     } catch (error) {
@@ -174,20 +205,18 @@ export default function EditClientScreen({ route, navigation }) {
     }
   };
 
-  const addTag = (values, setFieldValue) => {
-    if (newTag.trim() && !values.tags.includes(newTag.trim())) {
-      setFieldValue("tags", [...values.tags, newTag.trim()]);
+  const addTag = useCallback((tag, setFieldValue, values) => {
+    if (tag && !values.tags.includes(tag)) {
+      setFieldValue("tags", [...values.tags, tag]);
     }
-    setNewTag("");
-    setShowTagModal(false);
-  };
+  }, []);
 
-  const removeTag = (tag, values, setFieldValue) => {
+  const removeTag = useCallback((tag, setFieldValue, values) => {
     setFieldValue(
       "tags",
       values.tags.filter((t) => t !== tag)
     );
-  };
+  }, []);
 
   return (
     <SafeAreaView
@@ -196,8 +225,8 @@ export default function EditClientScreen({ route, navigation }) {
       <LinearGradient
         colors={
           colorScheme === "dark"
-            ? ["#111827", "#1E40AF"]
-            : ["#1E3A8A", "#3B82F6"]
+            ? ["#1A1A1A", "#1A1A1A"]
+            : ["#0047CC", "#0047CC"]
         }
         style={styles.header}
         start={{ x: 0, y: 0 }}
@@ -208,7 +237,7 @@ export default function EditClientScreen({ route, navigation }) {
             onPress={() => navigation.goBack()}
             style={styles.backButton}
           >
-            <FontAwesome5 name="arrow-left" size={wp(5)} color="#fff" />
+            <FontAwesome5 name="arrow-left" size={wp(5)} color="#FFFFFF" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Edit Client</Text>
           <View style={{ width: wp(5) }} />
@@ -244,8 +273,9 @@ export default function EditClientScreen({ route, navigation }) {
               ]}
             >
               <ScrollView style={styles.scrollView}>
+                {/* Basic Information */}
                 <Text
-                  style={[styles.sectionTitle, { color: theme.colors.text }]}
+                  style={[styles.sectionTitle, { color: theme.colors.primary }]}
                 >
                   Basic Information
                 </Text>
@@ -264,7 +294,6 @@ export default function EditClientScreen({ route, navigation }) {
                     value={values.fullName}
                     onChangeText={handleChange("fullName")}
                     onBlur={handleBlur("fullName")}
-                    mode="outlined"
                     style={[
                       styles.input,
                       { backgroundColor: theme.colors.surface },
@@ -300,7 +329,6 @@ export default function EditClientScreen({ route, navigation }) {
                     value={values.email}
                     onChangeText={handleChange("email")}
                     onBlur={handleBlur("email")}
-                    mode="outlined"
                     style={[
                       styles.input,
                       { backgroundColor: theme.colors.surface },
@@ -337,7 +365,6 @@ export default function EditClientScreen({ route, navigation }) {
                     value={values.phone}
                     onChangeText={handleChange("phone")}
                     onBlur={handleBlur("phone")}
-                    mode="outlined"
                     style={[
                       styles.input,
                       { backgroundColor: theme.colors.surface },
@@ -374,90 +401,13 @@ export default function EditClientScreen({ route, navigation }) {
                     value={values.address}
                     onChangeText={handleChange("address")}
                     onBlur={handleBlur("address")}
-                    mode="outlined"
                     style={[
                       styles.input,
                       { backgroundColor: theme.colors.surface },
                     ]}
-                    numberOfLines={3}
                     left={
                       <TextInput.Icon
                         icon="map-marker"
-                        color={theme.colors.primary}
-                      />
-                    }
-                    theme={theme}
-                    textColor={theme.colors.text}
-                    placeholderTextColor={theme.colors.placeholder}
-                    disabled={isSubmitting}
-                  />
-                </View>
-
-                <Text
-                  style={[styles.sectionTitle, { color: theme.colors.text }]}
-                >
-                  Project Details
-                </Text>
-                <View
-                  style={[
-                    styles.sectionCard,
-                    { backgroundColor: theme.colors.surface },
-                  ]}
-                >
-                  <Text
-                    style={[styles.inputLabel, { color: theme.colors.text }]}
-                  >
-                    Budget
-                  </Text>
-                  <TextInput
-                    value={values.budget}
-                    onChangeText={handleChange("budget")}
-                    onBlur={handleBlur("budget")}
-                    mode="outlined"
-                    style={[
-                      styles.input,
-                      { backgroundColor: theme.colors.surface },
-                    ]}
-                    keyboardType="numeric"
-                    left={
-                      <TextInput.Icon
-                        icon="currency-usd"
-                        color={theme.colors.primary}
-                      />
-                    }
-                    theme={theme}
-                    textColor={theme.colors.text}
-                    placeholderTextColor={theme.colors.placeholder}
-                    disabled={isSubmitting}
-                  />
-                  {touched.budget && errors.budget && (
-                    <HelperText
-                      type="error"
-                      visible={touched.budget && errors.budget}
-                      style={{ color: theme.colors.error }}
-                    >
-                      {errors.budget}
-                    </HelperText>
-                  )}
-
-                  <Text
-                    style={[styles.inputLabel, { color: theme.colors.text }]}
-                  >
-                    Requirements
-                  </Text>
-                  <TextInput
-                    value={values.requirements}
-                    onChangeText={handleChange("requirements")}
-                    onBlur={handleBlur("requirements")}
-                    mode="outlined"
-                    style={[
-                      styles.input,
-                      { backgroundColor: theme.colors.surface },
-                    ]}
-                    numberOfLines={4}
-                    left={
-                      <TextInput.Icon
-                        icon="text-box"
                         color={theme.colors.primary}
                       />
                     }
@@ -475,7 +425,6 @@ export default function EditClientScreen({ route, navigation }) {
                   <TouchableOpacity onPress={() => setShowTermsModal(true)}>
                     <TextInput
                       value={values.paymentTerms}
-                      mode="outlined"
                       style={[
                         styles.input,
                         { backgroundColor: theme.colors.surface },
@@ -503,111 +452,26 @@ export default function EditClientScreen({ route, navigation }) {
                   <Text
                     style={[styles.inputLabel, { color: theme.colors.text }]}
                   >
-                    Project Deadline
-                  </Text>
-                  <TouchableOpacity onPress={() => setShowDatePicker(true)}>
-                    <TextInput
-                      value={
-                        values.projectDeadline
-                          ? values.projectDeadline.toLocaleDateString()
-                          : ""
-                      }
-                      mode="outlined"
-                      style={[
-                        styles.input,
-                        { backgroundColor: theme.colors.surface },
-                      ]}
-                      editable={false}
-                      left={
-                        <TextInput.Icon
-                          icon="calendar"
-                          color={theme.colors.primary}
-                        />
-                      }
-                      right={
-                        <TextInput.Icon
-                          icon="chevron-down"
-                          color={theme.colors.primary}
-                        />
-                      }
-                      theme={theme}
-                      placeholder="Select deadline"
-                      textColor={theme.colors.text}
-                      placeholderTextColor={theme.colors.placeholder}
-                    />
-                  </TouchableOpacity>
-                  {touched.projectDeadline && errors.projectDeadline && (
-                    <HelperText
-                      type="error"
-                      visible={
-                        touched.projectDeadline && errors.projectDeadline
-                      }
-                      style={{ color: theme.colors.error }}
-                    >
-                      {errors.projectDeadline}
-                    </HelperText>
-                  )}
-                </View>
-
-                <Text
-                  style={[styles.sectionTitle, { color: theme.colors.text }]}
-                >
-                  Additional Information
-                </Text>
-                <View
-                  style={[
-                    styles.sectionCard,
-                    { backgroundColor: theme.colors.surface },
-                  ]}
-                >
-                  <Text
-                    style={[styles.inputLabel, { color: theme.colors.text }]}
-                  >
-                    Notes
-                  </Text>
-                  <TextInput
-                    value={values.notes}
-                    onChangeText={handleChange("notes")}
-                    onBlur={handleBlur("notes")}
-                    mode="outlined"
-                    style={[
-                      styles.input,
-                      { backgroundColor: theme.colors.surface },
-                    ]}
-                    multiline
-                    numberOfLines={4}
-                    left={
-                      <TextInput.Icon
-                        icon="note-text"
-                        color={theme.colors.primary}
-                      />
-                    }
-                    theme={theme}
-                    textColor={theme.colors.text}
-                    placeholderTextColor={theme.colors.placeholder}
-                    disabled={isSubmitting}
-                  />
-
-                  <Text
-                    style={[styles.inputLabel, { color: theme.colors.text }]}
-                  >
                     Tags
                   </Text>
                   <View style={styles.tagsContainer}>
                     {values.tags.map((tag, index) => (
                       <Chip
                         key={index}
+                        onClose={() => removeTag(tag, setFieldValue, values)}
                         style={[
-                          styles.tag,
+                          styles.chip,
                           {
-                            backgroundColor:
-                              colorScheme === "dark" ? "#4B5563" : "#EBF5FF",
+                            backgroundColor: theme.colors.surface,
                             borderColor:
-                              colorScheme === "dark" ? "#6B7280" : "#BFDBFE",
+                              colorScheme === "dark" ? "#6B7280" : "#E5E7EB",
                           },
                         ]}
-                        textStyle={{ color: theme.colors.text }}
-                        onClose={() => removeTag(tag, values, setFieldValue)}
+                        textStyle={[
+                          styles.chipText,
+                          { color: theme.colors.text },
+                        ]}
+                        icon="tag"
                       >
                         {tag}
                       </Chip>
@@ -616,10 +480,9 @@ export default function EditClientScreen({ route, navigation }) {
                       style={[
                         styles.addTagButton,
                         {
-                          backgroundColor:
-                            colorScheme === "dark" ? "#4B5563" : "#EBF5FF",
+                          backgroundColor: theme.colors.background,
                           borderColor:
-                            colorScheme === "dark" ? "#6B7280" : "#BFDBFE",
+                            colorScheme === "dark" ? "#6B7280" : "#E5E7EB",
                         },
                       ]}
                       onPress={() => setShowTagModal(true)}
@@ -636,17 +499,19 @@ export default function EditClientScreen({ route, navigation }) {
                 <Button
                   mode="contained"
                   onPress={handleSubmit}
-                  style={styles.submitButton}
+                  style={[styles.submitButton, { backgroundColor: "#0047CC" }]}
                   contentStyle={styles.buttonContent}
                   loading={isSubmitting}
                   disabled={isSubmitting}
                   theme={theme}
                   icon="check"
+                  labelStyle={styles.buttonLabel}
                 >
                   Update Client
                 </Button>
               </ScrollView>
 
+              {/* Tags Modal */}
               <Portal>
                 <Modal
                   visible={showTagModal}
@@ -657,44 +522,56 @@ export default function EditClientScreen({ route, navigation }) {
                   ]}
                 >
                   <Text
-                    style={[styles.modalTitle, { color: theme.colors.text }]}
+                    style={[styles.modalTitle, { color: theme.colors.primary }]}
                   >
-                    Add New Tag
+                    Select or Add Tags
                   </Text>
-                  <TextInput
-                    value={newTag}
-                    onChangeText={setNewTag}
-                    mode="outlined"
+                  <TagInput
+                    onAddTag={(tag) => addTag(tag, setFieldValue, values)}
+                    theme={theme}
+                    placeholder="Enter custom tag"
+                    placeholderTextColor={theme.colors.placeholder}
+                    textColor={theme.colors.text}
+                  />
+                  <View style={styles.commonTagsContainer}>
+                    {commonTags.map((tag) => (
+                      <Chip
+                        key={tag}
+                        onPress={() => addTag(tag, setFieldValue, values)}
+                        style={[
+                          styles.commonTag,
+                          {
+                            backgroundColor: theme.colors.surface,
+                            borderColor:
+                              colorScheme === "dark" ? "#6B7280" : "#E5E7EB",
+                          },
+                        ]}
+                        textStyle={[
+                          styles.chipText,
+                          { color: theme.colors.text },
+                        ]}
+                        icon={values.tags.includes(tag) ? "check" : "tag"}
+                      >
+                        {tag}
+                      </Chip>
+                    ))}
+                  </View>
+                  <Button
+                    mode="contained"
+                    onPress={() => setShowTagModal(false)}
                     style={[
-                      styles.modalInput,
-                      { backgroundColor: theme.colors.surface },
+                      styles.modalButton,
+                      { backgroundColor: theme.colors.primary },
                     ]}
                     theme={theme}
-                    placeholder="Enter tag name"
-                    textColor={theme.colors.text}
-                    placeholderTextColor={theme.colors.placeholder}
-                  />
-                  <View style={styles.modalButtons}>
-                    <Button
-                      mode="outlined"
-                      onPress={() => setShowTagModal(false)}
-                      style={styles.modalButton}
-                      theme={theme}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      mode="contained"
-                      onPress={() => addTag(values, setFieldValue)}
-                      style={styles.modalButton}
-                      theme={theme}
-                    >
-                      Add
-                    </Button>
-                  </View>
+                    labelStyle={styles.buttonLabel}
+                  >
+                    Done
+                  </Button>
                 </Modal>
               </Portal>
 
+              {/* Payment Terms Modal */}
               <Portal>
                 <Modal
                   visible={showTermsModal}
@@ -705,7 +582,7 @@ export default function EditClientScreen({ route, navigation }) {
                   ]}
                 >
                   <Text
-                    style={[styles.modalTitle, { color: theme.colors.text }]}
+                    style={[styles.modalTitle, { color: theme.colors.primary }]}
                   >
                     Select Payment Terms
                   </Text>
@@ -723,33 +600,12 @@ export default function EditClientScreen({ route, navigation }) {
                         }}
                       />
                       {index < paymentTerms.length - 1 && (
-                        <Divider
-                          style={[
-                            styles.modalDivider,
-                            { backgroundColor: theme.colors.placeholder },
-                          ]}
-                        />
+                        <Divider style={styles.modalDivider} />
                       )}
                     </React.Fragment>
                   ))}
                 </Modal>
               </Portal>
-
-              {showDatePicker && (
-                <DateTimePicker
-                  value={values.projectDeadline || new Date()}
-                  mode="date"
-                  display="default"
-                  onChange={(event, selectedDate) => {
-                    setShowDatePicker(false);
-                    if (selectedDate) {
-                      setFieldValue("projectDeadline", selectedDate);
-                    }
-                  }}
-                  minimumDate={new Date()}
-                  themeVariant={colorScheme}
-                />
-              )}
             </Animated.View>
           )}
         </Formik>
@@ -764,7 +620,7 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingVertical: hp(3),
-    paddingHorizontal: wp(4),
+    paddingHorizontal: wp(5),
     borderBottomLeftRadius: wp(6),
     borderBottomRightRadius: wp(6),
     elevation: 6,
@@ -777,17 +633,19 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    width: "100%",
   },
   backButton: {
-    padding: wp(2.5),
+    padding: wp(2),
     borderRadius: wp(2),
+    justifyContent: "center",
+    alignItems: "center",
   },
   headerTitle: {
     fontSize: wp(6),
     fontWeight: "700",
     color: "#FFFFFF",
     letterSpacing: 0.5,
-    textAlign: "center",
   },
   keyboardAvoid: {
     flex: 1,
@@ -796,11 +654,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollView: {
-    padding: wp(5),
+    paddingHorizontal: wp(5),
+    paddingBottom: hp(10),
   },
   sectionTitle: {
-    fontSize: wp(5.5),
-    fontWeight: "700",
+    fontSize: wp(4.5),
+    fontWeight: "600",
     marginVertical: hp(2),
     letterSpacing: 0.3,
   },
@@ -808,16 +667,16 @@ const styles = StyleSheet.create({
     borderRadius: wp(4),
     padding: wp(4),
     marginBottom: hp(2),
-    elevation: 4,
+    elevation: 2,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
   },
   input: {
     marginBottom: hp(1.5),
-    borderRadius: wp(2),
-    height: hp(8),
+    borderRadius: wp(3),
+    height: hp(6),
   },
   inputLabel: {
     fontSize: wp(4),
@@ -825,29 +684,21 @@ const styles = StyleSheet.create({
     marginBottom: hp(1),
     marginTop: hp(1),
   },
-  submitButton: {
-    marginVertical: hp(3),
-    borderRadius: wp(3),
-    elevation: 5,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-  },
-  buttonContent: {
-    height: hp(7),
-    flexDirection: "row",
-    alignItems: "center",
-  },
   tagsContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
-    marginTop: hp(1),
+    alignItems: "center",
+    marginBottom: hp(1),
+    gap: wp(2),
   },
-  tag: {
-    marginRight: wp(2),
+  chip: {
     marginBottom: hp(1),
     borderWidth: 1,
+    borderRadius: wp(5),
+  },
+  chipText: {
+    fontSize: wp(3.5),
+    fontWeight: "600",
   },
   addTagButton: {
     width: wp(10),
@@ -857,34 +708,48 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 1,
   },
+  submitButton: {
+    marginVertical: hp(3),
+    borderRadius: wp(3),
+  },
+  buttonContent: {
+    height: hp(6),
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  buttonLabel: {
+    fontSize: wp(4),
+    color: "#FFFFFF",
+  },
   modalContent: {
     padding: wp(5),
     margin: wp(5),
     borderRadius: wp(4),
-    elevation: 6,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
   },
   modalTitle: {
     fontSize: wp(5.5),
-    fontthrusting: "700",
-    marginBottom: hp(2.5),
-  },
-  modalInput: {
+    fontWeight: "700",
     marginBottom: hp(2),
-  },
-  modalButtons: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    gap: wp(2),
-  },
-  modalButton: {
-    minWidth: wp(20),
   },
   modalItem: {
     fontSize: wp(4),
   },
-  modalDivider: {},
+  modalDivider: {
+    backgroundColor: "#6B7280",
+  },
+  modalButton: {
+    marginTop: hp(2),
+    borderRadius: wp(3),
+  },
+  commonTagsContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginVertical: hp(2),
+    gap: wp(2),
+  },
+  commonTag: {
+    marginBottom: hp(1),
+    borderWidth: 1,
+    borderRadius: wp(5),
+  },
 });
