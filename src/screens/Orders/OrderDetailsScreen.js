@@ -562,7 +562,7 @@ export default function OrderDetailsScreen({ route, navigation }) {
                     </View>
                     <View style={styles.infoRow}>
                       <FontAwesome5
-                        name="brief_Drivercase"
+                        name="suitcase"
                         size={wp(4)}
                         color={theme.colors.placeholder}
                       />

@@ -39,6 +39,7 @@ import EditClientScreen from "../screens/Clients/EditClientScreen";
 import EditEmployeeScreen from "../screens/Employees/EditEmployeeScreen";
 import EditOrderScreen from "../screens/Orders/EditOrderScreen";
 import ProfileScreen from "../screens/Home/ProfileScreen";
+import DetailsListScreen from "../component/DetailsListScreen";
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -246,6 +247,31 @@ const AppNavigator = () => {
       <Stack.Screen
         name="ProjectDetailsScreen"
         component={ProjectDetailsScreen}
+      />
+      {/*Summary Card Screen for Details Data */}
+      <Stack.Screen
+        name="ProjectDetailsList"
+        component={DetailsListScreen}
+        initialParams={{ type: "projects" }}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="ProfitDetailsList"
+        component={DetailsListScreen}
+        initialParams={{ type: "profits" }}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="IncomeDetailsList"
+        component={DetailsListScreen}
+        initialParams={{ type: "income" }}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="ExpenseDetailsList"
+        component={DetailsListScreen}
+        initialParams={{ type: "expenses" }}
+        options={{ headerShown: false }}
       />
 
       {/* Employee Screens */}
