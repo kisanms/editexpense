@@ -298,7 +298,7 @@ const DetailsListScreen = ({ route, navigation }) => {
         const alreadyGranted = await PermissionsAndroid.check(
           PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE
         );
-        console.log("WRITE_EXTERNAL_STORAGE already granted:", alreadyGranted);
+        //console.log("WRITE_EXTERNAL_STORAGE already granted:", alreadyGranted);
 
         if (alreadyGranted) {
           return true;
@@ -313,7 +313,7 @@ const DetailsListScreen = ({ route, navigation }) => {
             buttonNegative: "Cancel",
           }
         );
-        console.log("Permission request result:", result);
+        //console.log("Permission request result:", result);
 
         if (result === PermissionsAndroid.RESULTS.GRANTED) {
           return true;
@@ -340,7 +340,7 @@ const DetailsListScreen = ({ route, navigation }) => {
     let hasPermission = true;
     if (Platform.OS === "android" && Platform.Version < 29) {
       hasPermission = await requestStoragePermission();
-      console.log("Has permission:", hasPermission);
+      //console.log("Has permission:", hasPermission);
     }
 
     if (!hasPermission) {
@@ -361,31 +361,26 @@ const DetailsListScreen = ({ route, navigation }) => {
           Budget: item.budget
             ? `$${Number(item.budget).toLocaleString()}`
             : "N/A",
-          Amount:
-            type === "income" && item.amount
-              ? `$${Number(item.amount).toLocaleString()}`
-              : "N/A",
           Status: item.status
             ? item.status.charAt(0).toUpperCase() +
               item.status.slice(1).toLowerCase()
             : "In-progress",
-          Deadline: item.deadline
-            ? format(
-                item.deadline.toDate
-                  ? item.deadline.toDate()
-                  : new Date(item.deadline),
-                "MM/dd/yyyy"
-              )
-            : "N/A",
           "Created At": item.createdAt
             ? format(
                 item.createdAt.toDate
                   ? item.createdAt.toDate()
                   : new Date(item.createdAt),
-                "MM/dd/yyyy"
+                "dd/MM/yyyy"
               )
             : "N/A",
-          Description: item.description || "N/A",
+          Deadline: item.deadline
+            ? format(
+                item.deadline.toDate
+                  ? item.deadline.toDate()
+                  : new Date(item.deadline),
+                "dd/MM/yyyy"
+              )
+            : "N/A",
         }));
       } else if (type === "expenses") {
         excelData = filteredData.map((item) => ({
@@ -401,7 +396,7 @@ const DetailsListScreen = ({ route, navigation }) => {
                 item.createdAt.toDate
                   ? item.createdAt.toDate()
                   : new Date(item.createdAt),
-                "MM/dd/yyyy"
+                "dd/MM/yyyy"
               )
             : "N/A",
           Description: item.description || "N/A",
@@ -428,7 +423,7 @@ const DetailsListScreen = ({ route, navigation }) => {
                 item.deadline.toDate
                   ? item.deadline.toDate()
                   : new Date(item.deadline),
-                "MM/dd/yyyy"
+                "dd/MM/yyyy"
               )
             : "N/A",
           "Created At": item.createdAt
@@ -436,14 +431,14 @@ const DetailsListScreen = ({ route, navigation }) => {
                 item.createdAt.toDate
                   ? item.createdAt.toDate()
                   : new Date(item.createdAt),
-                "MM/dd/yyyy"
+                "dd/MM/yyyy"
               )
             : "N/A",
           Description: item.description || "N/A",
         }));
       }
 
-      console.log("Generating Excel file...");
+      //console.log("Generating Excel file...");
       const ws = XLSX.utils.json_to_sheet(excelData);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(
@@ -458,29 +453,26 @@ const DetailsListScreen = ({ route, navigation }) => {
         "yyyy-MM-dd"
       )}.xlsx`;
       const fileUri = `${FileSystem.documentDirectory}${fileName}`;
-      console.log("Writing to file:", fileUri);
+      //console.log("Writing to file:", fileUri);
 
       await FileSystem.writeAsStringAsync(fileUri, wbout, {
         encoding: FileSystem.EncodingType.Base64,
       });
 
-      console.log(
-        "File written successfully. Checking sharing availability..."
-      );
       if (await Sharing.isAvailableAsync()) {
-        console.log("Sharing file...");
+        //console.log("Sharing file...");
         await Sharing.shareAsync(fileUri);
-        console.log("File shared successfully.");
+        //console.log("File shared successfully.");
       } else {
         Alert.alert("Success", `File saved to ${fileUri}`);
-        console.log("Sharing not available. File saved to:", fileUri);
+        //console.log("Sharing not available. File saved to:", fileUri);
       }
     } catch (error) {
       console.error("Error exporting to Excel:", error);
       Alert.alert("Error", "Failed to export data to Excel. Please try again.");
     } finally {
       setExporting(false);
-      console.log("Export process completed.");
+      //console.log("Export process completed.");
     }
   };
 

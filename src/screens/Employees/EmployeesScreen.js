@@ -1,45 +1,51 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   StyleSheet,
   TouchableOpacity,
   FlatList,
-  Animated,
   RefreshControl,
   useColorScheme,
+  Linking,
+  StatusBar,
+  TouchableWithoutFeedback,
 } from "react-native";
 import {
   Text,
   Searchbar,
   Card,
-  Chip,
   FAB,
   Portal,
   Modal,
   Button,
   Divider,
+  Surface,
 } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
-import { FontAwesome5 } from "@expo/vector-icons";
+import { FontAwesome5, MaterialIcons } from "@expo/vector-icons";
 import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from "react-native-responsive-screen";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "../../config/firebase";
+import { useFocusEffect } from "@react-navigation/native";
 import { useAuth } from "../../context/AuthContext";
 
 const getTheme = (colorScheme) => ({
   colors: {
     primary: colorScheme === "dark" ? "#60A5FA" : "#1E3A8A",
     error: colorScheme === "dark" ? "#F87171" : "#B91C1C",
-    background: colorScheme === "dark" ? "#1F2937" : "#F3F4F6",
+    background: colorScheme === "dark" ? "#1A1A1A" : "#EFF6FF",
     text: colorScheme === "dark" ? "#F3F4F6" : "#1F2937",
     placeholder: colorScheme === "dark" ? "#9CA3AF" : "#6B7280",
-    surface: colorScheme === "dark" ? "#374151" : "#FFFFFF",
+    surface: colorScheme === "dark" ? "#2A2A2A" : "#FFFFFF",
+    accent: "#34D399", // For green status dot
+    emailIcon: "#E5B800", // Dark yellow for email icon
+    phoneIcon: "#39FF14", // Neon green for phone icon
   },
-  roundness: wp(2),
+  roundness: wp(3),
 });
 
 export default function EmployeesScreen({ navigation }) {
@@ -48,22 +54,19 @@ export default function EmployeesScreen({ navigation }) {
   const [filteredEmployees, setFilteredEmployees] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [refreshing, setRefreshing] = useState(false);
-  const [fadeAnim] = useState(new Animated.Value(0));
   const [showFilterModal, setShowFilterModal] = useState(false);
-  const [selectedFilter, setSelectedFilter] = useState("all");
+  const [selectedFilter, setSelectedFilter] = useState("none");
   const colorScheme = useColorScheme();
   const theme = getTheme(colorScheme);
 
   useEffect(() => {
-    if (userProfile?.businessId) {
-      fetchEmployees();
-    }
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 600,
-      useNativeDriver: true,
-    }).start();
-  }, [userProfile?.businessId]);
+    // Status bar configuration
+    StatusBar.setBarStyle(
+      colorScheme === "dark" ? "light-content" : "dark-content"
+    );
+    StatusBar.setBackgroundColor("transparent");
+    StatusBar.setTranslucent(true);
+  }, [colorScheme]);
 
   const fetchEmployees = async () => {
     try {
@@ -72,6 +75,7 @@ export default function EmployeesScreen({ navigation }) {
         return;
       }
 
+      setRefreshing(true);
       const q = query(
         collection(db, "employees"),
         where("businessId", "==", userProfile.businessId)
@@ -85,14 +89,22 @@ export default function EmployeesScreen({ navigation }) {
       setFilteredEmployees(employeesList);
     } catch (error) {
       console.error("Error fetching employees: ", error);
+    } finally {
+      setRefreshing(false);
     }
   };
 
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await fetchEmployees();
-    setRefreshing(false);
-  };
+  useFocusEffect(
+    useCallback(() => {
+      if (userProfile?.businessId) {
+        fetchEmployees();
+      }
+    }, [userProfile?.businessId])
+  );
+
+  const onRefresh = useCallback(() => {
+    fetchEmployees();
+  }, []);
 
   const handleSearch = (query) => {
     setSearchQuery(query);
@@ -105,98 +117,132 @@ export default function EmployeesScreen({ navigation }) {
   const handleFilter = (filter) => {
     setSelectedFilter(filter);
     let filtered = [...employees];
-    if (filter === "active") {
-      filtered = employees.filter((employee) => employee.status === "active");
-    } else if (filter === "inactive") {
-      filtered = employees.filter((employee) => employee.status === "inactive");
+    if (filter === "aToZ") {
+      filtered.sort((a, b) => a.fullName.localeCompare(b.fullName));
+    } else if (filter === "zToA") {
+      filtered.sort((a, b) => b.fullName.localeCompare(b.fullName));
     }
     setFilteredEmployees(filtered);
     setShowFilterModal(false);
   };
 
+  const handleEmailPress = (email) => {
+    Linking.openURL(`mailto:${email}`).catch((err) =>
+      console.error("Error opening email: ", err)
+    );
+  };
+
+  const handlePhonePress = (phone) => {
+    Linking.openURL(`tel:${phone}`).catch((err) =>
+      console.error("Error making call: ", err)
+    );
+  };
+
   const renderEmployeeCard = ({ item }) => (
-    <TouchableOpacity
+    <TouchableWithoutFeedback
       onPress={() => navigation.navigate("EmployeeDetails", { employee: item })}
     >
-      <Card style={[styles.card, { backgroundColor: theme.colors.surface }]}>
-        <Card.Content>
-          <View style={styles.cardHeader}>
-            <Text style={[styles.employeeName, { color: theme.colors.text }]}>
-              {item.fullName}
-            </Text>
-            <Chip
-              mode="flat"
-              style={[
-                styles.statusChip,
-                {
-                  backgroundColor:
-                    item.status === "active"
-                      ? colorScheme === "dark"
-                        ? "#2DD4BF20"
-                        : "#D1FAE5"
-                      : colorScheme === "dark"
-                      ? "#F8717120"
-                      : "#FEE2E2",
-                  borderColor:
-                    item.status === "active" ? "#38B2AC" : theme.colors.error,
-                },
-              ]}
-              textStyle={[
-                styles.statusText,
-                {
-                  color:
-                    item.status === "active" ? "#38B2AC" : theme.colors.error,
-                },
-              ]}
-            >
-              {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
-            </Chip>
-          </View>
-          <View style={styles.employeeInfo}>
-            <View style={styles.infoRow}>
-              <FontAwesome5
-                name="envelope"
-                size={wp(4)}
-                color={theme.colors.placeholder}
-              />
-              <Text style={[styles.infoText, { color: theme.colors.text }]}>
-                {item.email}
-              </Text>
+      <Card
+        style={[
+          styles.card,
+          {
+            backgroundColor: theme.colors.surface,
+            borderWidth: colorScheme === "dark" ? 0 : 1,
+            borderColor: colorScheme === "dark" ? undefined : "#E5E7EB",
+          },
+        ]}
+      >
+        <LinearGradient
+          colors={
+            colorScheme === "dark"
+              ? ["#2A2A2A", "#2A2A2A80"]
+              : ["#FFFFFF", "#FFFFFF"]
+          }
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.cardGradient}
+        >
+          <Card.Content>
+            <View style={styles.cardHeader}>
+              <View style={styles.nameContainer}>
+                <View style={styles.avatarContainer}>
+                  <View style={styles.avatar}>
+                    <Text
+                      style={[
+                        styles.avatarText,
+                        { color: theme.colors.primary },
+                      ]}
+                    >
+                      {item.fullName.charAt(0).toUpperCase()}
+                    </Text>
+                  </View>
+                  {item.status === "active" && (
+                    <View
+                      style={[
+                        styles.statusDot,
+                        { backgroundColor: theme.colors.accent },
+                      ]}
+                    />
+                  )}
+                </View>
+                <View style={styles.nameAndIcons}>
+                  <Text
+                    style={[styles.employeeName, { color: theme.colors.text }]}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                  >
+                    {item.fullName}
+                  </Text>
+                  <View style={styles.contactRow}>
+                    <TouchableWithoutFeedback
+                      onPress={() => handleEmailPress(item.email)}
+                    >
+                      <Surface
+                        style={[
+                          styles.iconSurface,
+                          { backgroundColor: theme.colors.background },
+                        ]}
+                      >
+                        <FontAwesome5
+                          name="envelope"
+                          size={wp(4)}
+                          color={theme.colors.emailIcon}
+                        />
+                      </Surface>
+                    </TouchableWithoutFeedback>
+                    <TouchableWithoutFeedback
+                      onPress={() => handlePhonePress(item.phone)}
+                    >
+                      <Surface
+                        style={[
+                          styles.iconSurface,
+                          { backgroundColor: theme.colors.background },
+                        ]}
+                      >
+                        <FontAwesome5
+                          name="phone"
+                          size={wp(4)}
+                          color={theme.colors.phoneIcon}
+                        />
+                      </Surface>
+                    </TouchableWithoutFeedback>
+                  </View>
+                </View>
+              </View>
             </View>
-            <View style={styles.infoRow}>
-              <FontAwesome5
-                name="phone"
-                size={wp(4)}
-                color={theme.colors.placeholder}
-              />
-              <Text style={[styles.infoText, { color: theme.colors.text }]}>
-                {item.phone}
+            {item.role && (
+              <Text
+                style={[styles.roleText, { color: theme.colors.placeholder }]}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
+                {item.role}
               </Text>
-            </View>
-            {/* <View style={styles.infoRow}>
-              <FontAwesome5
-                name="tools"
-                size={wp(4)}
-                color={theme.colors.placeholder}
-              />
-              <Text style={[styles.infoText, { color: theme.colors.text }]}>
-                {item.skills}
-              </Text>
-            </View>
-            <View style={styles.infoRow}>
-              <FontAwesome5
-                name="briefcase"
-                size={wp(4)}
-                color={theme.colors.placeholder}
-              />
-              <Text style={[styles.infoText, { color: theme.colors.text }]}>
-                {item.experience} years experience
-              </Text>
-            </View> */}
-          </View>
-        </Card.Content>
+            )}
+          </Card.Content>
+        </LinearGradient>
       </Card>
-    </TouchableOpacity>
+    </TouchableWithoutFeedback>
   );
 
   return (
@@ -206,8 +252,8 @@ export default function EmployeesScreen({ navigation }) {
       <LinearGradient
         colors={
           colorScheme === "dark"
-            ? ["#111827", "#1E40AF"]
-            : ["#1E3A8A", "#3B82F6"]
+            ? ["#1A1A1A", "#1A1A1A"]
+            : ["#0047CC", "#0047CC"]
         }
         style={styles.header}
         start={{ x: 0, y: 0 }}
@@ -219,19 +265,12 @@ export default function EmployeesScreen({ navigation }) {
             onPress={() => setShowFilterModal(true)}
             style={styles.filterButton}
           >
-            <FontAwesome5 name="filter" size={wp(5)} color="#fff" />
+            <FontAwesome5 name="filter" size={wp(5)} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
       </LinearGradient>
 
-      <Animated.View
-        style={[
-          styles.content,
-          {
-            opacity: fadeAnim,
-          },
-        ]}
-      >
+      <View style={styles.content}>
         <Searchbar
           placeholder="Search employees..."
           onChangeText={handleSearch}
@@ -257,21 +296,34 @@ export default function EmployeesScreen({ navigation }) {
           }
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
+              <MaterialIcons
+                name="people-outline"
+                size={wp(15)}
+                color={theme.colors.placeholder}
+              />
               <Text style={[styles.emptyText, { color: theme.colors.text }]}>
                 No employees found
+              </Text>
+              <Text
+                style={[
+                  styles.emptySubText,
+                  { color: theme.colors.placeholder },
+                ]}
+              >
+                Add a new employee to get started
               </Text>
             </View>
           }
         />
-      </Animated.View>
 
-      <FAB
-        style={[styles.fab, { backgroundColor: theme.colors.primary }]}
-        icon="plus"
-        onPress={() => navigation.navigate("AddEmployee")}
-        color="#FFFFFF"
-        theme={theme}
-      />
+        <FAB
+          style={[styles.fab, { backgroundColor: "#0047CC" }]}
+          icon="plus"
+          onPress={() => navigation.navigate("AddEmployee")}
+          color="#FFFFFF"
+          theme={theme}
+        />
+      </View>
 
       <Portal>
         <Modal
@@ -283,7 +335,7 @@ export default function EmployeesScreen({ navigation }) {
           ]}
         >
           <Text style={[styles.modalTitle, { color: theme.colors.primary }]}>
-            Filter Employees
+            Sort Employees
           </Text>
           <Divider
             style={[
@@ -292,28 +344,28 @@ export default function EmployeesScreen({ navigation }) {
             ]}
           />
           <Button
-            mode={selectedFilter === "all" ? "contained" : "outlined"}
-            onPress={() => handleFilter("all")}
+            mode={selectedFilter === "none" ? "contained" : "outlined"}
+            onPress={() => handleFilter("none")}
             style={styles.filterButton}
             theme={theme}
           >
-            All Employees
+            Default
           </Button>
           <Button
-            mode={selectedFilter === "active" ? "contained" : "outlined"}
-            onPress={() => handleFilter("active")}
+            mode={selectedFilter === "aToZ" ? "contained" : "outlined"}
+            onPress={() => handleFilter("aToZ")}
             style={styles.filterButton}
             theme={theme}
           >
-            Active Employees
+            Name (A to Z)
           </Button>
           <Button
-            mode={selectedFilter === "inactive" ? "contained" : "outlined"}
-            onPress={() => handleFilter("inactive")}
+            mode={selectedFilter === "zToA" ? "contained" : "outlined"}
+            onPress={() => handleFilter("zToA")}
             style={styles.filterButton}
             theme={theme}
           >
-            Inactive Employees
+            Name (Z to A)
           </Button>
         </Modal>
       </Portal>
@@ -327,9 +379,7 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingVertical: hp(3),
-    paddingHorizontal: wp(4),
-    borderBottomLeftRadius: wp(6),
-    borderBottomRightRadius: wp(6),
+    paddingHorizontal: wp(5),
     elevation: 6,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 3 },
@@ -340,6 +390,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    width: "100%",
   },
   headerTitle: {
     fontSize: wp(6),
@@ -348,70 +399,105 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   filterButton: {
-    padding: wp(2.5),
+    padding: wp(2),
     borderRadius: wp(2),
+    justifyContent: "center",
+    alignItems: "center",
   },
   content: {
     flex: 1,
+    paddingHorizontal: wp(5),
   },
   searchBar: {
-    margin: wp(4),
+    marginVertical: hp(2),
     elevation: 2,
+    borderRadius: wp(3),
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
   },
   listContent: {
-    padding: wp(4),
     paddingBottom: hp(20),
   },
   card: {
     marginBottom: hp(2),
-    elevation: 6,
-    borderRadius: wp(4),
-    overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
+    borderRadius: 20,
+    backgroundColor: "#FFFFFF", // Explicit background color
+  },
+  cardGradient: {
+    borderRadius: 16,
+    padding: wp(1),
   },
   cardHeader: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: hp(1.5),
-    paddingHorizontal: wp(2),
+    marginBottom: hp(1),
+    marginTop: hp(0.5),
   },
-  employeeName: {
-    fontSize: wp(5),
-    fontWeight: "700",
-    flex: 1,
-  },
-  statusChip: {
-    borderWidth: 1,
-    borderRadius: wp(2),
-    paddingHorizontal: wp(2),
-    paddingVertical: hp(0.5),
-  },
-  statusText: {
-    fontSize: wp(3.5),
-    fontWeight: "600",
-  },
-  employeeInfo: {
-    paddingHorizontal: wp(2),
-  },
-  infoRow: {
+  nameContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: hp(1.2),
-  },
-  infoText: {
-    fontSize: wp(3.8),
-    marginLeft: wp(2.5),
     flex: 1,
+  },
+  avatarContainer: {
+    position: "relative",
+    marginRight: wp(3),
+  },
+  avatar: {
+    width: wp(10),
+    height: wp(10),
+    borderRadius: wp(5),
+    backgroundColor: "#E5E7EB",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  avatarText: {
+    fontSize: wp(5),
+    fontWeight: "bold",
+  },
+  statusDot: {
+    position: "absolute",
+    top: -wp(1),
+    right: -wp(1),
+    width: wp(3),
+    height: wp(3),
+    borderRadius: wp(1.5),
+  },
+  nameAndIcons: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  employeeName: {
+    fontSize: wp(4.5),
+    fontWeight: "600",
+    flexShrink: 1,
+    marginRight: wp(2),
+  },
+  roleText: {
+    fontSize: wp(3.5),
+    marginBottom: hp(1),
+    opacity: 0.8,
+  },
+  contactRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: wp(2),
+  },
+  iconSurface: {
+    width: wp(10),
+    height: wp(10),
+    borderRadius: wp(5),
+    justifyContent: "center",
+    alignItems: "center",
   },
   fab: {
     position: "absolute",
     margin: wp(4),
     right: 0,
-    bottom: hp(10),
+    bottom: hp(11),
     elevation: 4,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
@@ -426,6 +512,12 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: wp(4),
+    fontWeight: "600",
+  },
+  emptySubText: {
+    fontSize: wp(3.5),
+    marginTop: hp(1),
+    opacity: 0.8,
   },
   modalContent: {
     padding: wp(5),

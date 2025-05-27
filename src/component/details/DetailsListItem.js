@@ -1,4 +1,3 @@
-// components/details/DetailsListItem.js
 import React from "react";
 import { View, StyleSheet, useColorScheme } from "react-native";
 import { Card, Text, Chip } from "react-native-paper";
@@ -10,13 +9,9 @@ import {
 import { format } from "date-fns";
 
 const DetailsListItem = ({ item, type, screenInfo, theme, navigation }) => {
-  // Debug logs
-  console.log(`Item for type ${type}:`, item);
-  console.log("Theme:", theme);
-
   const colorScheme = useColorScheme();
 
-  // Status color logic aligned with RecentOrders
+  // Status color logic aligned with RecentOrders and OrdersScreen
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
       case "in-progress":
@@ -78,8 +73,8 @@ const DetailsListItem = ({ item, type, screenInfo, theme, navigation }) => {
               style={[styles.itemTitle, { color: theme.text }]}
               numberOfLines={1}
             >
-              {type === "projects"
-                ? item.projectName || "N/A"
+              {type === "projects" || type === "profits"
+                ? item.projectName || item.title || "N/A"
                 : item.title || "N/A"}
             </Text>
           </View>
@@ -98,8 +93,12 @@ const DetailsListItem = ({ item, type, screenInfo, theme, navigation }) => {
               {displayStatus}
             </Chip>
           ) : (
-            <Text style={[styles.amount, { color: theme.primary }]}>
-              {item.amount && !isNaN(Number(item.amount))
+            <Text style={[styles.amount, { color: "#38B2AC" }]}>
+              {type === "profits"
+                ? item.profit && !isNaN(Number(item.profit))
+                  ? `$${Number(item.profit).toLocaleString()}`
+                  : "N/A"
+                : item.amount && !isNaN(Number(item.amount))
                 ? `$${Number(item.amount).toLocaleString()}`
                 : "N/A"}
             </Text>
@@ -128,6 +127,45 @@ const DetailsListItem = ({ item, type, screenInfo, theme, navigation }) => {
                       : "N/A"
                     : item.budget && !isNaN(Number(item.budget))
                     ? `$${Number(item.budget).toLocaleString()}`
+                    : "N/A"}
+                </Text>
+              </View>
+              {item.description && (
+                <Text
+                  style={[styles.description, { color: theme.placeholder }]}
+                  numberOfLines={2}
+                >
+                  {item.description}
+                </Text>
+              )}
+            </>
+          ) : type === "profits" ? (
+            <>
+              <View style={styles.detailRow}>
+                <Text style={[styles.label, { color: theme.placeholder }]}>
+                  Client:
+                </Text>
+                <Text style={[styles.value, { color: theme.text }]}>
+                  {item.clientName || "N/A"}
+                </Text>
+              </View>
+              <View style={styles.detailRow}>
+                <Text style={[styles.label, { color: theme.placeholder }]}>
+                  In-Amount:
+                </Text>
+                <Text style={[styles.value, { color: theme.text }]}>
+                  {item.budget && !isNaN(Number(item.budget))
+                    ? `$${Number(item.budget).toLocaleString()}`
+                    : "N/A"}
+                </Text>
+              </View>
+              <View style={styles.detailRow}>
+                <Text style={[styles.label, { color: theme.placeholder }]}>
+                  Ex-Amount:
+                </Text>
+                <Text style={[styles.value, { color: theme.text }]}>
+                  {item.totalExpense && !isNaN(Number(item.totalExpense))
+                    ? `$${Number(item.totalExpense).toLocaleString()}`
                     : "N/A"}
                 </Text>
               </View>
@@ -175,7 +213,9 @@ const DetailsListItem = ({ item, type, screenInfo, theme, navigation }) => {
                   style={[styles.description, { color: theme.placeholder }]}
                   numberOfLines={2}
                 >
-                  Description: {item.description}
+                  <Text style={[styles.value, { color: theme.text }]}>
+                    Description: {item.description || "N/A"}
+                  </Text>
                 </Text>
               )}
             </>
@@ -221,11 +261,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   statusChip: {
-    height: hp(5),
-    paddingHorizontal: wp(2),
+    height: hp(4),
+    paddingHorizontal: wp(1),
     borderWidth: 1,
   },
   chipText: {
+    textAlign: "center",
     fontSize: wp(3),
     fontWeight: "500",
   },
@@ -256,8 +297,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginTop: hp(1),
-    paddingTop: hp(1),
     borderTopWidth: 0.5,
   },
   date: {

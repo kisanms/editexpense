@@ -330,16 +330,6 @@ export default function EmployeeDetailsScreen({ route, navigation }) {
                     {employee.createdAt?.toDate().toLocaleDateString() || "N/A"}
                   </Text>
                 </View>
-                <View style={styles.infoRow}>
-                  <FontAwesome5
-                    name="info-circle"
-                    size={wp(4)}
-                    color={theme.colors.placeholder}
-                  />
-                  <Text style={[styles.infoText, { color: theme.colors.text }]}>
-                    Notes: {employee.notes || "No additional notes"}
-                  </Text>
-                </View>
               </View>
             </Card.Content>
           </Card>

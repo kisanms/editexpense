@@ -392,14 +392,7 @@ export default function OrderDetailsScreen({ route, navigation }) {
                   Project Information
                 </Text>
                 {project ? (
-                  <TouchableOpacity
-                    onPress={() =>
-                      navigation.navigate("ProjectDetails", {
-                        project,
-                        clientId: order.clientId,
-                      })
-                    }
-                  >
+                  <View>
                     <View style={styles.infoRow}>
                       <FontAwesome5
                         name="folder"
@@ -438,7 +431,7 @@ export default function OrderDetailsScreen({ route, navigation }) {
                           "N/A"}
                       </Text>
                     </View>
-                  </TouchableOpacity>
+                  </View>
                 ) : order.projectId ? (
                   <Text
                     style={[styles.loadingText, { color: theme.colors.text }]}
