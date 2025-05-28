@@ -41,7 +41,6 @@ const getTheme = (colorScheme) => ({
     text: colorScheme === "dark" ? "#F3F4F6" : "#1F2937",
     placeholder: colorScheme === "dark" ? "#9CA3AF" : "#6B7280",
     surface: colorScheme === "dark" ? "#2A2A2A" : "#FFFFFF",
-    accent: "#34D399", // For green dot
     emailIcon: "#E5B800", // Dark yellow for email icon
     phoneIcon: "#39FF14", // Neon green for phone icon
   },
@@ -176,14 +175,14 @@ export default function ClientsScreen({ navigation }) {
                       {item.fullName.charAt(0).toUpperCase()}
                     </Text>
                   </View>
-                  {item.status === "active" && (
+                  {/* {item.status === "active" && (
                     <View
                       style={[
                         styles.statusDot,
                         { backgroundColor: theme.colors.accent },
                       ]}
                     />
-                  )}
+                  )} */}
                 </View>
                 <View style={styles.nameAndIcons}>
                   <Text

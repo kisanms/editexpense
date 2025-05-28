@@ -73,7 +73,7 @@ const DetailsListItem = ({ item, type, screenInfo, theme, navigation }) => {
               style={[styles.itemTitle, { color: theme.text }]}
               numberOfLines={1}
             >
-              {type === "projects" || type === "profits"
+              {type === "projects" || type === "profits" || type === "income"
                 ? item.projectName || item.title || "N/A"
                 : item.title || "N/A"}
             </Text>

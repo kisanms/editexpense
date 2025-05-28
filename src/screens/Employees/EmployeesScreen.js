@@ -176,14 +176,14 @@ export default function EmployeesScreen({ navigation }) {
                       {item.fullName.charAt(0).toUpperCase()}
                     </Text>
                   </View>
-                  {item.status === "active" && (
+                  {/* {item.status === "active" && (
                     <View
                       style={[
                         styles.statusDot,
                         { backgroundColor: theme.colors.accent },
                       ]}
                     />
-                  )}
+                  )} */}
                 </View>
                 <View style={styles.nameAndIcons}>
                   <Text
