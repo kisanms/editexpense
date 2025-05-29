@@ -74,34 +74,6 @@ A role-based service management app designed for real estate teams. This system 
 
 ---
 
-## 🗃 Database Schema
-
-### 📄 Users Collection
-
-```json
-{
-  "userId": "Firebase UID",
-  "email": "user@example.com",
-  "username": "User Name",
-  "role": "admin / partner",
-  "organizationId": "org_123",
-  "createdAt": "timestamp",
-  "lastLogin": "timestamp"
-}
-```
-
-### 🏢 Organizations Collection
-
-```json
-{
-  "organizationId": "org_123",
-  "name": "Real Estate Group",
-  "adminId": "userId",
-  "partners": ["userId1", "userId2"],
-  "createdAt": "timestamp",
-  "invitationKey": "secureKey"
-}
-```
 
 ---
 
