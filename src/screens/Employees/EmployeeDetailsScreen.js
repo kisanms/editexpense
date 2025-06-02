@@ -802,71 +802,6 @@ export default function EmployeeDetailsScreen({ route, navigation }) {
                       </Text>
                     </View>
                   </View>
-                  <View
-                    style={[
-                      {
-                        flexDirection: "row",
-                        alignItems: "center",
-                        marginBottom: hp(2),
-                      },
-                    ]}
-                  >
-                    <Surface
-                      style={[
-                        {
-                          width: wp(8),
-                          height: wp(8),
-                          borderRadius: wp(4),
-                          justifyContent: "center",
-                          alignItems: "center",
-                          backgroundColor: theme.colors.background,
-                        },
-                      ]}
-                    >
-                      <FontAwesome5
-                        name="dollar-sign"
-                        size={wp(4)}
-                        color={theme.colors.primary}
-                      />
-                    </Surface>
-                    <View style={[{ marginLeft: wp(3), flex: 1 }]}>
-                      <Text
-                        style={[
-                          {
-                            fontSize: wp(3.5),
-                            marginBottom: hp(0.5),
-                            color: theme.colors.placeholder,
-                          },
-                        ]}
-                      >
-                        Project Invoice
-                      </Text>
-                      <Button
-                        mode="contained"
-                        onPress={() => setShowInvoiceModal(true)}
-                        style={[
-                          {
-                            borderRadius: wp(3),
-                            height: hp(5.5),
-                            justifyContent: "center",
-                            backgroundColor: theme.colors.accent,
-                          },
-                        ]}
-                        labelStyle={[
-                          {
-                            fontSize: wp(4.5),
-                            fontWeight: "600",
-                            color: theme.colors.text,
-                          },
-                        ]}
-                        icon="file-document"
-                        theme={theme}
-                        disabled={projectsData.length === 0}
-                      >
-                        Generate Invoice
-                      </Button>
-                    </View>
-                  </View>
                 </View>
 
                 <Divider
@@ -949,6 +884,98 @@ export default function EmployeeDetailsScreen({ route, navigation }) {
                       },
                     ]}
                   ></View>
+                </View>
+
+                <Divider
+                  style={[
+                    {
+                      height: 1,
+                      backgroundColor: theme.colors.placeholder,
+                    },
+                  ]}
+                />
+
+                <View style={[{ marginBottom: hp(2) }]}>
+                  <Text
+                    style={[
+                      {
+                        fontSize: wp(4.5),
+                        fontWeight: "600",
+                        borderLeftWidth: 3,
+                        paddingLeft: wp(2),
+                        color: theme.colors.primary,
+                        marginTop: hp(2),
+                      },
+                    ]}
+                  >
+                    Invoice Details
+                  </Text>
+
+                  <View
+                    style={[
+                      {
+                        flexDirection: "row",
+                        alignItems: "center",
+                        marginBottom: hp(2),
+                      },
+                    ]}
+                  >
+                    <Surface
+                      style={[
+                        {
+                          width: wp(8),
+                          height: wp(8),
+                          borderRadius: wp(4),
+                          justifyContent: "center",
+                          alignItems: "center",
+                          backgroundColor: theme.colors.background,
+                        },
+                      ]}
+                    >
+                      <FontAwesome5
+                        name="dollar-sign"
+                        size={wp(4)}
+                        color={theme.colors.primary}
+                      />
+                    </Surface>
+                    <View style={[{ marginLeft: wp(3), flex: 1 }]}>
+                      <Text
+                        style={[
+                          {
+                            fontSize: wp(3.5),
+                            marginBottom: hp(0.5),
+                            color: theme.colors.placeholder,
+                          },
+                        ]}
+                      >
+                        Project Invoice
+                      </Text>
+                      <Button
+                        mode="contained"
+                        onPress={() => setShowInvoiceModal(true)}
+                        style={[
+                          {
+                            borderRadius: wp(3),
+                            height: hp(5.5),
+                            justifyContent: "center",
+                            backgroundColor: theme.colors.accent,
+                          },
+                        ]}
+                        labelStyle={[
+                          {
+                            fontSize: wp(4.5),
+                            fontWeight: "600",
+                            color: theme.colors.text,
+                          },
+                        ]}
+                        icon="file-document"
+                        theme={theme}
+                        disabled={projectsData.length === 0}
+                      >
+                        Generate Invoice
+                      </Button>
+                    </View>
+                  </View>
                 </View>
               </Card.Content>
             </LinearGradient>
